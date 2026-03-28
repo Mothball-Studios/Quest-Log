@@ -36,8 +36,7 @@ module.exports = __toCommonJS(main_exports);
 var import_obsidian = require("obsidian");
 var DEFAULT_SETTINGS = {
   rewardsMode: false,
-  currentXp: 100,
-  currentLvl: 1,
+  currentXp: 0,
   heroName: "Hero",
 };
 var QuestLog = class extends import_obsidian.Plugin {
@@ -197,8 +196,6 @@ var QuestLogView = class extends import_obsidian.ItemView {
     const currentLvl = this.plugin.settings.currentLvl;
     const currentXp = this.plugin.settings.currentXp;
     const calculatedLvl = this.getLevel(currentXp);
-    this.plugin.settings.currentLvl = calculatedLvl;
-    await this.plugin.saveSettings();
     const xpFrmPrevLvls = this.getXpForLvl(calculatedLvl - 1);
     const xpForNextLvl = this.getXpForLvl(calculatedLvl);
     const progressXp = currentXp - xpFrmPrevLvls;
@@ -219,16 +216,22 @@ var QuestLogView = class extends import_obsidian.ItemView {
     });
     const editIcon = nameContainer.createEl("span", { cls: "edit-icon" });
     (0, import_obsidian.setIcon)(editIcon, "pencil");
+    let heroNameTimer;
     heroNameEl.addEventListener("input", () => {
       const nameInput = heroNameEl.innerText;
       this.plugin.settings.heroName = nameInput.trim();
-      this.plugin.saveSettings();
+      clearTimeout(heroNameTimer);
+      heroNameTimer = setTimeout(() => {
+        this.plugin.saveSettings();
+      }, 500);
     });
     heroNameEl.addEventListener("blur", () => {
+      clearTimeout(heroNameTimer);
       if (heroNameEl.innerText.trim() === "") {
         heroNameEl.setText("Hero");
         this.plugin.settings.heroName = "Hero";
       }
+      this.plugin.saveSettings();
     });
     heroInfo.createEl("div", {
       text: "Novice Adventurer",
