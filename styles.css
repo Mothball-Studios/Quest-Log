@@ -2,31 +2,105 @@
    RESET MODAL
    ============================================================ */
 
-.reset-modal-header,
-.reset-modal-desc,
-.reset-input {
-  width: 100% !important;
-  box-sizing: border-box;
-}
-.reset-input {
-  padding: 10px;
-  margin-top: 10px;
-  background-color: #111;
-  border: 1px solid #333;
-  border-radius: 5px;
-}
-.reset-btn-container {
+.reset-modal-content {
+  border-radius: 14px !important;
+  padding: 24px !important;
   display: flex;
-  justify-content: center;
-  width: 100%;
-  margin-top: 20px;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 320px;
 }
-.reset-confirm-btn {
-  padding: 12px 24px !important;
-  font-size: 1.1em !important;
-  font-weight: bold !important;
-  width: 80%;
+
+.reset-modal-header-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.reset-modal-warn-icon {
+  color: #f59e0b;
+}
+.reset-modal-warn-icon svg {
+  width: 24px;
+  height: 24px;
+}
+.reset-modal-header {
+  margin: 0 !important;
+  font-size: 20px !important;
+  color: #fff;
+}
+
+.reset-modal-desc {
+  color: #999;
+  font-size: 13px;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.reset-modal-confirm-label {
+  color: #888;
+  font-size: 12px;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+}
+
+.reset-modal-hero-inline {
+  text-transform: none;
+  color: #fff;
+}
+
+.reset-modal-input {
+  width: 100%;
+  background-color: #111 !important;
+  border: 1px solid #333 !important;
+  border-radius: 8px !important;
+  padding: 10px 12px !important;
+  color: #fff !important;
+  font-size: 15px !important;
+  outline: none !important;
+  box-sizing: border-box;
+  transition: border-color 0.15s ease;
+}
+.reset-modal-input:focus {
+  border-color: #f59e0b !important;
+}
+.reset-modal-input::placeholder {
+  color: #555;
+}
+
+.reset-modal-btn-row {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+.reset-modal-cancel-btn {
+  background-color: #2a2a2a !important;
+  color: #ccc !important;
+  border: 1px solid #3a3a3a !important;
+  padding: 9px 18px !important;
+  border-radius: 8px !important;
+  cursor: pointer;
+  font-weight: bold;
+  font-size: 13px;
+}
+
+.reset-modal-confirm-btn {
   background-color: #ff4d4d !important;
+  color: #fff !important;
+  border: none !important;
+  padding: 9px 18px !important;
+  border-radius: 8px !important;
+  cursor: pointer;
+  font-weight: bold;
+  font-size: 13px;
+  transition: opacity 0.15s ease;
+}
+.reset-modal-confirm-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
 /* ============================================================
@@ -320,11 +394,12 @@
 .quest-modal-title {
   width: 100%;
   background-color: #111;
-  border: 1px solid #2a2a2a;
+  border: 1px solid #333;
   padding: 10px 12px;
   border-radius: 8px;
   color: #fff;
-  font-size: 15px;
+  font-size: 18px;
+  font-weight: bold;
   outline: none;
   transition: border-color 0.15s ease;
 }
@@ -339,7 +414,7 @@
   height: 70px;
   resize: none;
   background-color: #111;
-  border: 1px solid #2a2a2a;
+  border: 1px solid #333;
   padding: 10px 12px;
   border-radius: 8px;
   color: #ccc;
@@ -518,7 +593,9 @@
   border-radius: 10px;
   padding: 12px 14px;
   cursor: pointer;
-  transition: border-color 0.15s ease, background-color 0.15s ease;
+  transition:
+    border-color 0.15s ease,
+    background-color 0.15s ease;
   position: relative;
 }
 .quest-block:hover {
@@ -627,9 +704,10 @@
   color: #fff;
   font-size: 18px !important;
   font-weight: bold;
-  padding: 6px 10px !important;
-  border-radius: 6px !important;
+  padding: 10px 12px !important;
+  border-radius: 8px !important;
   outline: none !important;
+  transition: border-color 0.15s ease;
 }
 .quest-detail-title-input:focus {
   border-color: #5e87ff !important;

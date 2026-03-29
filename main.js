@@ -118,33 +118,58 @@ var ResetConfirmModal = class extends Modal {
 
   onOpen() {
     const { contentEl } = this;
+    contentEl.empty();
+    contentEl.addClass("reset-modal-content");
 
-    contentEl.createEl("h2", {
-      text: "Confirm Reset",
+    // Warning icon + header
+    const headerRow = contentEl.createEl("div", { cls: "reset-modal-header-row" });
+    const warnIcon = headerRow.createEl("span", { cls: "reset-modal-warn-icon" });
+    setIcon(warnIcon, "alert-triangle");
+    headerRow.createEl("h2", {
+      text: "Reset All Data",
       cls: "reset-modal-header",
     });
+
     contentEl.createEl("p", {
-      text: `Type "${this.plugin.settings.heroName}" to confirm data reset:`,
+      text: "This will wipe your hero's level, XP, and all quest data. This cannot be undone.",
       cls: "reset-modal-desc",
     });
 
+    // Confirmation input
+    const confirmLabel = contentEl.createEl("div", {
+      cls: "reset-modal-confirm-label",
+    });
+    confirmLabel.createEl("span", { text: "Type " });
+    confirmLabel.createEl("span", {
+      text: `"${this.plugin.settings.heroName}"`,
+      cls: "reset-modal-hero-inline",
+    });
+    confirmLabel.createEl("span", { text: " to confirm:" });
     const inputEl = contentEl.createEl("input", {
       type: "text",
-      cls: "reset-input",
+      placeholder: "Hero name...",
+      cls: "reset-modal-input",
     });
-    const btnContainer = contentEl.createEl("div", {
-      cls: "reset-btn-container",
+
+    // Buttons
+    const btnRow = contentEl.createEl("div", { cls: "reset-modal-btn-row" });
+    const cancelBtn = btnRow.createEl("button", {
+      text: "Cancel",
+      cls: "reset-modal-cancel-btn",
     });
-    const confirmBtn = btnContainer.createEl("button", {
+    const confirmBtn = btnRow.createEl("button", {
       text: "Reset Everything",
-      cls: "reset-confirm-btn",
+      cls: "reset-modal-confirm-btn",
     });
     confirmBtn.disabled = true;
 
     // Enable button only when hero name matches
     inputEl.addEventListener("input", () => {
       confirmBtn.disabled = inputEl.value !== this.plugin.settings.heroName;
+      confirmBtn.setAttr("aria-disabled", confirmBtn.disabled);
     });
+
+    cancelBtn.addEventListener("click", () => this.close());
 
     // Reset all settings to defaults (deep clone to avoid shared array refs)
     confirmBtn.addEventListener("click", async () => {
@@ -186,12 +211,20 @@ var QuestLogView = class extends ItemView {
   // XP & LEVEL CALCULATIONS
   // ----------------------------------------
 
-  // XP threshold to reach a given level (0-indexed: level 0 = 0 XP)
+  // XP threshold to reach a given level
+  // Levels 1-15: per-level cost = lvl * 1000 (1k, 2k, 3k... 15k)
+  // Level 16+: exponential (35% increase per level starting from 16k)
   getXpForLvl(lvl) {
     if (lvl <= 0) return 0;
-    const curve = 8 * Math.pow(lvl, 2.7);
-    const linear = lvl * 1000;
-    return Math.floor(Math.max(linear, curve));
+    if (lvl <= 15) return Math.floor(lvl * (lvl + 1) / 2 * 1000);
+    const base = 15 * 16 / 2 * 1000; // 120000 at level 15
+    let xp = base;
+    let cost = 16000;
+    for (let i = 16; i <= lvl; i++) {
+      xp += cost;
+      cost = Math.floor(cost * 1.35);
+    }
+    return xp;
   }
 
   // Determine level from current XP — find highest level whose threshold we've met
@@ -201,6 +234,120 @@ var QuestLogView = class extends ItemView {
       lvl++;
     }
     return lvl;
+  }
+
+  // ----------------------------------------
+  // XP CONSTANTS & HELPERS
+  // ----------------------------------------
+
+  static DIFFICULTY_LABELS = ["Trivial", "Easy", "Medium", "Hard", "Legendary"];
+  static URGENCY_LABELS = ["Relaxed", "Soon", "Urgent", "Critical", "Immediate"];
+  static IMPACT_LABELS = ["Minor", "Notable", "Major", "Epic", "Legendary"];
+
+  // Exponential XP: exactly 100 at min (sum=3), exactly 500,000 at max (sum=15)
+  static calcXp(d, u, i) {
+    const sum = d + u + i;
+    if (sum <= 3) return 100;
+    if (sum >= 15) return 500000;
+    return Math.round(100 * Math.pow(5000, (sum - 3) / 12));
+  }
+
+  createSlider(container, label, labels, color, initialValue, onChange) {
+    const group = container.createEl("div", { cls: "quest-slider-group" });
+    const labelEl = group.createEl("span", { text: label, cls: "quest-slider-label" });
+    labelEl.style.color = color;
+
+    const track = group.createEl("div", { cls: "custom-slider-track" });
+    const fill = track.createEl("div", { cls: "custom-slider-fill" });
+    fill.style.backgroundColor = color;
+    const thumb = track.createEl("div", { cls: "custom-slider-thumb" });
+    thumb.style.backgroundColor = color;
+
+    const valueLabel = group.createEl("span", {
+      text: labels[initialValue - 1],
+      cls: "quest-slider-value",
+    });
+
+    let value = initialValue;
+    let onDragEnd = onChange;
+
+    const updateSlider = (val, notify) => {
+      value = Math.max(1, Math.min(5, val));
+      const pct = ((value - 1) / 4) * 100;
+      fill.style.width = pct + "%";
+      thumb.style.left = pct + "%";
+      valueLabel.setText(labels[value - 1]);
+      if (notify && onDragEnd) onDragEnd();
+    };
+
+    updateSlider(initialValue, false);
+
+    const getValueFromEvent = (e) => {
+      const rect = track.getBoundingClientRect();
+      const x = (e.clientX || (e.touches && e.touches[0] ? e.touches[0].clientX : 0)) - rect.left;
+      const pct = Math.max(0, Math.min(1, x / rect.width));
+      return Math.round(pct * 4) + 1;
+    };
+
+    let dragging = false;
+    let bound = false;
+
+    const onMouseMove = (e) => {
+      if (!dragging) return;
+      updateSlider(getValueFromEvent(e), false);
+    };
+    const onMouseUp = () => {
+      if (dragging) {
+        dragging = false;
+        if (onDragEnd) onDragEnd();
+      }
+      if (bound) {
+        document.removeEventListener("mousemove", onMouseMove);
+        document.removeEventListener("mouseup", onMouseUp);
+        bound = false;
+      }
+    };
+
+    const onTouchMove = (e) => {
+      if (!dragging) return;
+      e.preventDefault();
+      updateSlider(getValueFromEvent(e), false);
+    };
+    const onTouchEnd = () => {
+      if (dragging) {
+        dragging = false;
+        if (onDragEnd) onDragEnd();
+      }
+      document.removeEventListener("touchmove", onTouchMove);
+      document.removeEventListener("touchend", onTouchEnd);
+    };
+
+    track.addEventListener("mousedown", (e) => {
+      e.preventDefault();
+      dragging = true;
+      updateSlider(getValueFromEvent(e), false);
+      if (!bound) {
+        document.addEventListener("mousemove", onMouseMove);
+        document.addEventListener("mouseup", onMouseUp);
+        bound = true;
+      }
+    });
+
+    track.addEventListener("touchstart", (e) => {
+      e.preventDefault();
+      dragging = true;
+      updateSlider(getValueFromEvent(e), false);
+      document.addEventListener("touchmove", onTouchMove, { passive: false });
+      document.addEventListener("touchend", onTouchEnd);
+    }, { passive: false });
+
+    track.addEventListener("click", (e) => {
+      updateSlider(getValueFromEvent(e), true);
+    });
+
+    group._getValue = () => value;
+    group._setValue = (v) => updateSlider(v, false);
+    return group;
   }
 
   // ----------------------------------------
@@ -316,124 +463,6 @@ var QuestLogView = class extends ItemView {
     });
 
     // --- SLIDER HELPERS ---
-    const difficultyLabels = ["Trivial", "Easy", "Medium", "Hard", "Legendary"];
-    const urgencyLabels = ["Relaxed", "Soon", "Urgent", "Critical", "Immediate"];
-    const impactLabels = ["Minor", "Notable", "Major", "Epic", "Legendary"];
-
-    const createSlider = (container, label, labels, color, onChange) => {
-      const group = container.createEl("div", { cls: "quest-slider-group" });
-      const labelEl = group.createEl("span", { text: label, cls: "quest-slider-label" });
-      labelEl.style.color = color;
-
-      // Custom slider track + thumb
-      const track = group.createEl("div", { cls: "custom-slider-track" });
-      const fill = track.createEl("div", { cls: "custom-slider-fill" });
-      fill.style.backgroundColor = color;
-      const thumb = track.createEl("div", { cls: "custom-slider-thumb" });
-      thumb.style.backgroundColor = color;
-
-      const valueLabel = group.createEl("span", {
-        text: labels[2],
-        cls: "quest-slider-value",
-      });
-
-      let value = 3;
-      let onDragEnd = onChange; // called only on release, not during init
-
-      const updateSlider = (val, notify) => {
-        value = Math.max(1, Math.min(5, val));
-        const pct = ((value - 1) / 4) * 100;
-        fill.style.width = pct + "%";
-        thumb.style.left = pct + "%";
-        valueLabel.setText(labels[value - 1]);
-        if (notify && onDragEnd) onDragEnd();
-      };
-
-      // Set initial position (no callback)
-      updateSlider(3, false);
-
-      const getValueFromEvent = (e) => {
-        const rect = track.getBoundingClientRect();
-        const x = (e.clientX || (e.touches && e.touches[0] ? e.touches[0].clientX : 0)) - rect.left;
-        const pct = Math.max(0, Math.min(1, x / rect.width));
-        return Math.round(pct * 4) + 1;
-      };
-
-      let dragging = false;
-      let bound = false;
-
-      const onMouseMove = (e) => {
-        if (!dragging) return;
-        e.preventDefault();
-        updateSlider(getValueFromEvent(e), false);
-      };
-
-      const onMouseUp = () => {
-        if (dragging) {
-          dragging = false;
-          if (onDragEnd) onDragEnd();
-        }
-        if (bound) {
-          document.removeEventListener("mousemove", onMouseMove);
-          document.removeEventListener("mouseup", onMouseUp);
-          bound = false;
-        }
-      };
-
-      track.addEventListener("mousedown", (e) => {
-        e.preventDefault();
-        dragging = true;
-        updateSlider(getValueFromEvent(e), false);
-        if (!bound) {
-          document.addEventListener("mousemove", onMouseMove);
-          document.addEventListener("mouseup", onMouseUp);
-          bound = true;
-        }
-      });
-
-      // Touch drag support for mobile
-      const onTouchMove = (e) => {
-        if (!dragging) return;
-        e.preventDefault();
-        updateSlider(getValueFromEvent(e), false);
-      };
-      const onTouchEnd = () => {
-        if (dragging) {
-          dragging = false;
-          if (onDragEnd) onDragEnd();
-        }
-        document.removeEventListener("touchmove", onTouchMove);
-        document.removeEventListener("touchend", onTouchEnd);
-      };
-
-      track.addEventListener("touchstart", (e) => {
-        e.preventDefault();
-        dragging = true;
-        updateSlider(getValueFromEvent(e), false);
-        document.addEventListener("touchmove", onTouchMove, { passive: false });
-        document.addEventListener("touchend", onTouchEnd);
-      }, { passive: false });
-
-      track.addEventListener("click", (e) => {
-        updateSlider(getValueFromEvent(e), true);
-      });
-
-      // Expose getter/setter
-      group._getValue = () => value;
-      group._setValue = (v) => updateSlider(v, false);
-
-      return group;
-    };
-
-    // Exponential XP: exactly 100 at min (sum=3), exactly 500,000 at max (sum=15)
-    // r = 5000^(1/12) ≈ 1.9958
-    const calcXp = (d, u, i) => {
-      const sum = d + u + i;
-      if (sum <= 3) return 100;
-      if (sum >= 15) return 500000;
-      return Math.round(100 * Math.pow(5000, (sum - 3) / 12));
-    };
-
     // --- SLIDERS ---
     const slidersSection = modalBox.createEl("div", {
       cls: "quest-sliders-section",
@@ -443,7 +472,7 @@ var QuestLogView = class extends ItemView {
     const xpPreview = { el: null };
 
     const updateXpPreview = () => {
-      const xp = calcXp(
+      const xp = QuestLogView.calcXp(
         diffSlider._getValue(),
         urgSlider._getValue(),
         impSlider._getValue(),
@@ -451,21 +480,21 @@ var QuestLogView = class extends ItemView {
       xpPreview.el.setText(`${xp.toLocaleString()} XP`);
     };
 
-    diffSlider = createSlider(
-      slidersSection, "Difficulty", difficultyLabels, "#5e87ff", updateXpPreview
+    diffSlider = this.createSlider(
+      slidersSection, "Difficulty", QuestLogView.DIFFICULTY_LABELS, "#5e87ff", 3, updateXpPreview
     );
-    urgSlider = createSlider(
-      slidersSection, "Urgency", urgencyLabels, "#f59e0b", updateXpPreview
+    urgSlider = this.createSlider(
+      slidersSection, "Urgency", QuestLogView.URGENCY_LABELS, "#f59e0b", 3, updateXpPreview
     );
-    impSlider = createSlider(
-      slidersSection, "Impact", impactLabels, "#a855f7", updateXpPreview
+    impSlider = this.createSlider(
+      slidersSection, "Impact", QuestLogView.IMPACT_LABELS, "#a855f7", 3, updateXpPreview
     );
 
     // XP preview
     const xpRow = modalBox.createEl("div", { cls: "quest-xp-preview-row" });
     xpRow.createEl("span", { text: "Reward", cls: "quest-xp-preview-label" });
     xpPreview.el = xpRow.createEl("span", {
-      text: `${calcXp(3, 3, 3).toLocaleString()} XP`,
+      text: `${QuestLogView.calcXp(3, 3, 3).toLocaleString()} XP`,
       cls: "quest-xp-preview-value",
     });
 
@@ -513,7 +542,7 @@ var QuestLogView = class extends ItemView {
 
     createBtn.addEventListener("click", () => {
       if (titleInput.value.trim() !== "") {
-        const xp = calcXp(
+        const xp = QuestLogView.calcXp(
           diffSlider._getValue(),
           urgSlider._getValue(),
           impSlider._getValue(),
@@ -702,16 +731,11 @@ var QuestLogView = class extends ItemView {
     box.empty();
     overlay.style.display = "flex";
 
-    // Header row: editable title + XP
-    const headerRow = box.createEl("div", { cls: "quest-detail-header" });
-    const titleInput = headerRow.createEl("input", {
+    // Editable title
+    const titleInput = box.createEl("input", {
       type: "text",
       value: quest.title,
       cls: "quest-detail-title-input",
-    });
-    headerRow.createEl("div", {
-      text: `${quest.xp} XP`,
-      cls: "quest-detail-xp",
     });
 
     // Editable description
@@ -720,10 +744,57 @@ var QuestLogView = class extends ItemView {
       cls: "quest-detail-desc",
       attr: { placeholder: "No description." },
     });
-
-    // Auto-size the textarea to content
     descBox.style.height = "auto";
     descBox.style.height = descBox.scrollHeight + "px";
+
+    // --- SLIDERS ---
+    const slidersSection = box.createEl("div", {
+      cls: "quest-sliders-section",
+    });
+
+    const xpPreview = { el: null };
+
+    const updateXpPreview = () => {
+      const xp = QuestLogView.calcXp(
+        diffSlider._getValue(),
+        urgSlider._getValue(),
+        impSlider._getValue(),
+      );
+      xpPreview.el.setText(`${xp.toLocaleString()} XP`);
+    };
+
+    const diffSlider = this.createSlider(
+      slidersSection, "Difficulty", QuestLogView.DIFFICULTY_LABELS,
+      "#5e87ff", quest.difficulty || 3, updateXpPreview
+    );
+    const urgSlider = this.createSlider(
+      slidersSection, "Urgency", QuestLogView.URGENCY_LABELS,
+      "#f59e0b", quest.urgency || 3, updateXpPreview
+    );
+    const impSlider = this.createSlider(
+      slidersSection, "Impact", QuestLogView.IMPACT_LABELS,
+      "#a855f7", quest.impact || 3, updateXpPreview
+    );
+
+    // XP preview
+    const xpRow = box.createEl("div", { cls: "quest-xp-preview-row" });
+    xpRow.createEl("span", { text: "Reward", cls: "quest-xp-preview-label" });
+    xpPreview.el = xpRow.createEl("span", {
+      text: `${quest.xp.toLocaleString()} XP`,
+      cls: "quest-xp-preview-value",
+    });
+
+    // Helper to save current values back to quest
+    const saveQuest = () => {
+      quest.title = titleInput.value.trim() || quest.title;
+      quest.description = descBox.value.trim();
+      quest.difficulty = diffSlider._getValue();
+      quest.urgency = urgSlider._getValue();
+      quest.impact = impSlider._getValue();
+      quest.xp = QuestLogView.calcXp(quest.difficulty, quest.urgency, quest.impact);
+      this.plugin.saveSettings();
+      this.renderQuestList(this._questListContainer);
+    };
 
     // Buttons
     const btnRow = box.createEl("div", { cls: "quest-detail-buttons" });
@@ -756,15 +827,7 @@ var QuestLogView = class extends ItemView {
       cls: "quest-detail-close-btn",
     });
     closeBtn.addEventListener("click", () => {
-      // Save any edits
-      const updatedTitle = titleInput.value.trim();
-      const updatedDesc = descBox.value.trim();
-      if (updatedTitle !== quest.title || updatedDesc !== quest.description) {
-        quest.title = updatedTitle || quest.title;
-        quest.description = updatedDesc;
-        this.plugin.saveSettings();
-        this.renderQuestList(this._questListContainer);
-      }
+      saveQuest();
       overlay.style.display = "none";
     });
 
@@ -778,16 +841,15 @@ var QuestLogView = class extends ItemView {
     });
     setIcon(completeIcon, "check");
     completeBtn.addEventListener("click", () => {
-      // Award XP
+      // Save final values and award XP
+      saveQuest();
       this.plugin.settings.currentXp += quest.xp;
-      // Remove quest from list
       this.plugin.settings.quests = this.plugin.settings.quests.filter(
         (q) => q.id !== quest.id,
       );
       this.plugin.saveSettings();
       overlay.style.display = "none";
-      new Notice(`Quest Complete! +${quest.xp} XP`);
-      // Refresh the whole view to update XP bar and quest list
+      new Notice(`Quest Complete! +${quest.xp.toLocaleString()} XP`);
       this.onOpen();
     });
   }
