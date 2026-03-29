@@ -186,18 +186,21 @@ var QuestLogView = class extends ItemView {
   // XP & LEVEL CALCULATIONS
   // ----------------------------------------
 
-  getXpForLvl(xpReq) {
-    if (xpReq === 0) return 0;
-    const curve = 8 * Math.pow(xpReq, 2.7);
-    const linear = xpReq * 1000;
+  // XP threshold to reach a given level (0-indexed: level 0 = 0 XP)
+  getXpForLvl(lvl) {
+    if (lvl <= 0) return 0;
+    const curve = 8 * Math.pow(lvl, 2.7);
+    const linear = lvl * 1000;
     return Math.floor(Math.max(linear, curve));
   }
 
+  // Determine level from current XP — find highest level whose threshold we've met
   getLevel(currentXp) {
-    if (currentXp < 1000) return 1;
-    const linearLevel = currentXp / 1000;
-    const rawLevel = Math.pow(currentXp / 8, 1 / 2.7);
-    return Math.floor(Math.max(linearLevel, rawLevel));
+    let lvl = 1;
+    while (this.getXpForLvl(lvl) <= currentXp) {
+      lvl++;
+    }
+    return lvl;
   }
 
   // ----------------------------------------
@@ -387,6 +390,29 @@ var QuestLogView = class extends ItemView {
           bound = true;
         }
       });
+
+      // Touch drag support for mobile
+      const onTouchMove = (e) => {
+        if (!dragging) return;
+        e.preventDefault();
+        updateSlider(getValueFromEvent(e), false);
+      };
+      const onTouchEnd = () => {
+        if (dragging) {
+          dragging = false;
+          if (onDragEnd) onDragEnd();
+        }
+        document.removeEventListener("touchmove", onTouchMove);
+        document.removeEventListener("touchend", onTouchEnd);
+      };
+
+      track.addEventListener("touchstart", (e) => {
+        e.preventDefault();
+        dragging = true;
+        updateSlider(getValueFromEvent(e), false);
+        document.addEventListener("touchmove", onTouchMove, { passive: false });
+        document.addEventListener("touchend", onTouchEnd);
+      }, { passive: false });
 
       track.addEventListener("click", (e) => {
         updateSlider(getValueFromEvent(e), true);

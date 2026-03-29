@@ -621,18 +621,18 @@
 .quest-detail-title-input {
   flex: 1;
   min-width: 0;
-  background-color: transparent !important;
-  border: none !important;
-  border-bottom: 1px solid #333 !important;
+  background-color: #111 !important;
+  border: 1px solid #333 !important;
   box-shadow: none !important;
   color: #fff;
-  font-size: 20px !important;
+  font-size: 18px !important;
   font-weight: bold;
-  padding: 2px 0 !important;
+  padding: 6px 10px !important;
+  border-radius: 6px !important;
   outline: none !important;
 }
 .quest-detail-title-input:focus {
-  border-bottom-color: #5e87ff !important;
+  border-color: #5e87ff !important;
 }
 
 .quest-detail-xp {
