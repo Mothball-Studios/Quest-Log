@@ -21,6 +21,7 @@ var DEFAULT_SETTINGS = {
   rewardsMode: false,
   currentXp: 0,
   heroName: "Hero",
+  quests: [],
 };
 
 // ============================================================
@@ -145,9 +146,9 @@ var ResetConfirmModal = class extends Modal {
       confirmBtn.disabled = inputEl.value !== this.plugin.settings.heroName;
     });
 
-    // Reset all settings to defaults
+    // Reset all settings to defaults (deep clone to avoid shared array refs)
     confirmBtn.addEventListener("click", async () => {
-      this.plugin.settings = Object.assign({}, DEFAULT_SETTINGS);
+      this.plugin.settings = JSON.parse(JSON.stringify(DEFAULT_SETTINGS));
       await this.plugin.saveSettings();
 
       // Refresh the view if it's open
@@ -234,6 +235,16 @@ var QuestLogView = class extends ItemView {
     });
     const editIcon = nameContainer.createEl("span", { cls: "edit-icon" });
     setIcon(editIcon, "pencil");
+    editIcon.addEventListener("click", () => {
+      heroNameEl.focus();
+      // Place cursor at end of text
+      const range = document.createRange();
+      range.selectNodeContents(heroNameEl);
+      range.collapse(false);
+      const sel = window.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(range);
+    });
 
     // Hero name — debounced save
     let heroNameTimer;
@@ -325,16 +336,33 @@ var QuestLogView = class extends ItemView {
       descInput.value = "";
     };
 
+    // Track active tab
+    var activeTab = "QUESTS";
+
     fabBtn.addEventListener("click", () => {
-      overlay.style.display = "flex";
-      titleInput.focus();
+      if (activeTab === "QUESTS") {
+        overlay.style.display = "flex";
+        titleInput.focus();
+      } else {
+        comingSoonOverlay.style.display = "flex";
+      }
     });
 
     cancelBtn.addEventListener("click", closeOverlay);
 
     createBtn.addEventListener("click", () => {
       if (titleInput.value.trim() !== "") {
-        new Notice(`Created Quest: ${titleInput.value}`);
+        const quest = {
+          id: Date.now().toString(),
+          title: titleInput.value.trim(),
+          description: descInput.value.trim(),
+          xp: 100,
+          created: new Date().toISOString(),
+        };
+        this.plugin.settings.quests.push(quest);
+        this.plugin.saveSettings();
+        this.renderQuestList(questListContainer);
+        new Notice(`Created Quest: ${quest.title}`);
         closeOverlay();
       } else {
         new Notice("Add Quest Title First!");
@@ -343,30 +371,256 @@ var QuestLogView = class extends ItemView {
 
     overlay.style.display = "none";
 
+    // --- COMING SOON OVERLAY ---
+    const comingSoonOverlay = this.containerEl.createEl("div", {
+      cls: "quest-creation-overlay",
+    });
+    const comingSoonBox = comingSoonOverlay.createEl("div", {
+      cls: "coming-soon-box",
+    });
+    comingSoonBox.createEl("h2", {
+      text: "Coming Soon!",
+      cls: "coming-soon-header",
+    });
+    comingSoonBox.createEl("p", {
+      text: "This feature is still in development.",
+      cls: "coming-soon-desc",
+    });
+    const comingSoonCloseBtn = comingSoonBox.createEl("button", {
+      text: "Close",
+      cls: "coming-soon-close-btn",
+    });
+    comingSoonCloseBtn.addEventListener("click", () => {
+      comingSoonOverlay.style.display = "none";
+    });
+    comingSoonOverlay.style.display = "none";
+
     // --- TABS ---
     const tabsContainer = container.createEl("div", { cls: "quest-log-tabs" });
     const allTabs = [];
 
-    const createTab = (icon, text) => {
+    const createTab = (icon, text, colorClass) => {
       const btn = tabsContainer.createEl("button");
       const tabIcon = btn.createEl("span", { cls: "tab-icon" });
       setIcon(tabIcon, icon);
       btn.createEl("span", { text });
+      if (colorClass) btn.addClass(colorClass);
       allTabs.push(btn);
 
       btn.addEventListener("click", () => {
         allTabs.forEach((t) => t.removeClass("active-tab"));
         btn.addClass("active-tab");
         fabBtn.style.display = "flex";
+        // Update active tab tracker
+        activeTab = text;
+        // Update FAB color
+        fabBtn.removeClass("fab-habits");
+        fabBtn.removeClass("fab-skills");
+        if (colorClass === "tab-habits") fabBtn.addClass("fab-habits");
+        if (colorClass === "tab-skills") fabBtn.addClass("fab-skills");
+        // Show/hide quest list based on active tab
+        questListContainer.style.display =
+          text === "QUESTS" ? "flex" : "none";
+        habitsContent.style.display =
+          text === "HABITS" ? "flex" : "none";
+        skillsContent.style.display =
+          text === "SKILLS" ? "flex" : "none";
       });
 
       return btn;
     };
 
     const questTab = createTab("scroll-text", "QUESTS");
-    createTab("list-todo", "HABITS");
-    createTab("book-open", "SKILLS");
+    const habitsTab = createTab("list-todo", "HABITS", "tab-habits");
+    const skillsTab = createTab("book-open", "SKILLS", "tab-skills");
     questTab.addClass("active-tab");
+
+    // --- TAB CONTENT AREAS ---
+    const questListContainer = container.createEl("div", {
+      cls: "quest-list-container",
+    });
+    this.renderQuestList(questListContainer);
+
+    const habitsContent = container.createEl("div", {
+      cls: "tab-content-placeholder",
+    });
+    habitsContent.createEl("div", {
+      text: "Habits coming soon.",
+      cls: "quest-list-empty",
+    });
+    habitsContent.style.display = "none";
+
+    const skillsContent = container.createEl("div", {
+      cls: "tab-content-placeholder",
+    });
+    skillsContent.createEl("div", {
+      text: "Skills coming soon.",
+      cls: "quest-list-empty",
+    });
+    skillsContent.style.display = "none";
+
+    // --- QUEST DETAIL OVERLAY ---
+    const detailOverlay = this.containerEl.createEl("div", {
+      cls: "quest-detail-overlay",
+    });
+    const detailBox = detailOverlay.createEl("div", {
+      cls: "quest-detail-box",
+    });
+    detailOverlay.style.display = "none";
+
+    // Store references for rendering
+    this._questListContainer = questListContainer;
+    this._detailOverlay = detailOverlay;
+    this._detailBox = detailBox;
+  }
+
+  // ----------------------------------------
+  // QUEST LIST RENDERING
+  // ----------------------------------------
+
+  renderQuestList(container) {
+    container.empty();
+    const quests = this.plugin.settings.quests;
+
+    if (quests.length === 0) {
+      container.createEl("div", {
+        text: "No active quests. Tap + to create one.",
+        cls: "quest-list-empty",
+      });
+      return;
+    }
+
+    quests.forEach((quest) => {
+      const block = container.createEl("div", { cls: "quest-block" });
+
+      // Title
+      block.createEl("div", {
+        text: quest.title,
+        cls: "quest-block-title",
+      });
+
+      // Description with fade
+      if (quest.description) {
+        const descWrap = block.createEl("div", {
+          cls: "quest-block-desc-wrap",
+        });
+        descWrap.createEl("span", {
+          text: quest.description,
+          cls: "quest-block-desc-text",
+        });
+      }
+
+      // XP badge
+      block.createEl("div", {
+        text: `${quest.xp} XP`,
+        cls: "quest-block-xp",
+      });
+
+      // Click to open detail
+      block.addEventListener("click", () => {
+        this.openQuestDetail(quest);
+      });
+    });
+  }
+
+  // ----------------------------------------
+  // QUEST DETAIL VIEW
+  // ----------------------------------------
+
+  openQuestDetail(quest) {
+    const overlay = this._detailOverlay;
+    const box = this._detailBox;
+    box.empty();
+    overlay.style.display = "flex";
+
+    // Header row: editable title + XP
+    const headerRow = box.createEl("div", { cls: "quest-detail-header" });
+    const titleInput = headerRow.createEl("input", {
+      type: "text",
+      value: quest.title,
+      cls: "quest-detail-title-input",
+    });
+    headerRow.createEl("div", {
+      text: `${quest.xp} XP`,
+      cls: "quest-detail-xp",
+    });
+
+    // Editable description
+    const descBox = box.createEl("textarea", {
+      text: quest.description || "",
+      cls: "quest-detail-desc",
+      attr: { placeholder: "No description." },
+    });
+
+    // Auto-size the textarea to content
+    descBox.style.height = "auto";
+    descBox.style.height = descBox.scrollHeight + "px";
+
+    // Buttons
+    const btnRow = box.createEl("div", { cls: "quest-detail-buttons" });
+
+    // Delete button
+    const deleteBtn = btnRow.createEl("button", {
+      cls: "quest-detail-delete-btn",
+    });
+    const deleteIcon = deleteBtn.createEl("span", {
+      cls: "quest-detail-delete-icon",
+    });
+    setIcon(deleteIcon, "trash-2");
+    deleteBtn.createEl("span", { text: "Delete" });
+    deleteBtn.addEventListener("click", () => {
+      this.plugin.settings.quests = this.plugin.settings.quests.filter(
+        (q) => q.id !== quest.id,
+      );
+      this.plugin.saveSettings();
+      overlay.style.display = "none";
+      this.renderQuestList(this._questListContainer);
+      new Notice("Quest deleted.");
+    });
+
+    // Spacer to push Close/Complete to the right
+    btnRow.createEl("div", { cls: "quest-detail-spacer" });
+
+    // Close button (saves edits before closing)
+    const closeBtn = btnRow.createEl("button", {
+      text: "Close",
+      cls: "quest-detail-close-btn",
+    });
+    closeBtn.addEventListener("click", () => {
+      // Save any edits
+      const updatedTitle = titleInput.value.trim();
+      const updatedDesc = descBox.value.trim();
+      if (updatedTitle !== quest.title || updatedDesc !== quest.description) {
+        quest.title = updatedTitle || quest.title;
+        quest.description = updatedDesc;
+        this.plugin.saveSettings();
+        this.renderQuestList(this._questListContainer);
+      }
+      overlay.style.display = "none";
+    });
+
+    // Complete button
+    const completeBtn = btnRow.createEl("button", {
+      text: "Complete",
+      cls: "quest-detail-complete-btn",
+    });
+    const completeIcon = completeBtn.createEl("span", {
+      cls: "quest-detail-complete-icon",
+    });
+    setIcon(completeIcon, "check");
+    completeBtn.addEventListener("click", () => {
+      // Award XP
+      this.plugin.settings.currentXp += quest.xp;
+      // Remove quest from list
+      this.plugin.settings.quests = this.plugin.settings.quests.filter(
+        (q) => q.id !== quest.id,
+      );
+      this.plugin.saveSettings();
+      overlay.style.display = "none";
+      new Notice(`Quest Complete! +${quest.xp} XP`);
+      // Refresh the whole view to update XP bar and quest list
+      this.onOpen();
+    });
   }
 
   async onClose() {}

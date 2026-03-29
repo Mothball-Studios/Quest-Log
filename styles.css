@@ -1,8 +1,7 @@
-/*
-This CSS file will be included with your plugin, and
-available in the app when your plugin is enabled.
-If your plugin does not need CSS, delete this file.
-*/
+/* ============================================================
+   RESET MODAL
+   ============================================================ */
+
 .reset-modal-header,
 .reset-modal-desc,
 .reset-input {
@@ -29,6 +28,11 @@ If your plugin does not need CSS, delete this file.
   width: 80%;
   background-color: #ff4d4d !important;
 }
+
+/* ============================================================
+   CONTAINER & HEADER
+   ============================================================ */
+
 .quest-log-container {
   padding: 20px;
 }
@@ -38,6 +42,11 @@ If your plugin does not need CSS, delete this file.
   margin-bottom: 5px;
   gap: 2px;
 }
+
+/* ============================================================
+   LEVEL BADGE
+   ============================================================ */
+
 .level-badge {
   background: linear-gradient(135deg, #4b6cb7 0%, #182848 100%);
   width: 60px;
@@ -57,6 +66,11 @@ If your plugin does not need CSS, delete this file.
   font-size: 32px;
   line-height: 1;
 }
+
+/* ============================================================
+   HERO INFO & NAME
+   ============================================================ */
+
 .hero-info {
   flex-grow: 1;
   min-width: 0;
@@ -110,6 +124,11 @@ If your plugin does not need CSS, delete this file.
   padding-left: 9px;
   padding-bottom: 5px;
 }
+
+/* ============================================================
+   XP BAR & INFO
+   ============================================================ */
+
 .xp-info {
   text-align: right;
   align-self: flex-end;
@@ -142,6 +161,11 @@ If your plugin does not need CSS, delete this file.
   background-color: #4b6cb7;
   height: 100%;
 }
+
+/* ============================================================
+   TABS
+   ============================================================ */
+
 .quest-log-tabs {
   display: flex;
   gap: 20px;
@@ -171,6 +195,19 @@ If your plugin does not need CSS, delete this file.
   border-bottom: 2px solid #5e87ff;
   border-radius: 0px;
 }
+.quest-log-tabs button.active-tab.tab-habits {
+  color: #a855f7 !important;
+  border-bottom-color: #a855f7;
+}
+.quest-log-tabs button.active-tab.tab-skills {
+  color: #22c55e !important;
+  border-bottom-color: #22c55e;
+}
+
+/* ============================================================
+   FAB BUTTON
+   ============================================================ */
+
 .quest-fab {
   position: absolute;
   bottom: 30px;
@@ -180,12 +217,59 @@ If your plugin does not need CSS, delete this file.
   border-radius: 50%;
   background-color: #5e87ff !important;
   border: none;
+  transition: background-color 0.2s ease;
+}
+.quest-fab.fab-habits {
+  background-color: #a855f7 !important;
+}
+.quest-fab.fab-skills {
+  background-color: #22c55e !important;
 }
 .quest-fab span.fab-icon {
   padding-top: 4px;
   align-items: center !important;
   justify-content: center !important;
 }
+
+.coming-soon-box {
+  background-color: #202020;
+  padding: 30px;
+  border-radius: 10px;
+  border: 1px solid #333;
+  width: 70%;
+  max-width: 320px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  text-align: center;
+}
+.coming-soon-header {
+  margin: 0;
+  font-size: 24px !important;
+  color: #fff;
+}
+.coming-soon-desc {
+  color: #888;
+  margin: 0;
+  font-size: 14px;
+}
+.coming-soon-close-btn {
+  background-color: #333 !important;
+  color: #ccc !important;
+  border: 1px solid #444 !important;
+  padding: 8px 24px !important;
+  border-radius: 6px !important;
+  cursor: pointer;
+  font-weight: bold;
+  margin-top: 10px;
+}
+
+/* ============================================================
+   QUEST CREATION MODAL
+   ============================================================ */
+
 .quest-creation-overlay {
   position: absolute;
   top: 0;
@@ -240,4 +324,239 @@ If your plugin does not need CSS, delete this file.
   justify-content: flex-end;
   gap: 10px;
   margin-top: 10px;
+}
+
+/* ============================================================
+   QUEST LIST
+   ============================================================ */
+
+.quest-list-container {
+  margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.quest-list-empty {
+  color: #666;
+  text-align: center;
+  margin-top: 40px;
+  font-style: italic;
+}
+
+.tab-content-placeholder {
+  margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ============================================================
+   QUEST BLOCK
+   ============================================================ */
+
+.quest-block {
+  background-color: #191919;
+  border: 1px solid #2a2a2a;
+  border-radius: 10px;
+  padding: 12px 14px;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+  position: relative;
+}
+.quest-block:hover {
+  border-color: #5e87ff;
+  background-color: #1f1f1f;
+}
+
+.quest-block-title {
+  color: #fff;
+  font-weight: bold;
+  font-size: 14px;
+  margin-bottom: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.quest-block-desc-wrap {
+  position: relative;
+  width: 100%;
+  max-height: 1.4em;
+  overflow: hidden;
+  margin-bottom: 6px;
+}
+.quest-block-desc-wrap::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  top: 0;
+  width: 40%;
+  height: 100%;
+  background: linear-gradient(to right, transparent, #191919 90%);
+  pointer-events: none;
+}
+.quest-block:hover .quest-block-desc-wrap::after {
+  background: linear-gradient(to right, transparent, #1f1f1f 90%);
+}
+
+.quest-block-desc-text {
+  color: #999;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.quest-block-xp {
+  color: #5e87ff;
+  font-size: 11px;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+/* ============================================================
+   QUEST DETAIL OVERLAY
+   ============================================================ */
+
+.quest-detail-overlay {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.6);
+  z-index: 300;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  backdrop-filter: blur(2px);
+}
+
+.quest-detail-box {
+  background-color: #202020;
+  padding: 20px;
+  border-radius: 10px;
+  border: 1px solid #333;
+  width: 85%;
+  max-width: 420px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.quest-detail-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.quest-detail-title {
+  margin: 0;
+  font-size: 20px !important;
+  color: #fff;
+  flex: 1;
+  min-width: 0;
+  word-break: break-word;
+}
+
+.quest-detail-title-input {
+  flex: 1;
+  min-width: 0;
+  background-color: transparent !important;
+  border: none !important;
+  border-bottom: 1px solid #333 !important;
+  box-shadow: none !important;
+  color: #fff;
+  font-size: 20px !important;
+  font-weight: bold;
+  padding: 2px 0 !important;
+  outline: none !important;
+}
+.quest-detail-title-input:focus {
+  border-bottom-color: #5e87ff !important;
+}
+
+.quest-detail-xp {
+  color: #5e87ff;
+  font-size: 14px;
+  font-weight: bold;
+  white-space: nowrap;
+  padding-top: 4px;
+}
+
+.quest-detail-desc {
+  width: 100%;
+  background-color: #111;
+  border: 1px solid #333;
+  padding: 10px;
+  border-radius: 5px;
+  color: #ccc;
+  font-size: 13px;
+  resize: none;
+  overflow: hidden;
+  font-family: inherit;
+  line-height: 1.5;
+}
+
+.quest-detail-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+.quest-detail-close-btn {
+  background-color: #333 !important;
+  color: #ccc !important;
+  border: 1px solid #444 !important;
+  padding: 8px 18px !important;
+  border-radius: 6px !important;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.quest-detail-delete-btn {
+  background-color: transparent !important;
+  color: #ff4d4d !important;
+  border: 1px solid #ff4d4d44 !important;
+  padding: 8px 14px !important;
+  border-radius: 6px !important;
+  cursor: pointer;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 13px;
+}
+.quest-detail-delete-btn:hover {
+  background-color: #ff4d4d22 !important;
+}
+.quest-detail-delete-icon svg {
+  width: 14px;
+  height: 14px;
+}
+
+.quest-detail-spacer {
+  flex: 1;
+}
+
+.quest-detail-complete-btn {
+  background-color: #22c55e !important;
+  color: #fff !important;
+  border: none !important;
+  padding: 8px 18px !important;
+  border-radius: 6px !important;
+  cursor: pointer;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.quest-detail-complete-btn:hover {
+  background-color: #16a34a !important;
+}
+.quest-detail-complete-icon svg {
+  width: 16px;
+  height: 16px;
 }
