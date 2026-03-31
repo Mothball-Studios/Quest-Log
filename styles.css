@@ -2,6 +2,10 @@
    RESET MODAL
    ============================================================ */
 
+.quest-log-folder-suggest {
+  font-size: 13px;
+}
+
 .reset-modal-content {
   border-radius: 14px !important;
   padding: 24px !important;

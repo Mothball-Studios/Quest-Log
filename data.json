@@ -1,6 +1,12 @@
 {
   "rewardsMode": false,
-  "currentXp": 0,
+  "currentXp": 21450,
+  "questsCompleted": 2,
   "heroName": "Hero",
-  "quests": []
+  "quests": [],
+  "userProfileFileName": "User Profile",
+  "userProfileFolder": "Quest Log",
+  "questsFolderPath": "Quest Log/Quests",
+  "habitsFolderPath": "Quest Log/Habits",
+  "skillsFolderPath": "Quest Log/Skills"
 }
