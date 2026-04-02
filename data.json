@@ -1,22 +1,11 @@
 {
   "rewardsMode": false,
-  "currentXp": 7071,
-  "questsCompleted": 353,
+  "currentXp": 0,
+  "questsCompleted": 0,
   "heroName": "Hero",
   "quests": [],
   "completedQuests": [],
-  "habits": [
-    {
-      "id": "1775092140641",
-      "title": "fawfawfaw",
-      "description": "",
-      "difficulty": 3,
-      "urgency": 3,
-      "impact": 3,
-      "xp": 7071,
-      "created": "2026-04-02T01:09:00.641Z"
-    }
-  ],
+  "habits": [],
   "completedHabits": [],
   "userProfileFileName": "User Profile",
   "userProfileFolder": "Quest Log",

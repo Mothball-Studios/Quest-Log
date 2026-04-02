@@ -57,25 +57,51 @@ var QuestLog = class extends Plugin {
           const questsFolder = this.settings.questsFolderPath || "Quest Log/Quests";
           const habitsFolder = this.settings.habitsFolderPath || "Quest Log/Habits";
           const completedFolder = this.settings.completedFolderPath || "Quest Log/Completed";
+          let changed = false;
 
           if (file.path.startsWith(questsFolder + "/")) {
             const safeName = file.path.replace(questsFolder + "/", "").replace(".md", "");
+            const before = this.settings.quests.length;
             this.settings.quests = this.settings.quests.filter(
               (q) => q.title.replace(/[\\/:*?"<>|]/g, "-") !== safeName
             );
-            this.saveSettings();
+            if (this.settings.quests.length !== before) changed = true;
           } else if (file.path.startsWith(habitsFolder + "/")) {
             const safeName = file.path.replace(habitsFolder + "/", "").replace(".md", "");
+            const before = this.settings.habits.length;
             this.settings.habits = this.settings.habits.filter(
               (h) => h.title.replace(/[\\/:*?"<>|]/g, "-") !== safeName
             );
-            this.saveSettings();
+            if (this.settings.habits.length !== before) changed = true;
           } else if (file.path.startsWith(completedFolder + "/")) {
-            // Remove from completed quests
+            // Revoke XP for completed quests
+            const beforeQ = this.settings.completedQuests.length;
+            const removedQuest = this.settings.completedQuests.find(
+              (q) => q.title.replace(/[\\/:*?"<>|]/g, "-") === file.path.replace(completedFolder + "/", "").replace(".md", "")
+            );
+            if (removedQuest) {
+              this.settings.currentXp = Math.max(0, this.settings.currentXp - removedQuest.xp);
+              this.settings.questsCompleted = Math.max(0, this.settings.questsCompleted - 1);
+            }
             this.settings.completedQuests = this.settings.completedQuests.filter(
               (q) => q.title.replace(/[\\/:*?"<>|]/g, "-") !== file.path.replace(completedFolder + "/", "").replace(".md", "")
             );
-            // Remove from completed habits (format: "Title - dateStr.md")
+            if (this.settings.completedQuests.length !== beforeQ) changed = true;
+
+            // Revoke XP for completed habits
+            const beforeH = (this.settings.completedHabits || []).length;
+            const removedHabit = (this.settings.completedHabits || []).find((h) => {
+              const dateStr = new Date(h.completedAt).toLocaleString("en-US", {
+                year: "numeric", month: "2-digit", day: "2-digit",
+                hour: "2-digit", minute: "2-digit", hour12: true,
+              }).replace(/[/:]/g, "-").replace(", ", " ");
+              const expected = h.title.replace(/[\\/:*?"<>|]/g, "-") + " - " + dateStr;
+              return expected === file.path.replace(completedFolder + "/", "").replace(".md", "");
+            });
+            if (removedHabit) {
+              this.settings.currentXp = Math.max(0, this.settings.currentXp - removedHabit.xp);
+              this.settings.questsCompleted = Math.max(0, this.settings.questsCompleted - 1);
+            }
             this.settings.completedHabits = (this.settings.completedHabits || []).filter((h) => {
               const dateStr = new Date(h.completedAt).toLocaleString("en-US", {
                 year: "numeric", month: "2-digit", day: "2-digit",
@@ -84,7 +110,17 @@ var QuestLog = class extends Plugin {
               const expected = h.title.replace(/[\\/:*?"<>|]/g, "-") + " - " + dateStr;
               return expected !== file.path.replace(completedFolder + "/", "").replace(".md", "");
             });
+            if ((this.settings.completedHabits || []).length !== beforeH) changed = true;
+          }
+
+          if (changed) {
             this.saveSettings();
+            // Refresh the active view
+            const leaves = this.app.workspace.getLeavesOfType(QUESTLOG_VIEW_TYPE);
+            if (leaves.length > 0 && leaves[0].view) {
+              const view = leaves[0].view;
+              view.onOpen();
+            }
           }
         }
       })
@@ -701,6 +737,17 @@ ${quest.description || ""}
     }
   }
 
+  static async deleteHabitFile(plugin, habit) {
+    const { app, settings } = plugin;
+    const folderPath = settings.habitsFolderPath || "Quest Log/Habits";
+    const safeName = habit.title.replace(/[\\/:*?"<>|]/g, "-");
+    const fullPath = `${folderPath}/${safeName}.md`;
+    const file = app.vault.getAbstractFileByPath(fullPath);
+    if (file) {
+      try { await app.vault.delete(file); } catch (e) {}
+    }
+  }
+
   static async writeHabitFile(plugin, habit) {
     const { app, settings } = plugin;
     const folderPath = settings.habitsFolderPath || "Quest Log/Habits";
@@ -817,9 +864,10 @@ ${habit.description || ""}
 
     const track = group.createEl("div", { cls: "custom-slider-track" });
 
-    // Add snap point stars
-    const snapPositions = [0, 25, 50, 75, 100];
-    snapPositions.forEach(pct => {
+    // Add snap point stars (first and last pulled in slightly)
+    const snapPositions = [3, 25, 50, 75, 97];
+    const stars = [];
+    snapPositions.forEach((pct, i) => {
       const star = track.createEl("span", { cls: "snap-star", text: "★" });
       star.style.position = "absolute";
       star.style.left = pct + "%";
@@ -828,6 +876,8 @@ ${habit.description || ""}
       star.style.fontSize = "7px";
       star.style.color = "#555";
       star.style.pointerEvents = "none";
+      star.style.transition = "font-size 0.15s ease, color 0.15s ease, text-shadow 0.15s ease";
+      stars.push(star);
     });
 
     const fill = track.createEl("div", { cls: "custom-slider-fill" });
@@ -850,6 +900,20 @@ ${habit.description || ""}
       fill.style.width = pct + "%";
       thumb.style.left = pct + "%";
       valueLabel.setText(labels[value - 1]);
+
+      // Light up stars that the fill has passed
+      stars.forEach((star, i) => {
+        if (i < value) {
+          star.style.color = color;
+          star.style.fontSize = "10px";
+          star.style.textShadow = `0 0 4px ${color}`;
+        } else {
+          star.style.color = "#555";
+          star.style.fontSize = "7px";
+          star.style.textShadow = "none";
+        }
+      });
+
       if (notify && onDragEnd) onDragEnd();
     };
 
@@ -1812,10 +1876,26 @@ ${habit.description || ""}
     box.empty();
     overlay.addClass("open");
 
-    // Title
-    box.createEl("h2", {
+    // Title row with delete icon
+    const titleRow = box.createEl("div", { cls: "habit-detail-title-row" });
+    titleRow.createEl("h2", {
       text: habit.title,
       cls: "quest-detail-title",
+    });
+    const topDeleteBtn = titleRow.createEl("button", {
+      cls: "habit-detail-title-delete",
+    });
+    const topDeleteIcon = topDeleteBtn.createEl("span");
+    setIcon(topDeleteIcon, "trash-2");
+    topDeleteBtn.addEventListener("click", async () => {
+      await QuestLogView.deleteHabitFile(this.plugin, habit);
+      this.plugin.settings.habits = this.plugin.settings.habits.filter(
+        (h) => h.id !== habit.id,
+      );
+      this.plugin.saveSettings();
+      overlay.removeClass("open");
+      this.renderHabitList(this._habitListContainer);
+      new Notice("Habit deleted.");
     });
 
     // Description
