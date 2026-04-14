@@ -27,12 +27,15 @@ var DEFAULT_SETTINGS = {
   completedQuests: [],
   habits: [],
   completedHabits: [],
+  skills: [],
   userProfileFileName: "User Profile",
   userProfileFolder: "Quest Log",
   questsFolderPath: "Quest Log/Quests",
   habitsFolderPath: "Quest Log/Habits",
   skillsFolderPath: "Quest Log/Skills",
   completedFolderPath: "Quest Log/Completed",
+  userDifficulty: 10,
+  skillDifficulty: 10,
 };
 
 // ============================================================
@@ -40,6 +43,26 @@ var DEFAULT_SETTINGS = {
 // ============================================================
 
 var QuestLog = class extends Plugin {
+  _cachedLevel = null;
+  _cachedXp = null;
+  _cachedDifficulty = null;
+
+  getLevel() {
+    const xp = this.settings.currentXp;
+    const difficulty = this.settings.userDifficulty || 10;
+    if (this._cachedXp !== xp || this._cachedDifficulty !== difficulty) {
+      this._cachedXp = xp;
+      this._cachedDifficulty = difficulty;
+      this._cachedLevel = QuestLogView.getLevel(xp, difficulty);
+    }
+    return this._cachedLevel;
+  }
+
+  invalidateLevelCache() {
+    this._cachedXp = null;
+    this._cachedDifficulty = null;
+  }
+
   async onload() {
     await this.loadSettings();
     await this.writeUserProfile();
@@ -60,55 +83,53 @@ var QuestLog = class extends Plugin {
           let changed = false;
 
           if (file.path.startsWith(questsFolder + "/")) {
-            const safeName = file.path.replace(questsFolder + "/", "").replace(".md", "");
+            const safeName = file.path.slice(questsFolder.length + 1, -3);
             const before = this.settings.quests.length;
             this.settings.quests = this.settings.quests.filter(
-              (q) => q.title.replace(/[\\/:*?"<>|]/g, "-") !== safeName
+              (q) => QuestLogView.safeName(q.title) !== safeName
             );
             if (this.settings.quests.length !== before) changed = true;
           } else if (file.path.startsWith(habitsFolder + "/")) {
-            const safeName = file.path.replace(habitsFolder + "/", "").replace(".md", "");
+            const safeName = file.path.slice(habitsFolder.length + 1, -3);
             const before = this.settings.habits.length;
             this.settings.habits = this.settings.habits.filter(
-              (h) => h.title.replace(/[\\/:*?"<>|]/g, "-") !== safeName
+              (h) => QuestLogView.safeName(h.title) !== safeName
             );
             if (this.settings.habits.length !== before) changed = true;
+          } else if (file.path.startsWith(settings.skillsFolderPath + "/")) {
+            const safeName = file.path.slice(settings.skillsFolderPath.length + 1, -3);
+            const before = (this.settings.skills || []).length;
+            this.settings.skills = (this.settings.skills || []).filter(
+              (s) => QuestLogView.safeName(s.name) !== safeName
+            );
+            if (this.settings.skills.length !== before) changed = true;
           } else if (file.path.startsWith(completedFolder + "/")) {
-            // Revoke XP for completed quests
+            const fileName = file.path.slice(completedFolder.length + 1, -3);
             const beforeQ = this.settings.completedQuests.length;
             const removedQuest = this.settings.completedQuests.find(
-              (q) => q.title.replace(/[\\/:*?"<>|]/g, "-") === file.path.replace(completedFolder + "/", "").replace(".md", "")
+              (q) => QuestLogView.safeName(q.title) === fileName
             );
             if (removedQuest) {
               this.settings.currentXp = Math.max(0, this.settings.currentXp - removedQuest.xp);
               this.settings.questsCompleted = Math.max(0, this.settings.questsCompleted - 1);
             }
             this.settings.completedQuests = this.settings.completedQuests.filter(
-              (q) => q.title.replace(/[\\/:*?"<>|]/g, "-") !== file.path.replace(completedFolder + "/", "").replace(".md", "")
+              (q) => QuestLogView.safeName(q.title) !== fileName
             );
             if (this.settings.completedQuests.length !== beforeQ) changed = true;
 
-            // Revoke XP for completed habits
             const beforeH = (this.settings.completedHabits || []).length;
             const removedHabit = (this.settings.completedHabits || []).find((h) => {
-              const dateStr = new Date(h.completedAt).toLocaleString("en-US", {
-                year: "numeric", month: "2-digit", day: "2-digit",
-                hour: "2-digit", minute: "2-digit", hour12: true,
-              }).replace(/[/:]/g, "-").replace(", ", " ");
-              const expected = h.title.replace(/[\\/:*?"<>|]/g, "-") + " - " + dateStr;
-              return expected === file.path.replace(completedFolder + "/", "").replace(".md", "");
+              const timeStr = QuestLogView.formatHabitTimestamp(h.completedAt);
+              return QuestLogView.safeName(h.title) + " - " + timeStr === fileName;
             });
             if (removedHabit) {
               this.settings.currentXp = Math.max(0, this.settings.currentXp - removedHabit.xp);
               this.settings.questsCompleted = Math.max(0, this.settings.questsCompleted - 1);
             }
             this.settings.completedHabits = (this.settings.completedHabits || []).filter((h) => {
-              const dateStr = new Date(h.completedAt).toLocaleString("en-US", {
-                year: "numeric", month: "2-digit", day: "2-digit",
-                hour: "2-digit", minute: "2-digit", hour12: true,
-              }).replace(/[/:]/g, "-").replace(", ", " ");
-              const expected = h.title.replace(/[\\/:*?"<>|]/g, "-") + " - " + dateStr;
-              return expected !== file.path.replace(completedFolder + "/", "").replace(".md", "");
+              const timeStr = QuestLogView.formatHabitTimestamp(h.completedAt);
+              return QuestLogView.safeName(h.title) + " - " + timeStr !== fileName;
             });
             if ((this.settings.completedHabits || []).length !== beforeH) changed = true;
           }
@@ -135,15 +156,17 @@ var QuestLog = class extends Plugin {
 
   async saveSettings() {
     await this.saveData(this.settings);
+    this.invalidateLevelCache();
     await this.writeUserProfile();
   }
 
   async writeUserProfile() {
     const { settings, app } = this;
-    const level = QuestLogView.getLevel(settings.currentXp);
+    const level = this.getLevel();
     const title = QuestLogView.getLevelTitle(level);
-    const xpForNext = QuestLogView.getXpForLvl(level);
-    const xpFromPrev = QuestLogView.getXpForLvl(level - 1);
+    const difficulty = settings.userDifficulty || 10;
+    const xpForNext = QuestLogView.getXpForLvl(level, difficulty);
+    const xpFromPrev = QuestLogView.getXpForLvl(level - 1, difficulty);
     const xpNeeded = xpForNext - xpFromPrev;
     const xpProgress = settings.currentXp - xpFromPrev;
     const pct = xpNeeded > 0 ? Math.min(100, Math.round((xpProgress / xpNeeded) * 100)) : 100;
@@ -248,22 +271,12 @@ var FolderSuggest = class extends AbstractInputSuggest {
   }
 
   getSuggestions(query) {
-    const files = this.app.vault.getAllLoadedFiles();
-    const folders = [];
-    for (const f of files) {
-      if (f.children) {
-        // TFolder — this is a folder
-        folders.push(f.path);
-      }
-      if (f.parent && f.parent.path !== "") {
-        folders.push(f.parent.path);
-      }
+    const folders = new Set();
+    for (const f of this.app.vault.getAllLoadedFiles()) {
+      if (f.children && f.path) folders.add(f.path);
     }
-
-    // Deduplicate and sort
-    const unique = [...new Set(folders)].filter((p) => p !== "").sort();
     const lowerQuery = query.toLowerCase();
-    return unique.filter((f) => f.toLowerCase().includes(lowerQuery));
+    return [...folders].filter((f) => f.toLowerCase().includes(lowerQuery)).sort();
   }
 
   renderSuggestion(folder, el) {
@@ -274,6 +287,34 @@ var FolderSuggest = class extends AbstractInputSuggest {
     this.inputEl.value = folder;
     this.inputEl.trigger("input");
     this.close();
+  }
+};
+
+// ============================================================
+// SKILL SUGGEST — Autocomplete for skills
+// ============================================================
+
+var SkillSuggest = class extends AbstractInputSuggest {
+  constructor(app, inputEl, plugin) {
+    super(app, inputEl);
+    this.inputEl = inputEl;
+    this.plugin = plugin;
+  }
+
+  getSuggestions(query) {
+    const skills = this.plugin.settings.skills || [];
+    const lowerQuery = query.toLowerCase();
+    return skills.filter((s) => s.name.toLowerCase().includes(lowerQuery));
+  }
+
+  renderSuggestion(skill, el) {
+    el.setText(skill.name + ` (Lvl ${skill.level || 1})`);
+  }
+
+  selectSuggestion(skill) {
+    this.inputEl.value = "";
+    this.close();
+    this.onSelect(skill);
   }
 };
 
@@ -291,10 +332,58 @@ var QuestLogSettingTab = class extends PluginSettingTab {
     const { containerEl } = this;
     containerEl.empty();
 
+    // --- REWARDS SECTION ---
+    containerEl.createEl("h3", { text: "Rewards" });
+
+    new Setting(containerEl)
+      .setName("Rewards Mode")
+      .setDesc(
+        "Toggle the Rewards feature to earn coins for completing quests! Spend coins in the Rewards Shop for IRL rewards for working hard!",
+      )
+      .addToggle((toggle) =>
+        toggle
+          .setValue(this.plugin.settings.rewardsMode)
+          .onChange(async (value) => {
+            this.plugin.settings.rewardsMode = value;
+            await this.plugin.saveSettings();
+          }),
+      );
+
+    // --- XP CURVE SLIDERS ---
+    containerEl.createEl("h3", { text: "XP Curve" });
+
+    new Setting(containerEl)
+      .setName("User Leveling Difficulty")
+      .setDesc("Adjust how quickly you level up. Lower = faster, Higher = slower. (Default: 10)")
+      .addSlider((slider) =>
+        slider
+          .setLimits(1, 20, 1)
+          .setValue(this.plugin.settings.userDifficulty || 10)
+          .setDynamicTooltip()
+          .onChange(async (value) => {
+            this.plugin.settings.userDifficulty = value;
+            this.plugin.invalidateLevelCache();
+            await this.plugin.saveSettings();
+          }),
+      );
+
+    new Setting(containerEl)
+      .setName("Skill Leveling Difficulty")
+      .setDesc("Adjust how quickly skills level up. Lower = faster, Higher = slower. (Default: 10)")
+      .addSlider((slider) =>
+        slider
+          .setLimits(1, 20, 1)
+          .setValue(this.plugin.settings.skillDifficulty || 10)
+          .setDynamicTooltip()
+          .onChange(async (value) => {
+            this.plugin.settings.skillDifficulty = value;
+            await this.plugin.saveSettings();
+          }),
+      );
+
     // --- FILE PATHS SECTION ---
     containerEl.createEl("h3", { text: "File Paths" });
 
-    // User Profile — split into file name + folder
     new Setting(containerEl)
       .setName("User Profile File")
       .setDesc("Name of the user profile markdown file.")
@@ -378,27 +467,11 @@ var QuestLogSettingTab = class extends PluginSettingTab {
         new FolderSuggest(this.app, text.inputEl);
       });
 
-    // --- GENERAL SECTION ---
-    containerEl.createEl("h3", { text: "General" });
+    // --- DANGER ZONE ---
+    containerEl.createEl("h3", { text: "Danger Zone" });
 
-    // Rewards Mode toggle
     new Setting(containerEl)
-      .setName("Rewards Mode")
-      .setDesc(
-        "Toggle the Rewards feature to earn coins for completing quests! Spend coins in the Rewards Shop for IRL rewards for working hard!",
-      )
-      .addToggle((toggle) =>
-        toggle
-          .setValue(this.plugin.settings.rewardsMode)
-          .onChange(async (value) => {
-            this.plugin.settings.rewardsMode = value;
-            await this.plugin.saveSettings();
-          }),
-      );
-
-    // Reset Data button
-    new Setting(containerEl)
-      .setName("DANGER ZONE: Reset All Data")
+      .setName("Reset All Data")
       .setDesc(
         "Reset your hero's level, xp, and all quest data. This action cannot be undone.",
       )
@@ -466,13 +539,6 @@ var ResetConfirmModal = class extends Modal {
       text: "Reset Everything",
       cls: "reset-modal-confirm-btn",
     });
-    confirmBtn.disabled = true;
-
-    // Enable button only when hero name matches
-    inputEl.addEventListener("input", () => {
-      confirmBtn.disabled = inputEl.value !== this.plugin.settings.heroName;
-      confirmBtn.setAttr("aria-disabled", confirmBtn.disabled);
-    });
 
     cancelBtn.addEventListener("click", () => this.close());
 
@@ -489,54 +555,24 @@ var ResetConfirmModal = class extends Modal {
         settings.completedFolderPath || "Quest Log/Completed",
       ];
 
-      // Helper: delete all files in a folder, then remove the folder itself
-      const wipeFolder = async (folderPath) => {
-        try {
-          const listing = await adapter.list(folderPath);
-          for (const file of listing.files) {
-            try { await adapter.remove(file); } catch (e) {}
-          }
-          // Remove the folder recursively (catches subdirs too)
-          try { await adapter.rmdir(folderPath, true); } catch (e) {}
-        } catch (e) {
-          // Folder may not exist — ignore
-        }
-      };
-
-      // Wipe all subfolders
-      for (const folder of foldersToWipe) {
-        await wipeFolder(folder);
-      }
-
-      // Delete User Profile .md
+      // Delete User Profile .md first
       const userProfileFolder = settings.userProfileFolder || "Quest Log";
       const userProfileFile = settings.userProfileFileName || "User Profile";
       const userProfilePath = `${userProfileFolder}/${userProfileFile}.md`;
       try { await adapter.remove(userProfilePath); } catch (e) {}
 
-      // Wipe any loose .md files in the Quest Log root folder
-      try {
-        const rootListing = await adapter.list(userProfileFolder);
-        for (const file of rootListing.files) {
-          if (file.endsWith(".md")) {
-            try { await adapter.remove(file); } catch (e) {}
-          }
-        }
-      } catch (e) {}
+      // Delete all folders recursively
+      for (const folder of foldersToWipe) {
+        try { await adapter.rmdir(folder, true); } catch (e) {}
+      }
 
       // Reset settings to defaults
       this.plugin.settings = JSON.parse(JSON.stringify(DEFAULT_SETTINGS));
-      await this.plugin.saveSettings();
+      
+      // Save data
+      await this.saveData(this.plugin.settings);
 
-      // Refresh the view if it's open
-      const leaves = this.app.workspace.getLeavesOfType(QUESTLOG_VIEW_TYPE);
-      if (leaves.length > 0) {
-        leaves[0].view.onOpen();
-      }
-
-      new Notice(
-        "Your legend begins anew! All history has been wiped from the scrolls.",
-      );
+      // Close this modal
       this.close();
     });
   }
@@ -566,29 +602,82 @@ var QuestLogView = class extends ItemView {
   // XP & LEVEL CALCULATIONS
   // ----------------------------------------
 
-  // XP threshold to reach a given level
-  // Levels 1-15: per-level cost = lvl * 1000 (1k, 2k, 3k... 15k)
-  // Level 16+: exponential (20% increase per level starting from 16k)
-  static getXpForLvl(lvl) {
-    if (lvl <= 0) return 0;
-    if (lvl <= 15) return Math.floor(lvl * (lvl + 1) / 2 * 1000);
-    const base = 15 * 16 / 2 * 1000; // 120000 at level 15
-    let xp = base;
-    let cost = 16000;
-    for (let i = 16; i <= lvl; i++) {
-      xp += cost;
-      cost = Math.floor(cost * 1.20);
-    }
-    return xp;
+  static getXpMultiplier(difficulty) {
+    const diff = difficulty || 10;
+    return 0.5 + (diff - 1) * 0.05;
   }
 
-  // Determine level from current XP — find highest level whose threshold we've met
-  static getLevel(currentXp) {
-    let lvl = 1;
-    while (QuestLogView.getXpForLvl(lvl) <= currentXp) {
-      lvl++;
+  static getXpForLvl(lvl, difficulty = 10) {
+    if (lvl <= 0) return 0;
+    const mult = this.getXpMultiplier(difficulty);
+    if (lvl <= 15) return Math.floor(lvl * (lvl + 1) / 2 * 1000 * mult);
+    const base = 120000 * mult;
+    const ratio = Math.pow(1.2, lvl - 15);
+    return Math.floor(base + 16000 * mult * (ratio - 1) / 0.2);
+  }
+
+  static getLevel(currentXp, difficulty = 10) {
+    if (currentXp < 1000 * this.getXpMultiplier(difficulty)) return 1;
+    const threshold15 = 120000 * this.getXpMultiplier(difficulty);
+    if (currentXp >= threshold15) {
+      const mult = this.getXpMultiplier(difficulty);
+      const lvl = Math.floor(Math.log((currentXp - threshold15) * 0.2 / (16000 * mult) + 1) / Math.log(1.2)) + 15;
+      return Math.max(16, lvl + (this.getXpForLvl(lvl + 1, difficulty) <= currentXp ? 1 : 0));
     }
-    return lvl;
+    let lo = 1, hi = 15;
+    while (lo < hi) {
+      const mid = (lo + hi + 1) >> 1;
+      if (this.getXpForLvl(mid, difficulty) <= currentXp) lo = mid;
+      else hi = mid - 1;
+    }
+    return lo + 1;
+  }
+
+  // ----------------------------------------
+  // SKILL XP & LEVEL CALCULATIONS
+  // ----------------------------------------
+
+  static SKILL_MAX_LEVEL = 100;
+
+  static getSkillXpForLvl(lvl, difficulty = 10) {
+    if (lvl <= 0) return 0;
+    if (lvl > this.SKILL_MAX_LEVEL) return this.getSkillXpForLvl(this.SKILL_MAX_LEVEL, difficulty);
+    const mult = this.getXpMultiplier(difficulty);
+    if (lvl <= 15) return Math.floor(lvl * (lvl + 1) / 2 * 100 * mult);
+    const base = 12000 * mult;
+    const ratio = Math.pow(1.15, lvl - 15);
+    return Math.floor(base + 1600 * mult * (ratio - 1) / 0.15);
+  }
+
+  static getSkillLevel(currentXp, difficulty = 10) {
+    if (currentXp < 100 * this.getXpMultiplier(difficulty)) return 1;
+    const threshold15 = 12000 * this.getXpMultiplier(difficulty);
+    if (currentXp >= threshold15) {
+      const mult = this.getXpMultiplier(difficulty);
+      const lvl = Math.floor(Math.log((currentXp - threshold15) * 0.15 / (1600 * mult) + 1) / Math.log(1.15)) + 15;
+      return Math.min(this.SKILL_MAX_LEVEL, Math.max(16, lvl + (this.getSkillXpForLvl(lvl + 1, difficulty) <= currentXp ? 1 : 0)));
+    }
+    let lo = 1, hi = 15;
+    while (lo < hi) {
+      const mid = (lo + hi + 1) >> 1;
+      if (this.getSkillXpForLvl(mid, difficulty) <= currentXp) lo = mid;
+      else hi = mid - 1;
+    }
+    return Math.min(this.SKILL_MAX_LEVEL, lo + 1);
+  }
+
+  static getSkillXpProgress(skill, difficulty = 10) {
+    const level = skill.level || 1;
+    const xpForCurrent = this.getSkillXpForLvl(level - 1, difficulty);
+    const xpForNext = this.getSkillXpForLvl(level, difficulty);
+    return {
+      xp: skill.xp || 0,
+      xpForCurrent,
+      xpForNext,
+      xpNeeded: xpForNext - xpForCurrent,
+      xpProgress: (skill.xp || 0) - xpForCurrent,
+      pct: Math.min(100, Math.round(((skill.xp || 0) - xpForCurrent) / (xpForNext - xpForCurrent) * 100))
+    };
   }
 
   // ----------------------------------------
@@ -599,24 +688,53 @@ var QuestLogView = class extends ItemView {
   static URGENCY_LABELS = ["Relaxed", "Soon", "Urgent", "Critical", "Immediate"];
   static IMPACT_LABELS = ["Minor", "Notable", "Major", "Epic", "Legendary"];
 
-  // Exponential XP: exactly 100 at min (sum=3), exactly 500,000 at max (sum=15)
+  static _XP_TABLE = (() => {
+    const table = {};
+    for (let d = 1; d <= 5; d++) {
+      for (let u = 1; u <= 5; u++) {
+        for (let i = 1; i <= 5; i++) {
+          const sum = d + u + i;
+          let xp;
+          if (sum <= 3) xp = 100;
+          else if (sum >= 15) xp = 500000;
+          else {
+            const exp = (sum - 3) / 12;
+            xp = Math.round(100 * Math.pow(5000, exp));
+          }
+          table[`${d},${u},${i}`] = xp;
+        }
+      }
+    }
+    return table;
+  })();
+
   static calcXp(d, u, i) {
-    const sum = d + u + i;
-    if (sum <= 3) return 100;
-    if (sum >= 15) return 500000;
-    return Math.round(100 * Math.pow(5000, (sum - 3) / 12));
+    return this._XP_TABLE[`${d},${u},${i}`] || 100;
   }
 
+  static safeName(str) {
+    return str.replace(/[\\/:*?"<>|]/g, "-");
+  }
+
+  static formatDate(dateStr) {
+    return new Date(dateStr).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+  }
+
+  static _LEVEL_TITLES = [
+    "Novice Adventurer", "Novice Adventurer", "Novice Adventurer", "Novice Adventurer", "Apprentice",
+    "Apprentice", "Apprentice", "Apprentice", "Apprentice", "Journeyman",
+    "Journeyman", "Journeyman", "Journeyman", "Journeyman", "Veteran",
+    "Veteran", "Veteran", "Veteran", "Veteran", "Master",
+    "Master", "Master", "Master", "Master", "Grandmaster",
+    "Grandmaster", "Grandmaster", "Grandmaster", "Grandmaster", "Champion",
+    "Champion", "Champion", "Champion", "Champion", "Champion",
+    "Champion", "Champion", "Champion", "Champion", "Mythic",
+    "Mythic", "Mythic", "Mythic", "Mythic", "Mythic",
+    "Mythic", "Mythic", "Mythic", "Mythic", "Legendary",
+  ];
+
   static getLevelTitle(lvl) {
-    if (lvl >= 50) return "Legendary";
-    if (lvl >= 40) return "Mythic";
-    if (lvl >= 30) return "Champion";
-    if (lvl >= 25) return "Grandmaster";
-    if (lvl >= 20) return "Master";
-    if (lvl >= 15) return "Veteran";
-    if (lvl >= 10) return "Journeyman";
-    if (lvl >= 5) return "Apprentice";
-    return "Novice Adventurer";
+    return this._LEVEL_TITLES[Math.min(lvl, 50)] || "Legendary";
   }
 
   // ----------------------------------------
@@ -625,9 +743,10 @@ var QuestLogView = class extends ItemView {
 
   updateHeader() {
     const currentXp = this.plugin.settings.currentXp;
-    const level = QuestLogView.getLevel(currentXp);
-    const xpForNext = QuestLogView.getXpForLvl(level);
-    const xpFromPrev = QuestLogView.getXpForLvl(level - 1);
+    const level = this.plugin.getLevel();
+    const difficulty = this.plugin.settings.userDifficulty || 10;
+    const xpForNext = QuestLogView.getXpForLvl(level, difficulty);
+    const xpFromPrev = QuestLogView.getXpForLvl(level - 1, difficulty);
     const xpNeeded = xpForNext - xpFromPrev;
     const xpProgress = currentXp - xpFromPrev;
     const pct = xpNeeded > 0 ? Math.min(100, Math.round((xpProgress / xpNeeded) * 100)) : 100;
@@ -645,16 +764,14 @@ var QuestLogView = class extends ItemView {
   static async writeQuestFile(plugin, quest) {
     const { app, settings } = plugin;
     const folderPath = settings.questsFolderPath || "Quest Log/Quests";
-    const safeName = quest.title.replace(/[\\/:*?"<>|]/g, "-");
+    const safeName = QuestLogView.safeName(quest.title);
     const fullPath = `${folderPath}/${safeName}.md`;
 
-    // Ensure folder exists
     const folder = app.vault.getAbstractFileByPath(folderPath);
     if (!folder) {
       try { await app.vault.createFolder(folderPath); } catch (e) {}
     }
 
-    // Star rating helper
     const stars = (n) => "⭐".repeat(n);
 
     const content = `---
@@ -673,11 +790,10 @@ ${quest.description || ""}
 | **Urgency** | ${stars(quest.urgency)} |
 | **Impact** | ${stars(quest.impact)} |
 | **Status** | In Progress |
-| **Created** | ${new Date(quest.created).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })} |
+| **Created** | ${QuestLogView.formatDate(quest.created)} |
 | **Completed** | — |
 `;
 
-    // Create or update
     const existing = app.vault.getAbstractFileByPath(fullPath);
     if (existing) {
       await app.vault.modify(existing, content);
@@ -694,11 +810,10 @@ ${quest.description || ""}
   static async completeQuestFile(plugin, quest) {
     const { app, settings } = plugin;
     const folderPath = settings.questsFolderPath || "Quest Log/Quests";
-    const safeName = quest.title.replace(/[\\/:*?"<>|]/g, "-");
+    const safeName = QuestLogView.safeName(quest.title);
     const fullPath = `${folderPath}/${safeName}.md`;
 
     const stars = (n) => "⭐".repeat(n);
-    const now = new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 
     const content = `---
 id: "${quest.id}"
@@ -716,8 +831,8 @@ ${quest.description || ""}
 | **Urgency** | ${stars(quest.urgency)} |
 | **Impact** | ${stars(quest.impact)} |
 | **Status** | ✅ Completed |
-| **Created** | ${new Date(quest.created).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })} |
-| **Completed** | ${now} |
+| **Created** | ${QuestLogView.formatDate(quest.created)} |
+| **Completed** | ${QuestLogView.formatDate(new Date().toISOString())} |
 `;
 
     const existing = app.vault.getAbstractFileByPath(fullPath);
@@ -729,7 +844,7 @@ ${quest.description || ""}
   static async deleteQuestFile(plugin, quest) {
     const { app, settings } = plugin;
     const folderPath = settings.questsFolderPath || "Quest Log/Quests";
-    const safeName = quest.title.replace(/[\\/:*?"<>|]/g, "-");
+    const safeName = QuestLogView.safeName(quest.title);
     const fullPath = `${folderPath}/${safeName}.md`;
     const file = app.vault.getAbstractFileByPath(fullPath);
     if (file) {
@@ -740,7 +855,7 @@ ${quest.description || ""}
   static async deleteHabitFile(plugin, habit) {
     const { app, settings } = plugin;
     const folderPath = settings.habitsFolderPath || "Quest Log/Habits";
-    const safeName = habit.title.replace(/[\\/:*?"<>|]/g, "-");
+    const safeName = QuestLogView.safeName(habit.title);
     const fullPath = `${folderPath}/${safeName}.md`;
     const file = app.vault.getAbstractFileByPath(fullPath);
     if (file) {
@@ -751,7 +866,7 @@ ${quest.description || ""}
   static async writeHabitFile(plugin, habit) {
     const { app, settings } = plugin;
     const folderPath = settings.habitsFolderPath || "Quest Log/Habits";
-    const safeName = habit.title.replace(/[\\/:*?"<>|]/g, "-");
+    const safeName = QuestLogView.safeName(habit.title);
     const fullPath = `${folderPath}/${safeName}.md`;
 
     const folder = app.vault.getAbstractFileByPath(folderPath);
@@ -777,7 +892,7 @@ ${habit.description || ""}
 | **Urgency** | ${stars(habit.urgency)} |
 | **Impact** | ${stars(habit.impact)} |
 | **Status** | Active Habit |
-| **Created** | ${new Date(habit.created).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })} |
+| **Created** | ${QuestLogView.formatDate(habit.created)} |
 `;
 
     const existing = app.vault.getAbstractFileByPath(fullPath);
@@ -793,16 +908,26 @@ ${habit.description || ""}
     }
   }
 
+  static formatHabitTimestamp(dateStr) {
+    const d = new Date(dateStr);
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    const dd = String(d.getDate()).padStart(2, "0");
+    let h = d.getHours();
+    const m = String(d.getMinutes()).padStart(2, "0");
+    const s = String(d.getSeconds()).padStart(2, "0");
+    const ms = String(d.getMilliseconds()).padStart(3, "0");
+    const ampm = h >= 12 ? "PM" : "AM";
+    h = h % 12 || 12;
+    return `${yyyy}-${mm}-${dd} ${String(h).padStart(2, "0")}_${m}_${s}_${ms} ${ampm}`;
+  }
+
   static async writeCompletedHabitFile(plugin, habit, completedAt) {
     const { app, settings } = plugin;
     const folderPath = settings.completedFolderPath || "Quest Log/Completed";
-    const safeName = habit.title.replace(/[\\/:*?"<>|]/g, "-");
-    const dateObj = new Date(completedAt);
-    const dateStr = dateObj.toLocaleString("en-US", {
-      year: "numeric", month: "2-digit", day: "2-digit",
-      hour: "2-digit", minute: "2-digit", hour12: true,
-    }).replace(/[/:]/g, "-").replace(", ", " ");
-    const fullPath = `${folderPath}/${safeName} - ${dateStr}.md`;
+    const safeName = QuestLogView.safeName(habit.title);
+    const timeStr = QuestLogView.formatHabitTimestamp(completedAt);
+    const fullPath = `${folderPath}/${safeName} - ${timeStr}.md`;
 
     const folder = app.vault.getAbstractFileByPath(folderPath);
     if (!folder) {
@@ -810,7 +935,6 @@ ${habit.description || ""}
     }
 
     const stars = (n) => "⭐".repeat(n);
-    const completedDate = dateObj.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 
     const content = `---
 id: "${habit.id}"
@@ -828,7 +952,7 @@ ${habit.description || ""}
 | **Urgency** | ${stars(habit.urgency)} |
 | **Impact** | ${stars(habit.impact)} |
 | **Status** | Completed ✓ |
-| **Completed** | ${completedDate} |
+| **Completed** | ${QuestLogView.formatDate(completedAt)} |
 `;
 
     const existing = app.vault.getAbstractFileByPath(fullPath);
@@ -844,13 +968,67 @@ ${habit.description || ""}
   static async deleteCompletedHabitFile(plugin, habit, completedAt) {
     const { app, settings } = plugin;
     const folderPath = settings.completedFolderPath || "Quest Log/Completed";
-    const safeName = habit.title.replace(/[\\/:*?"<>|]/g, "-");
-    const dateObj = new Date(completedAt);
-    const dateStr = dateObj.toLocaleString("en-US", {
-      year: "numeric", month: "2-digit", day: "2-digit",
-      hour: "2-digit", minute: "2-digit", hour12: true,
-    }).replace(/[/:]/g, "-").replace(", ", " ");
-    const fullPath = `${folderPath}/${safeName} - ${dateStr}.md`;
+    const safeName = QuestLogView.safeName(habit.title);
+    const timeStr = QuestLogView.formatHabitTimestamp(completedAt);
+    const fullPath = `${folderPath}/${safeName} - ${timeStr}.md`;
+    const file = app.vault.getAbstractFileByPath(fullPath);
+    if (file) {
+      try { await app.vault.delete(file); } catch (e) {}
+    }
+  }
+
+  // ----------------------------------------
+  // SKILL FILE PERSISTENCE
+  // ----------------------------------------
+
+  static async writeSkillFile(plugin, skill) {
+    const { app, settings } = plugin;
+    const folderPath = settings.skillsFolderPath || "Quest Log/Skills";
+    const safeName = QuestLogView.safeName(skill.name);
+    const fullPath = `${folderPath}/${safeName}.md`;
+
+    const folder = app.vault.getAbstractFileByPath(folderPath);
+    if (!folder) {
+      try { await app.vault.createFolder(folderPath); } catch (e) {}
+    }
+
+    const legendaryStar = skill.legendary ? " ★" : "";
+
+    const content = `---
+id: "${skill.id}"
+---
+# ${skill.name}${legendaryStar}
+
+${skill.description || ""}
+
+---
+
+| Field | Value |
+| :--- | :--- |
+| **Level** | ${skill.level || 1} |
+| **XP** | ${(skill.xp || 0).toLocaleString()} |
+| **Legendary** | ${skill.legendary ? "Yes" : "No"} |
+| **Created** | ${this.formatDate(skill.created)} |
+`;
+
+    const existing = app.vault.getAbstractFileByPath(fullPath);
+    if (existing) {
+      await app.vault.modify(existing, content);
+    } else {
+      try {
+        await app.vault.create(fullPath, content);
+      } catch (e) {
+        const fallback = app.vault.getAbstractFileByPath(fullPath);
+        if (fallback) await app.vault.modify(fallback, content);
+      }
+    }
+  }
+
+  static async deleteSkillFile(plugin, skill) {
+    const { app, settings } = plugin;
+    const folderPath = settings.skillsFolderPath || "Quest Log/Skills";
+    const safeName = QuestLogView.safeName(skill.name);
+    const fullPath = `${folderPath}/${safeName}.md`;
     const file = app.vault.getAbstractFileByPath(fullPath);
     if (file) {
       try { await app.vault.delete(file); } catch (e) {}
@@ -871,12 +1049,12 @@ ${habit.description || ""}
       const star = track.createEl("span", { cls: "snap-star", text: "★" });
       star.style.position = "absolute";
       star.style.left = pct + "%";
-      star.style.top = "50%";
+      star.style.top = "calc(50% - 1px)";
       star.style.transform = "translate(-50%, -50%)";
-      star.style.fontSize = "7px";
+      star.style.fontSize = "12px";
       star.style.color = "#555";
       star.style.pointerEvents = "none";
-      star.style.transition = "font-size 0.15s ease, color 0.15s ease, text-shadow 0.15s ease";
+      star.style.transition = "color 0.15s ease";
       stars.push(star);
     });
 
@@ -905,11 +1083,11 @@ ${habit.description || ""}
       stars.forEach((star, i) => {
         if (i < value) {
           star.style.color = color;
-          star.style.fontSize = "10px";
-          star.style.textShadow = `0 0 4px ${color}`;
+          star.style.fontSize = "14px";
+          star.style.textShadow = "none";
         } else {
           star.style.color = "#555";
-          star.style.fontSize = "7px";
+          star.style.fontSize = "12px";
           star.style.textShadow = "none";
         }
       });
@@ -992,6 +1170,9 @@ ${habit.description || ""}
   // ----------------------------------------
 
   async onOpen() {
+    if (!this.containerEl || !this.containerEl.children || !this.containerEl.children[1]) {
+      return;
+    }
     const container = this.containerEl.children[1];
     container.empty();
     container.addClass("quest-log-container");
@@ -1075,9 +1256,10 @@ ${habit.description || ""}
     // --- HEADER ---
     const header = container.createEl("div", { cls: "quest-header" });
     const currentXp = this.plugin.settings.currentXp;
-    const calculatedLvl = QuestLogView.getLevel(currentXp);
-    const xpFrmPrevLvls = QuestLogView.getXpForLvl(calculatedLvl - 1);
-    const xpForNextLvl = QuestLogView.getXpForLvl(calculatedLvl);
+    const calculatedLvl = this.plugin.getLevel();
+    const difficulty = this.plugin.settings.userDifficulty || 10;
+    const xpFrmPrevLvls = QuestLogView.getXpForLvl(calculatedLvl - 1, difficulty);
+    const xpForNextLvl = QuestLogView.getXpForLvl(calculatedLvl, difficulty);
     const progressXp = currentXp - xpFrmPrevLvls;
     const totalXpInLvl = xpForNextLvl - xpFrmPrevLvls;
     const percent = (progressXp / totalXpInLvl) * 100;
@@ -1158,6 +1340,11 @@ ${habit.description || ""}
     const overlay = this.containerEl.createEl("div", {
       cls: "quest-creation-overlay",
     });
+    overlay.addEventListener("click", (e) => {
+      if (e.target === overlay) {
+        overlay.removeClass("open");
+      }
+    });
     const modalBox = overlay.createEl("div", { cls: "quest-modal" });
 
     // Modal header
@@ -1215,6 +1402,55 @@ ${habit.description || ""}
       cls: "quest-xp-preview-value",
     });
 
+    // --- SKILL ATTACHMENT ---
+    const skillsSection = modalBox.createEl("div", { cls: "detail-skills-section" });
+    skillsSection.createEl("span", { text: "Attached Skills", cls: "detail-skills-label" });
+
+    const selectedSkillIds = [];
+    const selectedSkillsDisplay = skillsSection.createEl("div", { cls: "detail-selected-skills" });
+    const skillInputContainer = skillsSection.createEl("div", { cls: "detail-skill-input-container" });
+
+    const updateSelectedSkillsDisplay = () => {
+      selectedSkillsDisplay.empty();
+      const skills = this.plugin.settings.skills || [];
+      selectedSkillIds.forEach((skillId) => {
+        const skill = skills.find((s) => s.id === skillId);
+        if (skill) {
+          const tag = selectedSkillsDisplay.createEl("span", { cls: "detail-skill-tag" });
+          tag.createEl("span", { text: skill.name });
+          const removeBtn = tag.createEl("span", { cls: "detail-skill-tag-remove" });
+          setIcon(removeBtn, "x");
+          removeBtn.addEventListener("click", (e) => {
+            e.stopPropagation();
+            const idx = selectedSkillIds.indexOf(skillId);
+            if (idx > -1) selectedSkillIds.splice(idx, 1);
+            updateSelectedSkillsDisplay();
+          });
+        }
+      });
+      if (selectedSkillIds.length === 0) {
+        selectedSkillsDisplay.createEl("span", {
+          text: "No skills attached",
+          cls: "detail-skills-placeholder",
+        });
+      }
+    };
+    updateSelectedSkillsDisplay();
+
+    const skillInput = skillInputContainer.createEl("input", {
+      type: "text",
+      placeholder: "Type to add skill...",
+      cls: "detail-skill-input",
+    });
+
+    const skillSuggest = new SkillSuggest(this.app, skillInput, this.plugin);
+    skillSuggest.onSelect = (skill) => {
+      if (!selectedSkillIds.includes(skill.id)) {
+        selectedSkillIds.push(skill.id);
+        updateSelectedSkillsDisplay();
+      }
+    };
+
     // Modal buttons
     const btnContainer = modalBox.createEl("div", {
       cls: "quest-modal-buttons",
@@ -1241,6 +1477,8 @@ ${habit.description || ""}
       urgSlider._setValue(3);
       impSlider._setValue(3);
       updateXpPreview();
+      selectedSkillIds.length = 0;
+      updateSelectedSkillsDisplay();
     };
 
     // Track active tab
@@ -1254,6 +1492,9 @@ ${habit.description || ""}
       } else if (activeTab === "HABITS") {
         habitOverlay.addClass("open");
         habitTitleInput.focus();
+      } else if (activeTab === "SKILLS") {
+        skillOverlay.addClass("open");
+        skillNameInput.focus();
       } else {
         comingSoonOverlay.addClass("open");
       }
@@ -1277,6 +1518,7 @@ ${habit.description || ""}
           impact: impSlider._getValue(),
           xp: xp,
           created: new Date().toISOString(),
+          skillIds: [...selectedSkillIds],
         };
         this.plugin.settings.quests.push(quest);
         await this.plugin.saveSettings();
@@ -1293,7 +1535,12 @@ ${habit.description || ""}
     const habitOverlay = this.containerEl.createEl("div", {
       cls: "quest-creation-overlay",
     });
-    const habitModalBox = habitOverlay.createEl("div", { cls: "quest-modal" });
+    habitOverlay.addEventListener("click", (e) => {
+      if (e.target === habitOverlay) {
+        habitOverlay.removeClass("open");
+      }
+    });
+    const habitModalBox = habitOverlay.createEl("div", { cls: "quest-modal habit-context" });
 
     // Habit modal header
     const habitModalHeader = habitModalBox.createEl("div", { cls: "quest-modal-header" });
@@ -1347,6 +1594,55 @@ ${habit.description || ""}
       cls: "quest-xp-preview-value",
     });
 
+    // --- SKILL ATTACHMENT ---
+    const habitSkillsSection = habitModalBox.createEl("div", { cls: "detail-skills-section" });
+    habitSkillsSection.createEl("span", { text: "Attached Skills", cls: "detail-skills-label" });
+
+    const habitSelectedSkillIds = [];
+    const habitSelectedSkillsDisplay = habitSkillsSection.createEl("div", { cls: "detail-selected-skills" });
+    const habitSkillInputContainer = habitSkillsSection.createEl("div", { cls: "detail-skill-input-container" });
+
+    const updateHabitSelectedSkillsDisplay = () => {
+      habitSelectedSkillsDisplay.empty();
+      const skills = this.plugin.settings.skills || [];
+      habitSelectedSkillIds.forEach((skillId) => {
+        const skill = skills.find((s) => s.id === skillId);
+        if (skill) {
+          const tag = habitSelectedSkillsDisplay.createEl("span", { cls: "detail-skill-tag" });
+          tag.createEl("span", { text: skill.name });
+          const removeBtn = tag.createEl("span", { cls: "detail-skill-tag-remove" });
+          setIcon(removeBtn, "x");
+          removeBtn.addEventListener("click", (e) => {
+            e.stopPropagation();
+            const idx = habitSelectedSkillIds.indexOf(skillId);
+            if (idx > -1) habitSelectedSkillIds.splice(idx, 1);
+            updateHabitSelectedSkillsDisplay();
+          });
+        }
+      });
+      if (habitSelectedSkillIds.length === 0) {
+        habitSelectedSkillsDisplay.createEl("span", {
+          text: "No skills attached",
+          cls: "detail-skills-placeholder",
+        });
+      }
+    };
+    updateHabitSelectedSkillsDisplay();
+
+    const habitSkillInput = habitSkillInputContainer.createEl("input", {
+      type: "text",
+      placeholder: "Type to add skill...",
+      cls: "detail-skill-input",
+    });
+
+    const habitSkillSuggest = new SkillSuggest(this.app, habitSkillInput, this.plugin);
+    habitSkillSuggest.onSelect = (skill) => {
+      if (!habitSelectedSkillIds.includes(skill.id)) {
+        habitSelectedSkillIds.push(skill.id);
+        updateHabitSelectedSkillsDisplay();
+      }
+    };
+
     // Habit modal buttons
     const habitBtnContainer = habitModalBox.createEl("div", {
       cls: "quest-modal-buttons",
@@ -1373,6 +1669,8 @@ ${habit.description || ""}
       habitUrgSlider._setValue(3);
       habitImpSlider._setValue(3);
       updateHabitXpPreview();
+      habitSelectedSkillIds.length = 0;
+      updateHabitSelectedSkillsDisplay();
     };
 
     habitCancelBtn.addEventListener("click", closeHabitOverlay);
@@ -1393,6 +1691,7 @@ ${habit.description || ""}
           impact: habitImpSlider._getValue(),
           xp: xp,
           created: new Date().toISOString(),
+          skillIds: [...habitSelectedSkillIds],
         };
         this.plugin.settings.habits.push(habit);
         await this.plugin.saveSettings();
@@ -1408,6 +1707,11 @@ ${habit.description || ""}
     // --- COMING SOON OVERLAY ---
     const comingSoonOverlay = this.containerEl.createEl("div", {
       cls: "quest-creation-overlay",
+    });
+    comingSoonOverlay.addEventListener("click", (e) => {
+      if (e.target === comingSoonOverlay) {
+        comingSoonOverlay.removeClass("open");
+      }
     });
     const comingSoonBox = comingSoonOverlay.createEl("div", {
       cls: "coming-soon-box",
@@ -1487,13 +1791,10 @@ ${habit.description || ""}
     habitsContent.style.display = "none";
 
     const skillsContent = container.createEl("div", {
-      cls: "tab-content-placeholder",
-    });
-    skillsContent.createEl("div", {
-      text: "Skills coming soon.",
-      cls: "quest-list-empty",
+      cls: "quest-list-container skill-list-container",
     });
     skillsContent.style.display = "none";
+    this.renderSkillList(skillsContent);
 
     // --- COMPLETED VIEW OVERLAY ---
     const completedOverlay = container.createEl("div", { cls: "completed-overlay" });
@@ -1549,16 +1850,147 @@ ${habit.description || ""}
     const detailOverlay = this.containerEl.createEl("div", {
       cls: "quest-detail-overlay",
     });
+    detailOverlay.addEventListener("click", (e) => {
+      if (e.target === detailOverlay) {
+        detailOverlay.removeClass("open");
+      }
+    });
     const detailBox = detailOverlay.createEl("div", {
       cls: "quest-detail-box",
+    });
+
+    // --- SKILL CREATION MODAL ---
+    const skillOverlay = this.containerEl.createEl("div", {
+      cls: "quest-creation-overlay",
+    });
+    skillOverlay.addEventListener("click", (e) => {
+      if (e.target === skillOverlay) {
+        skillOverlay.removeClass("open");
+      }
+    });
+    const skillModalBox = skillOverlay.createEl("div", { cls: "quest-modal skill-context" });
+
+    const skillModalHeader = skillModalBox.createEl("div", { cls: "quest-modal-header" });
+    const skillHeaderIcon = skillModalHeader.createEl("span", { cls: "quest-modal-header-icon" });
+    setIcon(skillHeaderIcon, "zap");
+    skillModalHeader.createEl("span", { text: "New Skill" });
+
+    const skillNameInput = skillModalBox.createEl("input", {
+      type: "text",
+      placeholder: "Skill Name...",
+      cls: "quest-modal-title",
+    });
+    const skillDescInput = skillModalBox.createEl("textarea", {
+      attr: { placeholder: "Description..." },
+      cls: "quest-modal-desc",
+    });
+
+    const skillInfo = skillModalBox.createEl("div", { cls: "skill-creation-info" });
+    skillInfo.createEl("span", {
+      text: "Skills level up automatically when attached to quests or habits.",
+      cls: "skill-creation-info-text",
+    });
+
+    const skillBtnContainer = skillModalBox.createEl("div", {
+      cls: "quest-modal-buttons",
+    });
+    const skillCancelBtn = skillBtnContainer.createEl("button", {
+      text: "Cancel",
+      cls: "quest-modal-cancel-btn",
+    });
+    const skillCreateBtn = skillBtnContainer.createEl("button", {
+      cls: "quest-modal-create-btn",
+    });
+    const skillCreateBtnIcon = skillCreateBtn.createEl("span", {
+      cls: "quest-modal-create-btn-icon",
+    });
+    setIcon(skillCreateBtnIcon, "plus");
+    skillCreateBtn.createEl("span", { text: "Create Skill" });
+
+    const closeSkillOverlay = () => {
+      skillOverlay.removeClass("open");
+      skillNameInput.value = "";
+      skillDescInput.value = "";
+    };
+
+    skillCancelBtn.addEventListener("click", closeSkillOverlay);
+
+    skillCreateBtn.addEventListener("click", async () => {
+      if (skillNameInput.value.trim() !== "") {
+        const skill = {
+          id: Date.now().toString(),
+          name: skillNameInput.value.trim(),
+          description: skillDescInput.value.trim(),
+          xp: 0,
+          level: 1,
+          legendary: false,
+          created: new Date().toISOString(),
+        };
+        this.plugin.settings.skills.push(skill);
+        await this.plugin.saveSettings();
+        await QuestLogView.writeSkillFile(this.plugin, skill);
+        this.renderSkillList(skillsContent);
+        new Notice(`Created Skill: ${skill.name}`);
+        closeSkillOverlay();
+      } else {
+        new Notice("Add Skill Name First!");
+      }
     });
 
     // Store references for rendering
     this._questListContainer = questListContainer;
     this._habitListContainer = habitsContent;
+    this._skillListContainer = skillsContent;
     this._completedListContainer = completedListContainer;
     this._detailOverlay = detailOverlay;
     this._detailBox = detailBox;
+    this._skillOverlay = skillOverlay;
+    this._skillModalBox = skillModalBox;
+  }
+
+  // ----------------------------------------
+  // DELETE CONFIRMATION MODAL
+  // ----------------------------------------
+
+  showDeleteConfirm(title, onConfirm) {
+    const confirmOverlay = this.containerEl.createEl("div", {
+      cls: "delete-confirm-overlay open",
+    });
+    const confirmBox = confirmOverlay.createEl("div", {
+      cls: "quest-modal delete-confirm-modal",
+    });
+
+    const headerRow = confirmBox.createEl("div", { cls: "delete-confirm-header" });
+    const warnIcon = headerRow.createEl("span", { cls: "delete-confirm-icon" });
+    setIcon(warnIcon, "alert-triangle");
+    headerRow.createEl("span", {
+      text: "Confirm Delete",
+      cls: "delete-confirm-title",
+    });
+
+    confirmBox.createEl("p", {
+      text: `Are you sure you want to delete "${title}"?`,
+      cls: "delete-confirm-desc",
+    });
+
+    const btnRow = confirmBox.createEl("div", { cls: "delete-confirm-buttons" });
+    const cancelBtn = btnRow.createEl("button", {
+      text: "Cancel",
+      cls: "quest-modal-cancel-btn",
+    });
+    cancelBtn.addEventListener("click", () => confirmOverlay.remove());
+    confirmOverlay.addEventListener("click", (e) => {
+      if (e.target === confirmOverlay) confirmOverlay.remove();
+    });
+
+    const confirmBtn = btnRow.createEl("button", {
+      text: "Delete",
+      cls: "delete-confirm-btn",
+    });
+    confirmBtn.addEventListener("click", async () => {
+      confirmOverlay.remove();
+      await onConfirm();
+    });
   }
 
   // ----------------------------------------
@@ -1603,6 +2035,15 @@ ${habit.description || ""}
         cls: "quest-block-xp",
       });
 
+      // Complete button
+      const completeBtn = block.createEl("button", { cls: "quest-complete-btn" });
+      const completeIcon = completeBtn.createEl("span", { cls: "quest-btn-icon" });
+      setIcon(completeIcon, "check");
+      completeBtn.addEventListener("click", async (e) => {
+        e.stopPropagation();
+        await this.completeQuest(quest);
+      });
+
       // Click to open detail
       block.addEventListener("click", () => {
         this.openQuestDetail(quest);
@@ -1618,7 +2059,51 @@ ${habit.description || ""}
     const overlay = this._detailOverlay;
     const box = this._detailBox;
     box.empty();
+    box.removeClass("habit-context");
     overlay.addClass("open");
+
+    // Header row: "Quest Details" title + [open note + delete icon]
+    const headerRow = box.createEl("div", { cls: "quest-detail-header-row" });
+    headerRow.createEl("span", {
+      text: "Quest Details",
+      cls: "quest-detail-modal-title",
+    });
+
+    const btnGroup = headerRow.createEl("div", { cls: "quest-detail-btn-group" });
+
+    const openNoteBtn = btnGroup.createEl("button", {
+      cls: "quest-detail-open-btn",
+    });
+    const openNoteIcon = openNoteBtn.createEl("span", {
+      cls: "quest-detail-open-icon",
+    });
+    setIcon(openNoteIcon, "file-text");
+    openNoteBtn.addEventListener("click", () => {
+      const folderPath = this.plugin.settings.questsFolderPath || "Quest Log/Quests";
+      const safeName = QuestLogView.safeName(quest.title);
+      const fullPath = `${folderPath}/${safeName}.md`;
+      this.app.workspace.openLinkText(fullPath, "", false);
+    });
+
+    const deleteBtn = btnGroup.createEl("button", {
+      cls: "quest-detail-delete-btn",
+    });
+    const deleteIcon = deleteBtn.createEl("span", {
+      cls: "quest-detail-delete-icon",
+    });
+    setIcon(deleteIcon, "trash-2");
+    deleteBtn.addEventListener("click", () => {
+      this.showDeleteConfirm(quest.title, async () => {
+        await QuestLogView.deleteQuestFile(this.plugin, quest);
+        this.plugin.settings.quests = this.plugin.settings.quests.filter(
+          (q) => q.id !== quest.id,
+        );
+        await this.plugin.saveSettings();
+        overlay.removeClass("open");
+        this.renderQuestList(this._questListContainer);
+        new Notice("Quest deleted.");
+      });
+    });
 
     // Editable title
     const titleInput = box.createEl("input", {
@@ -1654,15 +2139,15 @@ ${habit.description || ""}
 
     const diffSlider = this.createSlider(
       slidersSection, "Difficulty", QuestLogView.DIFFICULTY_LABELS,
-      "#5e87ff", quest.difficulty || 3, updateXpPreview
+      "#4A9FFF", quest.difficulty || 3, updateXpPreview
     );
     const urgSlider = this.createSlider(
       slidersSection, "Urgency", QuestLogView.URGENCY_LABELS,
-      "#f59e0b", quest.urgency || 3, updateXpPreview
+      "#FFB800", quest.urgency || 3, updateXpPreview
     );
     const impSlider = this.createSlider(
       slidersSection, "Impact", QuestLogView.IMPACT_LABELS,
-      "#a855f7", quest.impact || 3, updateXpPreview
+      "#C05BFF", quest.impact || 3, updateXpPreview
     );
 
     // XP preview
@@ -1673,6 +2158,55 @@ ${habit.description || ""}
       cls: "quest-xp-preview-value",
     });
 
+    // --- SKILL ATTACHMENT ---
+    const skillsSection = box.createEl("div", { cls: "detail-skills-section" });
+    skillsSection.createEl("span", { text: "Attached Skills", cls: "detail-skills-label" });
+
+    const selectedSkillIds = [...(quest.skillIds || [])];
+    const selectedSkillsDisplay = skillsSection.createEl("div", { cls: "detail-selected-skills" });
+    const skillInputContainer = skillsSection.createEl("div", { cls: "detail-skill-input-container" });
+
+    const updateSelectedSkillsDisplay = () => {
+      selectedSkillsDisplay.empty();
+      const skills = this.plugin.settings.skills || [];
+      selectedSkillIds.forEach((skillId) => {
+        const skill = skills.find((s) => s.id === skillId);
+        if (skill) {
+          const tag = selectedSkillsDisplay.createEl("span", { cls: "detail-skill-tag" });
+          tag.createEl("span", { text: skill.name });
+          const removeBtn = tag.createEl("span", { cls: "detail-skill-tag-remove" });
+          setIcon(removeBtn, "x");
+          removeBtn.addEventListener("click", (e) => {
+            e.stopPropagation();
+            const idx = selectedSkillIds.indexOf(skillId);
+            if (idx > -1) selectedSkillIds.splice(idx, 1);
+            updateSelectedSkillsDisplay();
+          });
+        }
+      });
+      if (selectedSkillIds.length === 0) {
+        selectedSkillsDisplay.createEl("span", {
+          text: "No skills attached",
+          cls: "detail-skills-placeholder",
+        });
+      }
+    };
+    updateSelectedSkillsDisplay();
+
+    const skillInput = skillInputContainer.createEl("input", {
+      type: "text",
+      placeholder: "Type to add skill...",
+      cls: "detail-skill-input",
+    });
+
+    const skillSuggest = new SkillSuggest(this.app, skillInput, this.plugin);
+    skillSuggest.onSelect = (skill) => {
+      if (!selectedSkillIds.includes(skill.id)) {
+        selectedSkillIds.push(skill.id);
+        updateSelectedSkillsDisplay();
+      }
+    };
+
     // Helper to save current values back to quest
     const saveQuest = async () => {
       quest.title = titleInput.value.trim() || quest.title;
@@ -1681,6 +2215,7 @@ ${habit.description || ""}
       quest.urgency = urgSlider._getValue();
       quest.impact = impSlider._getValue();
       quest.xp = QuestLogView.calcXp(quest.difficulty, quest.urgency, quest.impact);
+      quest.skillIds = [...selectedSkillIds];
       await this.plugin.saveSettings();
       await QuestLogView.writeQuestFile(this.plugin, quest);
       this.renderQuestList(this._questListContainer);
@@ -1688,26 +2223,6 @@ ${habit.description || ""}
 
     // Buttons
     const btnRow = box.createEl("div", { cls: "quest-detail-buttons" });
-
-    // Delete button
-    const deleteBtn = btnRow.createEl("button", {
-      cls: "quest-detail-delete-btn",
-    });
-    const deleteIcon = deleteBtn.createEl("span", {
-      cls: "quest-detail-delete-icon",
-    });
-    setIcon(deleteIcon, "trash-2");
-    deleteBtn.createEl("span", { text: "Delete" });
-    deleteBtn.addEventListener("click", async () => {
-      await QuestLogView.deleteQuestFile(this.plugin, quest);
-      this.plugin.settings.quests = this.plugin.settings.quests.filter(
-        (q) => q.id !== quest.id,
-      );
-      this.plugin.saveSettings();
-      overlay.removeClass("open");
-      this.renderQuestList(this._questListContainer);
-      new Notice("Quest deleted.");
-    });
 
     // Spacer to push Close/Complete to the right
     btnRow.createEl("div", { cls: "quest-detail-spacer" });
@@ -1732,38 +2247,50 @@ ${habit.description || ""}
     });
     setIcon(completeIcon, "check");
     completeBtn.addEventListener("click", async () => {
-      // Save final values and award XP
       await saveQuest();
-      await QuestLogView.completeQuestFile(this.plugin, quest);
-
-      // Move quest .md from Quests folder to Completed folder
-      const adapter = this.app.vault.adapter;
-      const questsFolder = this.plugin.settings.questsFolderPath || "Quest Log/Quests";
-      const completedFolder = this.plugin.settings.completedFolderPath || "Quest Log/Completed";
-      const safeName = quest.title.replace(/[\\/:*?"<>|]/g, "-");
-      const sourcePath = `${questsFolder}/${safeName}.md`;
-      const destPath = `${completedFolder}/${safeName}.md`;
-      try {
-        // Ensure Completed folder exists
-        try { await adapter.mkdir(completedFolder); } catch (e) {}
-        await adapter.rename(sourcePath, destPath);
-      } catch (e) {}
-
-      this.plugin.settings.currentXp += quest.xp;
-      this.plugin.settings.questsCompleted += 1;
-      // Push to completedQuests with timestamp
-      const completedQuest = { ...quest, completedAt: new Date().toISOString() };
-      this.plugin.settings.completedQuests.push(completedQuest);
-      this.plugin.settings.quests = this.plugin.settings.quests.filter(
-        (q) => q.id !== quest.id,
-      );
-      this.plugin.saveSettings();
       overlay.removeClass("open");
-      new Notice(`Quest Complete! +${quest.xp.toLocaleString()} XP`);
+      await this.completeQuest(quest);
+      this.renderSkillList(this._skillListContainer);
       this.onOpen();
     });
   }
 
+
+  // ----------------------------------------
+  // QUEST ACTIONS
+  // ----------------------------------------
+
+  async completeQuest(quest) {
+    await QuestLogView.completeQuestFile(this.plugin, quest);
+
+    const adapter = this.app.vault.adapter;
+    const questsFolder = this.plugin.settings.questsFolderPath || "Quest Log/Quests";
+    const completedFolder = this.plugin.settings.completedFolderPath || "Quest Log/Completed";
+    const safeName = QuestLogView.safeName(quest.title);
+    const sourcePath = `${questsFolder}/${safeName}.md`;
+    const destPath = `${completedFolder}/${safeName}.md`;
+    try {
+      try { await adapter.mkdir(completedFolder); } catch (e) {}
+      await adapter.rename(sourcePath, destPath);
+    } catch (e) {}
+
+    this.plugin.settings.currentXp += quest.xp;
+    this.plugin.settings.questsCompleted += 1;
+
+    if (quest.skillIds && quest.skillIds.length > 0) {
+      await this.applyXpToSkills(quest.xp, quest.skillIds);
+    }
+
+    const completedQuest = { ...quest, completedAt: new Date().toISOString() };
+    this.plugin.settings.completedQuests.push(completedQuest);
+    this.plugin.settings.quests = this.plugin.settings.quests.filter(
+      (q) => q.id !== quest.id,
+    );
+    await this.plugin.saveSettings();
+    this.renderQuestList(this._questListContainer);
+    this.updateHeader();
+    new Notice(`Quest Complete! +${quest.xp.toLocaleString()} XP`);
+  }
 
   // ----------------------------------------
   // HABIT LIST RENDERING
@@ -1811,28 +2338,22 @@ ${habit.description || ""}
       // Action buttons row
       const actionRow = block.createEl("div", { cls: "habit-action-row" });
 
-      // Complete button
-      const completeBtn = actionRow.createEl("button", {
-        text: "Complete",
-        cls: "habit-complete-btn",
-      });
-      const completeIcon = completeBtn.createEl("span", { cls: "habit-btn-icon" });
-      setIcon(completeIcon, "check");
-      completeBtn.addEventListener("click", async (e) => {
-        e.stopPropagation();
-        await this.completeHabit(habit);
-      });
-
-      // Fail button
-      const failBtn = actionRow.createEl("button", {
-        text: "Fail",
-        cls: "habit-fail-btn",
-      });
+      // Fail button (left) - minimal X icon
+      const failBtn = actionRow.createEl("button", { cls: "habit-fail-btn-mini" });
       const failIcon = failBtn.createEl("span", { cls: "habit-btn-icon" });
       setIcon(failIcon, "x");
       failBtn.addEventListener("click", async (e) => {
         e.stopPropagation();
         await this.failHabit(habit);
+      });
+
+      // Complete button (right) - minimal check icon
+      const completeBtn = actionRow.createEl("button", { cls: "habit-complete-btn-mini" });
+      const completeIcon = completeBtn.createEl("span", { cls: "habit-btn-icon" });
+      setIcon(completeIcon, "check");
+      completeBtn.addEventListener("click", async (e) => {
+        e.stopPropagation();
+        await this.completeHabit(habit);
       });
 
       // Click to open detail
@@ -1852,10 +2373,16 @@ ${habit.description || ""}
     this.plugin.settings.completedHabits.push(completedHabit);
     this.plugin.settings.currentXp += habit.xp;
     this.plugin.settings.questsCompleted += 1;
+
+    if (habit.skillIds && habit.skillIds.length > 0) {
+      await this.applyXpToSkills(habit.xp, habit.skillIds);
+    }
+    
     await this.plugin.saveSettings();
     await QuestLogView.writeCompletedHabitFile(this.plugin, habit, completedAt);
     this.updateHeader();
     this.renderHabitList(this._habitListContainer);
+    this.renderSkillList(this._skillListContainer);
     new Notice(`Habit completed: ${habit.title}`);
   }
 
@@ -1867,6 +2394,189 @@ ${habit.description || ""}
   }
 
   // ----------------------------------------
+  // APPLY XP TO SKILLS
+  // ----------------------------------------
+
+  async applyXpToSkills(xp, skillIds) {
+    if (!skillIds || skillIds.length === 0) return;
+    const difficulty = this.plugin.settings.skillDifficulty || 10;
+    
+    for (const skillId of skillIds) {
+      const skill = this.plugin.settings.skills.find((s) => s.id === skillId);
+      if (skill && !skill.legendary) {
+        skill.xp = (skill.xp || 0) + xp;
+        skill.level = QuestLogView.getSkillLevel(skill.xp, difficulty);
+        await QuestLogView.writeSkillFile(this.plugin, skill);
+      }
+    }
+  }
+
+  // ----------------------------------------
+  // SKILL LIST RENDERING
+  // ----------------------------------------
+
+  renderSkillList(container) {
+    container.empty();
+    const skills = this.plugin.settings.skills || [];
+
+    if (skills.length === 0) {
+      container.createEl("div", {
+        text: "No skills yet. Tap + to create one.",
+        cls: "quest-list-empty",
+      });
+      return;
+    }
+
+    const grid = container.createEl("div", { cls: "skill-grid" });
+
+    skills.forEach((skill) => {
+      const block = grid.createEl("div", { cls: "quest-block skill-block" });
+
+      const difficulty = this.plugin.settings.userDifficulty || 10;
+      const xpInfo = QuestLogView.getSkillXpProgress(skill, difficulty);
+
+      block.createEl("div", {
+        text: skill.name,
+        cls: "quest-block-title",
+      });
+
+      if (skill.description) {
+        const noteIcon = block.createEl("span", { cls: "skill-note-icon" });
+        setIcon(noteIcon, "file-text");
+      }
+
+      const levelBadge = block.createEl("div", { cls: "skill-level-badge" });
+      if (skill.legendary) {
+        levelBadge.setText("★ Lvl " + skill.level);
+      } else {
+        levelBadge.setText("Lvl " + (skill.level || 1));
+      }
+
+      const xpBar = block.createEl("div", { cls: "skill-xp-bar" });
+      const xpFill = xpBar.createEl("div", { cls: "skill-xp-fill" });
+      xpFill.style.width = `${xpInfo.pct}%`;
+
+      block.addEventListener("click", () => {
+        this.openSkillDetail(skill);
+      });
+    });
+  }
+
+  // ----------------------------------------
+  // SKILL DETAIL VIEW
+  // ----------------------------------------
+
+  openSkillDetail(skill) {
+    const overlay = this._detailOverlay;
+    const box = this._detailBox;
+    box.empty();
+    box.addClass("skill-context");
+    overlay.addClass("open");
+
+    const difficulty = this.plugin.settings.skillDifficulty || 10;
+
+    const headerRow = box.createEl("div", { cls: "quest-detail-header-row" });
+    headerRow.createEl("span", {
+      text: "Skill Details",
+      cls: "quest-detail-modal-title",
+    });
+
+    const btnGroup = headerRow.createEl("div", { cls: "quest-detail-btn-group" });
+
+    const openNoteBtn = btnGroup.createEl("button", {
+      cls: "quest-detail-open-btn",
+    });
+    const openNoteIcon = openNoteBtn.createEl("span", {
+      cls: "quest-detail-open-icon",
+    });
+    setIcon(openNoteIcon, "file-text");
+    openNoteBtn.addEventListener("click", () => {
+      const folderPath = this.plugin.settings.skillsFolderPath || "Quest Log/Skills";
+      const safeName = QuestLogView.safeName(skill.name);
+      const fullPath = `${folderPath}/${safeName}.md`;
+      this.app.workspace.openLinkText(fullPath, "", false);
+    });
+
+    const deleteBtn = btnGroup.createEl("button", {
+      cls: "quest-detail-delete-btn",
+    });
+    const deleteIcon = deleteBtn.createEl("span", {
+      cls: "quest-detail-delete-icon",
+    });
+    setIcon(deleteIcon, "trash-2");
+    deleteBtn.addEventListener("click", () => {
+      this.showDeleteConfirm(skill.name, async () => {
+        await QuestLogView.deleteSkillFile(this.plugin, skill);
+        this.plugin.settings.skills = this.plugin.settings.skills.filter(
+          (s) => s.id !== skill.id,
+        );
+        await this.plugin.saveSettings();
+        overlay.removeClass("open");
+        this.renderSkillList(this._skillListContainer);
+        new Notice("Skill deleted.");
+      });
+    });
+
+    const nameInput = box.createEl("input", {
+      type: "text",
+      value: skill.name,
+      cls: "quest-detail-title-input",
+    });
+
+    const descBox = box.createEl("textarea", {
+      text: skill.description || "",
+      cls: "quest-detail-desc",
+      attr: { placeholder: "No description." },
+    });
+    descBox.style.height = "auto";
+    descBox.style.height = descBox.scrollHeight + "px";
+
+    const xpInfo = QuestLogView.getSkillXpProgress(skill, difficulty);
+
+    const levelSection = box.createEl("div", { cls: "skill-level-section" });
+    const levelRow = levelSection.createEl("div", { cls: "skill-level-row" });
+    levelRow.createEl("span", { text: "Level", cls: "skill-level-label" });
+    levelRow.createEl("span", {
+      text: skill.legendary ? `★ ${skill.level}` : `${skill.level}`,
+      cls: "skill-level-value",
+    });
+
+    const skillXpBar = levelSection.createEl("div", { cls: "skill-detail-xp-bar" });
+    const skillXpFill = skillXpBar.createEl("div", { cls: "skill-detail-xp-fill" });
+    skillXpFill.style.width = `${xpInfo.pct}%`;
+    levelSection.createEl("span", {
+      text: `${xpInfo.xpProgress.toLocaleString()} / ${xpInfo.xpNeeded.toLocaleString()} XP`,
+      cls: "skill-xp-progress-text",
+    });
+
+    const skillInfo = box.createEl("div", { cls: "skill-detail-info" });
+    skillInfo.createEl("span", {
+      text: "Attach this skill to quests or habits to gain XP.",
+      cls: "skill-detail-info-text",
+    });
+
+    const saveSkill = async () => {
+      skill.name = nameInput.value.trim() || skill.name;
+      skill.description = descBox.value.trim();
+      await this.plugin.saveSettings();
+      await QuestLogView.writeSkillFile(this.plugin, skill);
+      this.renderSkillList(this._skillListContainer);
+    };
+
+    const btnRow = box.createEl("div", { cls: "quest-detail-buttons" });
+
+    const closeBtn = btnRow.createEl("button", {
+      text: "Close",
+      cls: "quest-detail-close-btn",
+    });
+    closeBtn.style.flex = "1";
+    closeBtn.addEventListener("click", async () => {
+      await saveSkill();
+      overlay.removeClass("open");
+    });
+  }
+
+  // ----------------------------------------
   // HABIT DETAIL VIEW
   // ----------------------------------------
 
@@ -1874,67 +2584,179 @@ ${habit.description || ""}
     const overlay = this._detailOverlay;
     const box = this._detailBox;
     box.empty();
+    box.addClass("habit-context");
     overlay.addClass("open");
 
-    // Title row with delete icon
-    const titleRow = box.createEl("div", { cls: "habit-detail-title-row" });
-    titleRow.createEl("h2", {
-      text: habit.title,
-      cls: "quest-detail-title",
-    });
-    const topDeleteBtn = titleRow.createEl("button", {
-      cls: "habit-detail-title-delete",
-    });
-    const topDeleteIcon = topDeleteBtn.createEl("span");
-    setIcon(topDeleteIcon, "trash-2");
-    topDeleteBtn.addEventListener("click", async () => {
-      await QuestLogView.deleteHabitFile(this.plugin, habit);
-      this.plugin.settings.habits = this.plugin.settings.habits.filter(
-        (h) => h.id !== habit.id,
-      );
-      this.plugin.saveSettings();
-      overlay.removeClass("open");
-      this.renderHabitList(this._habitListContainer);
-      new Notice("Habit deleted.");
+    // Header row: "Habit Details" title + [open note + delete icon]
+    const headerRow = box.createEl("div", { cls: "quest-detail-header-row" });
+    headerRow.createEl("span", {
+      text: "Habit Details",
+      cls: "quest-detail-modal-title",
     });
 
-    // Description
-    if (habit.description) {
-      box.createEl("p", {
-        text: habit.description,
-        cls: "quest-detail-desc",
-        attr: { style: "background: transparent; border: none; padding: 0; color: #ccc; resize: none;" },
+    const btnGroup = headerRow.createEl("div", { cls: "quest-detail-btn-group" });
+
+    const openNoteBtn = btnGroup.createEl("button", {
+      cls: "quest-detail-open-btn",
+    });
+    const openNoteIcon = openNoteBtn.createEl("span", {
+      cls: "quest-detail-open-icon",
+    });
+    setIcon(openNoteIcon, "file-text");
+    openNoteBtn.addEventListener("click", () => {
+      const folderPath = this.plugin.settings.habitsFolderPath || "Quest Log/Habits";
+      const safeName = QuestLogView.safeName(habit.title);
+      const fullPath = `${folderPath}/${safeName}.md`;
+      this.app.workspace.openLinkText(fullPath, "", false);
+    });
+
+    const deleteBtn = btnGroup.createEl("button", {
+      cls: "quest-detail-delete-btn",
+    });
+    const deleteIcon = deleteBtn.createEl("span", {
+      cls: "quest-detail-delete-icon",
+    });
+    setIcon(deleteIcon, "trash-2");
+    deleteBtn.addEventListener("click", () => {
+      this.showDeleteConfirm(habit.title, async () => {
+        await QuestLogView.deleteHabitFile(this.plugin, habit);
+        this.plugin.settings.habits = this.plugin.settings.habits.filter(
+          (h) => h.id !== habit.id,
+        );
+        await this.plugin.saveSettings();
+        overlay.removeClass("open");
+        this.renderHabitList(this._habitListContainer);
+        new Notice("Habit deleted.");
       });
-    }
-
-    // Stats table
-    const stars = (n) => "\u2B50".repeat(n);
-    const createdDate = new Date(habit.created).toLocaleDateString("en-US", {
-      month: "short", day: "numeric", year: "numeric",
     });
 
-    const statsTable = box.createEl("table", { cls: "quest-detail-stats-table" });
-    statsTable.style.cssText = "width: 100%; border-collapse: collapse; font-size: 12px;";
-    const rows = [
-      ["XP Reward", habit.xp.toLocaleString()],
-      ["Difficulty", stars(habit.difficulty)],
-      ["Urgency", stars(habit.urgency)],
-      ["Impact", stars(habit.impact)],
-      ["Created", createdDate],
-      ["Type", "Habit (Repeatable)"],
-    ];
-    rows.forEach(([label, value]) => {
-      const tr = statsTable.createEl("tr");
-      const td1 = tr.createEl("td", { text: label });
-      td1.style.cssText = "color: #888; padding: 4px 8px 4px 0; font-weight: bold;";
-      const td2 = tr.createEl("td", { text: value });
-      td2.style.cssText = "color: #fff; padding: 4px 0; text-align: right;";
+    // Editable title
+    const titleInput = box.createEl("input", {
+      type: "text",
+      value: habit.title,
+      cls: "quest-detail-title-input",
     });
+
+    // Editable description
+    const descBox = box.createEl("textarea", {
+      text: habit.description || "",
+      cls: "quest-detail-desc",
+      attr: { placeholder: "No description." },
+    });
+    descBox.style.height = "auto";
+    descBox.style.height = descBox.scrollHeight + "px";
+
+    // --- SLIDERS ---
+    const slidersSection = box.createEl("div", {
+      cls: "quest-sliders-section",
+    });
+
+    const xpPreview = { el: null };
+
+    const updateXpPreview = () => {
+      const xp = QuestLogView.calcXp(
+        diffSlider._getValue(),
+        urgSlider._getValue(),
+        impSlider._getValue(),
+      );
+      xpPreview.el.setText(`${xp.toLocaleString()} XP`);
+    };
+
+    const diffSlider = this.createSlider(
+      slidersSection, "Difficulty", QuestLogView.DIFFICULTY_LABELS,
+      "#5e87ff", habit.difficulty || 3, updateXpPreview
+    );
+    const urgSlider = this.createSlider(
+      slidersSection, "Urgency", QuestLogView.URGENCY_LABELS,
+      "#f59e0b", habit.urgency || 3, updateXpPreview
+    );
+    const impSlider = this.createSlider(
+      slidersSection, "Impact", QuestLogView.IMPACT_LABELS,
+      "#a855f7", habit.impact || 3, updateXpPreview
+    );
+
+    // XP preview
+    const xpRow = box.createEl("div", { cls: "quest-xp-preview-row" });
+    xpRow.createEl("span", { text: "Reward", cls: "quest-xp-preview-label" });
+    xpPreview.el = xpRow.createEl("span", {
+      text: `${habit.xp.toLocaleString()} XP`,
+      cls: "quest-xp-preview-value",
+    });
+
+    const createdDate = QuestLogView.formatDate(habit.created);
+    const metaRow = box.createEl("div", { cls: "habit-detail-meta" });
+    metaRow.createEl("span", {
+      text: `Created ${createdDate}`,
+      cls: "habit-detail-meta-text",
+    });
+
+    // --- SKILL ATTACHMENT ---
+    const skillsSection = box.createEl("div", { cls: "detail-skills-section" });
+    skillsSection.createEl("span", { text: "Attached Skills", cls: "detail-skills-label" });
+
+    const selectedSkillIds = [...(habit.skillIds || [])];
+    const selectedSkillsDisplay = skillsSection.createEl("div", { cls: "detail-selected-skills" });
+    const skillInputContainer = skillsSection.createEl("div", { cls: "detail-skill-input-container" });
+
+    const updateSelectedSkillsDisplay = () => {
+      selectedSkillsDisplay.empty();
+      const skills = this.plugin.settings.skills || [];
+      selectedSkillIds.forEach((skillId) => {
+        const skill = skills.find((s) => s.id === skillId);
+        if (skill) {
+          const tag = selectedSkillsDisplay.createEl("span", { cls: "detail-skill-tag" });
+          tag.createEl("span", { text: skill.name });
+          const removeBtn = tag.createEl("span", { cls: "detail-skill-tag-remove" });
+          setIcon(removeBtn, "x");
+          removeBtn.addEventListener("click", (e) => {
+            e.stopPropagation();
+            const idx = selectedSkillIds.indexOf(skillId);
+            if (idx > -1) selectedSkillIds.splice(idx, 1);
+            updateSelectedSkillsDisplay();
+          });
+        }
+      });
+      if (selectedSkillIds.length === 0) {
+        selectedSkillsDisplay.createEl("span", {
+          text: "No skills attached",
+          cls: "detail-skills-placeholder",
+        });
+      }
+    };
+    updateSelectedSkillsDisplay();
+
+    const skillInput = skillInputContainer.createEl("input", {
+      type: "text",
+      placeholder: "Type to add skill...",
+      cls: "detail-skill-input",
+    });
+
+    const skillSuggest = new SkillSuggest(this.app, skillInput, this.plugin);
+    skillSuggest.onSelect = (skill) => {
+      if (!selectedSkillIds.includes(skill.id)) {
+        selectedSkillIds.push(skill.id);
+        updateSelectedSkillsDisplay();
+      }
+    };
+
+    // Helper to save current values back to habit
+    const saveHabit = async () => {
+      habit.title = titleInput.value.trim() || habit.title;
+      habit.description = descBox.value.trim();
+      habit.difficulty = diffSlider._getValue();
+      habit.urgency = urgSlider._getValue();
+      habit.impact = impSlider._getValue();
+      habit.xp = QuestLogView.calcXp(habit.difficulty, habit.urgency, habit.impact);
+      habit.skillIds = [...selectedSkillIds];
+      await this.plugin.saveSettings();
+      await QuestLogView.writeHabitFile(this.plugin, habit);
+      this.renderHabitList(this._habitListContainer);
+    };
 
     // Buttons
     const btnRow = box.createEl("div", { cls: "quest-detail-buttons" });
 
-    // Fail button
+    // Fail button (left)
     const failBtn = btnRow.createEl("button", {
       text: "Fail",
       cls: "habit-fail-btn",
@@ -1946,19 +2768,17 @@ ${habit.description || ""}
       overlay.removeClass("open");
     });
 
-    // Spacer
-    btnRow.createEl("div", { cls: "quest-detail-spacer" });
-
-    // Close button
+    // Close button (center)
     const closeBtn = btnRow.createEl("button", {
       text: "Close",
       cls: "quest-detail-close-btn",
     });
-    closeBtn.addEventListener("click", () => {
+    closeBtn.addEventListener("click", async () => {
+      await saveHabit();
       overlay.removeClass("open");
     });
 
-    // Complete button
+    // Complete button (right)
     const completeBtn = btnRow.createEl("button", {
       text: "Complete",
       cls: "habit-complete-btn",
@@ -1966,6 +2786,7 @@ ${habit.description || ""}
     const completeIcon = completeBtn.createEl("span", { cls: "habit-btn-icon" });
     setIcon(completeIcon, "check");
     completeBtn.addEventListener("click", async () => {
+      await saveHabit();
       await this.completeHabit(habit);
       overlay.removeClass("open");
     });
@@ -2030,13 +2851,8 @@ ${habit.description || ""}
       }
 
       // Completed date
-      const dateStr = new Date(item.completedAt).toLocaleDateString("en-US", {
-        month: "short",
-        day: "numeric",
-        year: "numeric",
-      });
       meta.createEl("span", {
-        text: dateStr,
+        text: QuestLogView.formatDate(item.completedAt),
         cls: "completed-block-date",
       });
 
@@ -2059,6 +2875,7 @@ ${habit.description || ""}
     const overlay = this._detailOverlay;
     const box = this._detailBox;
     box.empty();
+    box.removeClass("habit-context");
     overlay.addClass("open");
 
     // Read-only title
@@ -2076,14 +2893,7 @@ ${habit.description || ""}
       });
     }
 
-    // Stats table
     const stars = (n) => "\u2B50".repeat(n);
-    const createdDate = new Date(quest.created).toLocaleDateString("en-US", {
-      month: "short", day: "numeric", year: "numeric",
-    });
-    const completedDate = new Date(quest.completedAt).toLocaleDateString("en-US", {
-      month: "short", day: "numeric", year: "numeric",
-    });
 
     const statsTable = box.createEl("table", { cls: "quest-detail-stats-table" });
     statsTable.style.cssText = "width: 100%; border-collapse: collapse; font-size: 12px;";
@@ -2092,8 +2902,8 @@ ${habit.description || ""}
       ["Difficulty", stars(quest.difficulty)],
       ["Urgency", stars(quest.urgency)],
       ["Impact", stars(quest.impact)],
-      ["Created", createdDate],
-      ["Completed", completedDate],
+      ["Created", QuestLogView.formatDate(quest.created)],
+      ["Completed", QuestLogView.formatDate(quest.completedAt)],
     ];
     rows.forEach(([label, value]) => {
       const tr = statsTable.createEl("tr");
@@ -2136,7 +2946,7 @@ ${habit.description || ""}
         const adapter = this.app.vault.adapter;
         const questsFolder = this.plugin.settings.questsFolderPath || "Quest Log/Quests";
         const completedFolder = this.plugin.settings.completedFolderPath || "Quest Log/Completed";
-        const safeName = activeQuest.title.replace(/[\\/:*?"<>|]/g, "-");
+        const safeName = QuestLogView.safeName(activeQuest.title);
         const srcPath = `${completedFolder}/${safeName}.md`;
         const destPath = `${questsFolder}/${safeName}.md`;
         try { await adapter.mkdir(questsFolder); } catch (e) {}
@@ -2160,6 +2970,7 @@ ${habit.description || ""}
     const overlay = this._detailOverlay;
     const box = this._detailBox;
     box.empty();
+    box.addClass("habit-context");
     overlay.addClass("open");
 
     // Title
@@ -2177,11 +2988,7 @@ ${habit.description || ""}
       });
     }
 
-    // Stats table
     const stars = (n) => "\u2B50".repeat(n);
-    const completedDate = new Date(habit.completedAt).toLocaleDateString("en-US", {
-      month: "short", day: "numeric", year: "numeric",
-    });
 
     const statsTable = box.createEl("table", { cls: "quest-detail-stats-table" });
     statsTable.style.cssText = "width: 100%; border-collapse: collapse; font-size: 12px;";
@@ -2191,7 +2998,7 @@ ${habit.description || ""}
       ["Urgency", stars(habit.urgency)],
       ["Impact", stars(habit.impact)],
       ["Type", "Habit (Repeatable)"],
-      ["Completed", completedDate],
+      ["Completed", QuestLogView.formatDate(habit.completedAt)],
     ];
     rows.forEach(([label, value]) => {
       const tr = statsTable.createEl("tr");

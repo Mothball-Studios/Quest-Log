@@ -7,10 +7,104 @@
   "completedQuests": [],
   "habits": [],
   "completedHabits": [],
+  "skills": [
+    {
+      "id": "1776132724925",
+      "name": "w",
+      "description": "",
+      "xp": 35000000,
+      "level": 73,
+      "legendary": false,
+      "created": "2026-04-14T02:12:04.925Z"
+    },
+    {
+      "id": "1776132726716",
+      "name": "wad",
+      "description": "",
+      "xp": 47500000,
+      "level": 75,
+      "legendary": false,
+      "created": "2026-04-14T02:12:06.716Z"
+    },
+    {
+      "id": "1776132728328",
+      "name": "wdawd",
+      "description": "",
+      "xp": 47500000,
+      "level": 75,
+      "legendary": false,
+      "created": "2026-04-14T02:12:08.328Z"
+    },
+    {
+      "id": "1776132730425",
+      "name": "wadasfs",
+      "description": "",
+      "xp": 0,
+      "level": 1,
+      "legendary": false,
+      "created": "2026-04-14T02:12:10.425Z"
+    },
+    {
+      "id": "1776132732458",
+      "name": "awdzd",
+      "description": "",
+      "xp": 47500000,
+      "level": 75,
+      "legendary": false,
+      "created": "2026-04-14T02:12:12.458Z"
+    },
+    {
+      "id": "1776132734325",
+      "name": "awddz",
+      "description": "",
+      "xp": 47500000,
+      "level": 75,
+      "legendary": false,
+      "created": "2026-04-14T02:12:14.325Z"
+    },
+    {
+      "id": "1776132736462",
+      "name": "wdawde",
+      "description": "",
+      "xp": 12500000,
+      "level": 65,
+      "legendary": false,
+      "created": "2026-04-14T02:12:16.462Z"
+    },
+    {
+      "id": "1776132739559",
+      "name": "aadad",
+      "description": "",
+      "xp": 0,
+      "level": 1,
+      "legendary": false,
+      "created": "2026-04-14T02:12:19.559Z"
+    },
+    {
+      "id": "1776132741517",
+      "name": "w",
+      "description": "",
+      "xp": 47500000,
+      "level": 75,
+      "legendary": false,
+      "created": "2026-04-14T02:12:21.517Z"
+    },
+    {
+      "id": "1776132744920",
+      "name": "awdsdasda",
+      "description": "",
+      "xp": 12500000,
+      "level": 65,
+      "legendary": false,
+      "created": "2026-04-14T02:12:24.920Z"
+    }
+  ],
   "userProfileFileName": "User Profile",
   "userProfileFolder": "Quest Log",
   "questsFolderPath": "Quest Log/Quests",
   "habitsFolderPath": "Quest Log/Habits",
   "skillsFolderPath": "Quest Log/Skills",
-  "completedFolderPath": "Quest Log/Completed"
+  "completedFolderPath": "Quest Log/Completed",
+  "userDifficulty": 10,
+  "skillDifficulty": 10
 }
