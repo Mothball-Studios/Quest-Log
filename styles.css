@@ -972,6 +972,29 @@
   border-color: var(--ql-accent, #5e87ff);
   color: #e5e5e5;
 }
+.quest-detail-desc-plain {
+  background: transparent;
+  border: none;
+  padding: 0;
+  min-height: 0;
+  width: auto;
+  color: #ccc;
+}
+.quest-detail-stats-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+.quest-detail-stat-label {
+  color: var(--ql-muted, #888);
+  padding: 4px 8px 4px 0;
+  font-weight: bold;
+}
+.quest-detail-stat-value {
+  color: var(--ql-text, #fff);
+  padding: 4px 0;
+  text-align: right;
+}
 
 /* --- Detail-specific slider overrides --- */
 .quest-detail-box .quest-sliders-section {
@@ -1839,6 +1862,9 @@
   .quest-modal-desc {
     font-size: 13px;
     padding: 10px 12px;
+  }
+  .quest-detail-desc-plain {
+    padding: 0;
   }
 
   /* Stats table */

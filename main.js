@@ -263,6 +263,23 @@ function safeName(str) {
   return String(str || "").replace(/[\\/:*?"<>|]/g, "-");
 }
 __name(safeName, "safeName");
+function uniqueStem(list, title, id, key) {
+  const base = safeName(title);
+  const clash = (list || []).some((item) => item.id !== id && safeName(item[key]) === base);
+  return clash ? `${base}-${id}` : base;
+}
+__name(uniqueStem, "uniqueStem");
+async function trashIfExists(plugin, fullPath) {
+  const file = plugin.app.vault.getAbstractFileByPath(fullPath);
+  if (!file) return false;
+  try {
+    await plugin.app.vault.trash(file, false);
+  } catch (e) {
+    await plugin.app.vault.delete(file);
+  }
+  return true;
+}
+__name(trashIfExists, "trashIfExists");
 function formatDate(dateStr) {
   return new Date(dateStr).toLocaleDateString("en-US", {
     month: "short",
@@ -303,6 +320,11 @@ async function writeSidecarAtomic(plugin, fullPath, content) {
     try {
       await adapter.write(fullPath, content);
     } catch (e2) {
+      try {
+        await adapter.remove(tmpPath);
+      } catch (e3) {
+      }
+      throw e2;
     }
     try {
       await adapter.remove(tmpPath);
@@ -360,20 +382,20 @@ ${quest.description || ""}
 __name(questBody, "questBody");
 async function writeQuestFile(plugin, quest) {
   const folderPath = plugin.settings.questsFolderPath || "Quest Log/Quests";
-  const fullPath = `${folderPath}/${safeName(quest.title)}.md`;
+  const fullPath = `${folderPath}/${uniqueStem(plugin.settings.quests, quest.title, quest.id, "title")}.md`;
   await writeSidecarAtomic(plugin, fullPath, questBody(quest, "In Progress", "\u2014"));
 }
 __name(writeQuestFile, "writeQuestFile");
 async function writeCompletedQuestFile(plugin, quest) {
   const folderPath = plugin.settings.completedFolderPath || "Quest Log/Completed";
-  const fullPath = `${folderPath}/${safeName(quest.title)}.md`;
+  const fullPath = `${folderPath}/${uniqueStem(plugin.settings.completedQuests, quest.title, quest.id, "title")}.md`;
   const completed = quest.completedAt ? formatDate(quest.completedAt) : formatDate((/* @__PURE__ */ new Date()).toISOString());
   await writeSidecarAtomic(plugin, fullPath, questBody(quest, "\u2705 Completed", completed));
 }
 __name(writeCompletedQuestFile, "writeCompletedQuestFile");
 async function writeHabitFile(plugin, habit) {
   const folderPath = plugin.settings.habitsFolderPath || "Quest Log/Habits";
-  const fullPath = `${folderPath}/${safeName(habit.title)}.md`;
+  const fullPath = `${folderPath}/${uniqueStem(plugin.settings.habits, habit.title, habit.id, "title")}.md`;
   const content = `---
 id: "${habit.id}"
 ---
@@ -422,7 +444,7 @@ ${habit.description || ""}
 __name(writeCompletedHabitFile, "writeCompletedHabitFile");
 async function writeSkillFile(plugin, skill) {
   const folderPath = plugin.settings.skillsFolderPath || "Quest Log/Skills";
-  const fullPath = `${folderPath}/${safeName(skill.name)}.md`;
+  const fullPath = `${folderPath}/${uniqueStem(plugin.settings.skills, skill.name, skill.id, "name")}.md`;
   const legendaryStar = skill.legendary ? " \u2605" : "";
   const content = `---
 id: "${skill.id}"
@@ -518,6 +540,57 @@ ${milestonesRows}
   await writeSidecarAtomic(plugin, fullPath, content);
 }
 __name(writeUserProfile, "writeUserProfile");
+async function retireNote(plugin, paths) {
+  let found = false;
+  for (const fullPath of paths) {
+    if (await trashIfExists(plugin, fullPath)) found = true;
+  }
+  return found;
+}
+__name(retireNote, "retireNote");
+function questNotePaths(plugin, quest, list, folderPath) {
+  const folder = folderPath;
+  const stems = new Set([
+    uniqueStem(list, quest.title, quest.id, "title"),
+    safeName(quest.title)
+  ]);
+  return [...stems].map((stem) => `${folder}/${stem}.md`);
+}
+__name(questNotePaths, "questNotePaths");
+function habitNotePaths(plugin, habit) {
+  const folder = plugin.settings.habitsFolderPath || "Quest Log/Habits";
+  const stems = new Set([
+    uniqueStem(plugin.settings.habits, habit.title, habit.id, "title"),
+    safeName(habit.title)
+  ]);
+  return [...stems].map((stem) => `${folder}/${stem}.md`);
+}
+__name(habitNotePaths, "habitNotePaths");
+function skillNotePaths(plugin, skill) {
+  const folder = plugin.settings.skillsFolderPath || "Quest Log/Skills";
+  const stems = new Set([
+    uniqueStem(plugin.settings.skills, skill.name, skill.id, "name"),
+    safeName(skill.name)
+  ]);
+  return [...stems].map((stem) => `${folder}/${stem}.md`);
+}
+__name(skillNotePaths, "skillNotePaths");
+function completedHabitNotePath(plugin, habit, completedAt) {
+  const folder = plugin.settings.completedFolderPath || "Quest Log/Completed";
+  return `${folder}/${safeName(habit.title)} - ${formatHabitTimestamp(completedAt)}.md`;
+}
+__name(completedHabitNotePath, "completedHabitNotePath");
+async function pruneSidecarFolder(plugin, folderPath, keepNames) {
+  const folder = plugin.app.vault.getAbstractFileByPath(folderPath);
+  if (!folder || !folder.children) return;
+  const keep = new Set(keepNames);
+  for (const child of [...folder.children]) {
+    if (!child || child.children || !child.name || !child.name.endsWith(".md")) continue;
+    if (keep.has(child.name)) continue;
+    await trashIfExists(plugin, child.path);
+  }
+}
+__name(pruneSidecarFolder, "pruneSidecarFolder");
 async function exportAllSidecars(plugin) {
   await writeUserProfile(plugin);
   for (const quest of plugin.settings.quests || []) {
@@ -535,6 +608,27 @@ async function exportAllSidecars(plugin) {
   for (const habit of plugin.settings.completedHabits || []) {
     await writeCompletedHabitFile(plugin, habit, habit.completedAt || (/* @__PURE__ */ new Date()).toISOString());
   }
+  const settings = plugin.settings;
+  const completedFolder = settings.completedFolderPath || "Quest Log/Completed";
+  await pruneSidecarFolder(
+    plugin,
+    settings.questsFolderPath || "Quest Log/Quests",
+    (settings.quests || []).map((quest) => `${uniqueStem(settings.quests, quest.title, quest.id, "title")}.md`)
+  );
+  await pruneSidecarFolder(
+    plugin,
+    settings.habitsFolderPath || "Quest Log/Habits",
+    (settings.habits || []).map((habit) => `${uniqueStem(settings.habits, habit.title, habit.id, "title")}.md`)
+  );
+  await pruneSidecarFolder(
+    plugin,
+    settings.skillsFolderPath || "Quest Log/Skills",
+    (settings.skills || []).map((skill) => `${uniqueStem(settings.skills, skill.name, skill.id, "name")}.md`)
+  );
+  await pruneSidecarFolder(plugin, completedFolder, [
+    ...(settings.completedQuests || []).map((quest) => `${uniqueStem(settings.completedQuests, quest.title, quest.id, "title")}.md`),
+    ...(settings.completedHabits || []).map((habit) => `${safeName(habit.title)} - ${formatHabitTimestamp(habit.completedAt)}.md`)
+  ]);
 }
 __name(exportAllSidecars, "exportAllSidecars");
 
@@ -689,13 +783,13 @@ var _ResetConfirmModal = class _ResetConfirmModal extends import_obsidian.Modal 
       try {
         confirmBtn.disabled = true;
         confirmBtn.setText("Resetting...");
-        await this.plugin.performFactoryReset();
+        const cleared = await this.plugin.performFactoryReset();
         this.close();
         try {
           this.app.setting.close();
         } catch (e) {
         }
-        new import_obsidian.Notice("Quest Log has been reset to factory defaults.");
+        new import_obsidian.Notice(cleared ? "Quest Log has been reset to factory defaults." : "Reset saved, but some Quest Log folders are still in the vault.");
       } catch (error) {
         console.error("Quest Log: Factory reset failed", error);
         new import_obsidian.Notice("Reset failed: " + error.message);
@@ -1439,6 +1533,59 @@ var _QuestLogView = class _QuestLogView extends import_obsidian2.ItemView {
     if (this._sliders) this._sliders.push(group);
     return group;
   }
+  attachSkillPicker(parentEl, initialIds) {
+    const selectedSkillIds = [...initialIds || []];
+    const skillsSection = parentEl.createEl("div", { cls: "detail-skills-section" });
+    skillsSection.createEl("span", { text: "Attached Skills", cls: "detail-skills-label" });
+    const selectedSkillsDisplay = skillsSection.createEl("div", { cls: "detail-selected-skills" });
+    const skillInputContainer = skillsSection.createEl("div", { cls: "detail-skill-input-container" });
+    const refresh = /* @__PURE__ */ __name(() => {
+      selectedSkillsDisplay.empty();
+      const skills = this.plugin.settings.skills || [];
+      selectedSkillIds.forEach((skillId) => {
+        const skill = skills.find((s) => s.id === skillId);
+        if (!skill) return;
+        const tag = selectedSkillsDisplay.createEl("span", { cls: "detail-skill-tag" });
+        tag.createEl("span", { text: skill.name });
+        const removeBtn = tag.createEl("span", { cls: "detail-skill-tag-remove" });
+        (0, import_obsidian2.setIcon)(removeBtn, "x");
+        removeBtn.addEventListener("click", (e) => {
+          e.stopPropagation();
+          const idx = selectedSkillIds.indexOf(skillId);
+          if (idx > -1) selectedSkillIds.splice(idx, 1);
+          refresh();
+        });
+      });
+      if (selectedSkillIds.length === 0) {
+        selectedSkillsDisplay.createEl("span", {
+          text: "No skills attached",
+          cls: "detail-skills-placeholder"
+        });
+      }
+    }, "refreshSkillPicker");
+    refresh();
+    const skillInput = skillInputContainer.createEl("input", {
+      type: "text",
+      placeholder: "Type to add skill...",
+      cls: "detail-skill-input"
+    });
+    const skillSuggest = new SkillSuggest(this.app, skillInput, this.plugin);
+    skillSuggest.onSelect = (skill) => {
+      if (!selectedSkillIds.includes(skill.id)) {
+        selectedSkillIds.push(skill.id);
+        refresh();
+      }
+    };
+    selectedSkillIds.refresh = refresh;
+    return selectedSkillIds;
+  }
+  fillStatsTable(table, rows) {
+    rows.forEach(([label, value]) => {
+      const tr = table.createEl("tr");
+      tr.createEl("td", { text: label, cls: "quest-detail-stat-label" });
+      tr.createEl("td", { text: value, cls: "quest-detail-stat-value" });
+    });
+  }
   // Unbind document mouse/touch listeners. Pass a root to drain only sliders inside it
   // (detail sheet empty). No root = wipe the whole bag (remount / onClose).
   drainSliders(root) {
@@ -1689,49 +1836,7 @@ var _QuestLogView = class _QuestLogView extends import_obsidian2.ItemView {
       text: `${_QuestLogView.calcXp(3, 3, 3).toLocaleString()} XP`,
       cls: "quest-xp-preview-value"
     });
-    const skillsSection = modalBox.createEl("div", { cls: "detail-skills-section" });
-    skillsSection.createEl("span", { text: "Attached Skills", cls: "detail-skills-label" });
-    const selectedSkillIds = [];
-    const selectedSkillsDisplay = skillsSection.createEl("div", { cls: "detail-selected-skills" });
-    const skillInputContainer = skillsSection.createEl("div", { cls: "detail-skill-input-container" });
-    const updateSelectedSkillsDisplay = /* @__PURE__ */ __name(() => {
-      selectedSkillsDisplay.empty();
-      const skills = this.plugin.settings.skills || [];
-      selectedSkillIds.forEach((skillId) => {
-        const skill = skills.find((s) => s.id === skillId);
-        if (skill) {
-          const tag = selectedSkillsDisplay.createEl("span", { cls: "detail-skill-tag" });
-          tag.createEl("span", { text: skill.name });
-          const removeBtn = tag.createEl("span", { cls: "detail-skill-tag-remove" });
-          (0, import_obsidian2.setIcon)(removeBtn, "x");
-          removeBtn.addEventListener("click", (e) => {
-            e.stopPropagation();
-            const idx = selectedSkillIds.indexOf(skillId);
-            if (idx > -1) selectedSkillIds.splice(idx, 1);
-            updateSelectedSkillsDisplay();
-          });
-        }
-      });
-      if (selectedSkillIds.length === 0) {
-        selectedSkillsDisplay.createEl("span", {
-          text: "No skills attached",
-          cls: "detail-skills-placeholder"
-        });
-      }
-    }, "updateSelectedSkillsDisplay");
-    updateSelectedSkillsDisplay();
-    const skillInput = skillInputContainer.createEl("input", {
-      type: "text",
-      placeholder: "Type to add skill...",
-      cls: "detail-skill-input"
-    });
-    const skillSuggest = new SkillSuggest(this.app, skillInput, this.plugin);
-    skillSuggest.onSelect = (skill) => {
-      if (!selectedSkillIds.includes(skill.id)) {
-        selectedSkillIds.push(skill.id);
-        updateSelectedSkillsDisplay();
-      }
-    };
+    const selectedSkillIds = this.attachSkillPicker(modalBox, []);
     const btnContainer = modalBox.createEl("div", {
       cls: "quest-modal-buttons"
     });
@@ -1756,7 +1861,7 @@ var _QuestLogView = class _QuestLogView extends import_obsidian2.ItemView {
       impSlider._setValue(3);
       updateXpPreview();
       selectedSkillIds.length = 0;
-      updateSelectedSkillsDisplay();
+      selectedSkillIds.refresh();
     }, "closeOverlay");
     var activeTab = this._activeTab || "QUESTS";
     var currentView = this._currentView || "active";
@@ -1868,49 +1973,7 @@ var _QuestLogView = class _QuestLogView extends import_obsidian2.ItemView {
       text: `${_QuestLogView.calcXp(3, 3, 3).toLocaleString()} XP`,
       cls: "quest-xp-preview-value"
     });
-    const habitSkillsSection = habitModalBox.createEl("div", { cls: "detail-skills-section" });
-    habitSkillsSection.createEl("span", { text: "Attached Skills", cls: "detail-skills-label" });
-    const habitSelectedSkillIds = [];
-    const habitSelectedSkillsDisplay = habitSkillsSection.createEl("div", { cls: "detail-selected-skills" });
-    const habitSkillInputContainer = habitSkillsSection.createEl("div", { cls: "detail-skill-input-container" });
-    const updateHabitSelectedSkillsDisplay = /* @__PURE__ */ __name(() => {
-      habitSelectedSkillsDisplay.empty();
-      const skills = this.plugin.settings.skills || [];
-      habitSelectedSkillIds.forEach((skillId) => {
-        const skill = skills.find((s) => s.id === skillId);
-        if (skill) {
-          const tag = habitSelectedSkillsDisplay.createEl("span", { cls: "detail-skill-tag" });
-          tag.createEl("span", { text: skill.name });
-          const removeBtn = tag.createEl("span", { cls: "detail-skill-tag-remove" });
-          (0, import_obsidian2.setIcon)(removeBtn, "x");
-          removeBtn.addEventListener("click", (e) => {
-            e.stopPropagation();
-            const idx = habitSelectedSkillIds.indexOf(skillId);
-            if (idx > -1) habitSelectedSkillIds.splice(idx, 1);
-            updateHabitSelectedSkillsDisplay();
-          });
-        }
-      });
-      if (habitSelectedSkillIds.length === 0) {
-        habitSelectedSkillsDisplay.createEl("span", {
-          text: "No skills attached",
-          cls: "detail-skills-placeholder"
-        });
-      }
-    }, "updateHabitSelectedSkillsDisplay");
-    updateHabitSelectedSkillsDisplay();
-    const habitSkillInput = habitSkillInputContainer.createEl("input", {
-      type: "text",
-      placeholder: "Type to add skill...",
-      cls: "detail-skill-input"
-    });
-    const habitSkillSuggest = new SkillSuggest(this.app, habitSkillInput, this.plugin);
-    habitSkillSuggest.onSelect = (skill) => {
-      if (!habitSelectedSkillIds.includes(skill.id)) {
-        habitSelectedSkillIds.push(skill.id);
-        updateHabitSelectedSkillsDisplay();
-      }
-    };
+    const habitSelectedSkillIds = this.attachSkillPicker(habitModalBox, []);
     const habitBtnContainer = habitModalBox.createEl("div", {
       cls: "quest-modal-buttons"
     });
@@ -1935,7 +1998,7 @@ var _QuestLogView = class _QuestLogView extends import_obsidian2.ItemView {
       habitImpSlider._setValue(3);
       updateHabitXpPreview();
       habitSelectedSkillIds.length = 0;
-      updateHabitSelectedSkillsDisplay();
+      habitSelectedSkillIds.refresh();
     }, "closeHabitOverlay");
     habitCancelBtn.addEventListener("click", closeHabitOverlay);
     habitCreateBtn.addEventListener("click", async () => {
@@ -2421,8 +2484,8 @@ var _QuestLogView = class _QuestLogView extends import_obsidian2.ItemView {
     (0, import_obsidian2.setIcon)(openNoteIcon, "file-text");
     openNoteBtn.addEventListener("click", () => {
       const folderPath = this.plugin.settings.questsFolderPath || "Quest Log/Quests";
-      const safeName2 = _QuestLogView.safeName(quest.title);
-      const fullPath = `${folderPath}/${safeName2}.md`;
+      const stem = uniqueStem(this.plugin.settings.quests, quest.title, quest.id, "title");
+      const fullPath = `${folderPath}/${stem}.md`;
       this.app.workspace.openLinkText(fullPath, "", false);
     });
     const deleteBtn = btnGroup.createEl("button", {
@@ -2434,6 +2497,10 @@ var _QuestLogView = class _QuestLogView extends import_obsidian2.ItemView {
     (0, import_obsidian2.setIcon)(deleteIcon, "trash-2");
     deleteBtn.addEventListener("click", () => {
       this.showDeleteConfirm(quest.title, async () => {
+        await retireNote(
+          this.plugin,
+          questNotePaths(this.plugin, quest, this.plugin.settings.quests, this.plugin.settings.questsFolderPath || "Quest Log/Quests")
+        );
         this.plugin.settings.quests = this.plugin.settings.quests.filter(
           (q) => q.id !== quest.id
         );
@@ -2497,49 +2564,7 @@ var _QuestLogView = class _QuestLogView extends import_obsidian2.ItemView {
       text: `${quest.xp.toLocaleString()} XP`,
       cls: "quest-xp-preview-value"
     });
-    const skillsSection = box.createEl("div", { cls: "detail-skills-section" });
-    skillsSection.createEl("span", { text: "Attached Skills", cls: "detail-skills-label" });
-    const selectedSkillIds = [...quest.skillIds || []];
-    const selectedSkillsDisplay = skillsSection.createEl("div", { cls: "detail-selected-skills" });
-    const skillInputContainer = skillsSection.createEl("div", { cls: "detail-skill-input-container" });
-    const updateSelectedSkillsDisplay = /* @__PURE__ */ __name(() => {
-      selectedSkillsDisplay.empty();
-      const skills = this.plugin.settings.skills || [];
-      selectedSkillIds.forEach((skillId) => {
-        const skill = skills.find((s) => s.id === skillId);
-        if (skill) {
-          const tag = selectedSkillsDisplay.createEl("span", { cls: "detail-skill-tag" });
-          tag.createEl("span", { text: skill.name });
-          const removeBtn = tag.createEl("span", { cls: "detail-skill-tag-remove" });
-          (0, import_obsidian2.setIcon)(removeBtn, "x");
-          removeBtn.addEventListener("click", (e) => {
-            e.stopPropagation();
-            const idx = selectedSkillIds.indexOf(skillId);
-            if (idx > -1) selectedSkillIds.splice(idx, 1);
-            updateSelectedSkillsDisplay();
-          });
-        }
-      });
-      if (selectedSkillIds.length === 0) {
-        selectedSkillsDisplay.createEl("span", {
-          text: "No skills attached",
-          cls: "detail-skills-placeholder"
-        });
-      }
-    }, "updateSelectedSkillsDisplay");
-    updateSelectedSkillsDisplay();
-    const skillInput = skillInputContainer.createEl("input", {
-      type: "text",
-      placeholder: "Type to add skill...",
-      cls: "detail-skill-input"
-    });
-    const skillSuggest = new SkillSuggest(this.app, skillInput, this.plugin);
-    skillSuggest.onSelect = (skill) => {
-      if (!selectedSkillIds.includes(skill.id)) {
-        selectedSkillIds.push(skill.id);
-        updateSelectedSkillsDisplay();
-      }
-    };
+    const selectedSkillIds = this.attachSkillPicker(box, quest.skillIds);
     const saveQuest = /* @__PURE__ */ __name(async () => {
       const previousTitle = quest.title;
       quest.title = titleInput.value.trim() || quest.title;
@@ -2584,6 +2609,10 @@ var _QuestLogView = class _QuestLogView extends import_obsidian2.ItemView {
     return moveSidecar(this.app, sourcePath, destPath);
   }
   async completeQuest(quest) {
+    const hadNote = await retireNote(
+      this.plugin,
+      questNotePaths(this.plugin, quest, this.plugin.settings.quests, this.plugin.settings.questsFolderPath || "Quest Log/Quests")
+    );
     this.plugin.settings.questsCompleted += 1;
     const completedQuest = { ...quest, completedAt: (/* @__PURE__ */ new Date()).toISOString() };
     this.plugin.settings.completedQuests.push(completedQuest);
@@ -2591,6 +2620,7 @@ var _QuestLogView = class _QuestLogView extends import_obsidian2.ItemView {
       (q) => q.id !== quest.id
     );
     await this.plugin.saveSettings();
+    if (hadNote) await writeCompletedQuestFile(this.plugin, completedQuest);
     this.renderQuestList(this._questListContainer);
     await this.awardXp(quest.xp, quest.skillIds, "Quest Complete!", true);
   }
@@ -2759,7 +2789,6 @@ var _QuestLogView = class _QuestLogView extends import_obsidian2.ItemView {
     const completedAt = (/* @__PURE__ */ new Date()).toISOString();
     const completedHabit = { ...habit, completedAt };
     this.plugin.settings.completedHabits.push(completedHabit);
-    this.plugin.settings.questsCompleted += 1;
     await this.plugin.saveSettings();
     this.renderHabitList(this._habitListContainer);
     this.renderSkillList(this._skillListContainer);
@@ -2767,8 +2796,10 @@ var _QuestLogView = class _QuestLogView extends import_obsidian2.ItemView {
   }
   async failHabit(habit) {
     this.plugin.settings.currentXp = Math.max(0, this.plugin.settings.currentXp - habit.xp);
+    this.revokeSkillXp(habit.xp, habit.skillIds);
     await this.plugin.saveSettings();
     this.updateHeader();
+    if (this._skillListContainer) this.renderSkillList(this._skillListContainer);
     new import_obsidian2.Notice(`Habit failed: ${habit.title}. -${habit.xp.toLocaleString()} XP`);
   }
   // ----------------------------------------
@@ -2781,6 +2812,17 @@ var _QuestLogView = class _QuestLogView extends import_obsidian2.ItemView {
       const skill = this.plugin.settings.skills.find((s) => s.id === skillId);
       if (skill && !skill.legendary) {
         skill.xp = (skill.xp || 0) + xp;
+        skill.level = _QuestLogView.getSkillLevel(skill.xp, difficulty);
+      }
+    }
+  }
+  revokeSkillXp(xp, skillIds) {
+    if (!skillIds || skillIds.length === 0) return;
+    const difficulty = this.plugin.settings.skillDifficulty || 10;
+    for (const skillId of skillIds) {
+      const skill = this.plugin.settings.skills.find((s) => s.id === skillId);
+      if (skill && !skill.legendary) {
+        skill.xp = Math.max(0, (skill.xp || 0) - xp);
         skill.level = _QuestLogView.getSkillLevel(skill.xp, difficulty);
       }
     }
@@ -3138,8 +3180,8 @@ var _QuestLogView = class _QuestLogView extends import_obsidian2.ItemView {
     (0, import_obsidian2.setIcon)(openNoteIcon, "file-text");
     openNoteBtn.addEventListener("click", () => {
       const folderPath = this.plugin.settings.skillsFolderPath || "Quest Log/Skills";
-      const safeName2 = _QuestLogView.safeName(skill.name);
-      const fullPath = `${folderPath}/${safeName2}.md`;
+      const stem = uniqueStem(this.plugin.settings.skills, skill.name, skill.id, "name");
+      const fullPath = `${folderPath}/${stem}.md`;
       this.app.workspace.openLinkText(fullPath, "", false);
     });
     const deleteBtn = btnGroup.createEl("button", {
@@ -3151,6 +3193,7 @@ var _QuestLogView = class _QuestLogView extends import_obsidian2.ItemView {
     (0, import_obsidian2.setIcon)(deleteIcon, "trash-2");
     deleteBtn.addEventListener("click", () => {
       this.showDeleteConfirm(skill.name, async () => {
+        await retireNote(this.plugin, skillNotePaths(this.plugin, skill));
         this.plugin.settings.skills = this.plugin.settings.skills.filter(
           (s) => s.id !== skill.id
         );
@@ -3235,8 +3278,8 @@ var _QuestLogView = class _QuestLogView extends import_obsidian2.ItemView {
     (0, import_obsidian2.setIcon)(openNoteIcon, "file-text");
     openNoteBtn.addEventListener("click", () => {
       const folderPath = this.plugin.settings.habitsFolderPath || "Quest Log/Habits";
-      const safeName2 = _QuestLogView.safeName(habit.title);
-      const fullPath = `${folderPath}/${safeName2}.md`;
+      const stem = uniqueStem(this.plugin.settings.habits, habit.title, habit.id, "title");
+      const fullPath = `${folderPath}/${stem}.md`;
       this.app.workspace.openLinkText(fullPath, "", false);
     });
     const deleteBtn = btnGroup.createEl("button", {
@@ -3248,6 +3291,7 @@ var _QuestLogView = class _QuestLogView extends import_obsidian2.ItemView {
     (0, import_obsidian2.setIcon)(deleteIcon, "trash-2");
     deleteBtn.addEventListener("click", () => {
       this.showDeleteConfirm(habit.title, async () => {
+        await retireNote(this.plugin, habitNotePaths(this.plugin, habit));
         this.plugin.settings.habits = this.plugin.settings.habits.filter(
           (h) => h.id !== habit.id
         );
@@ -3317,49 +3361,7 @@ var _QuestLogView = class _QuestLogView extends import_obsidian2.ItemView {
       text: `Created ${createdDate}`,
       cls: "habit-detail-meta-text"
     });
-    const skillsSection = box.createEl("div", { cls: "detail-skills-section" });
-    skillsSection.createEl("span", { text: "Attached Skills", cls: "detail-skills-label" });
-    const selectedSkillIds = [...habit.skillIds || []];
-    const selectedSkillsDisplay = skillsSection.createEl("div", { cls: "detail-selected-skills" });
-    const skillInputContainer = skillsSection.createEl("div", { cls: "detail-skill-input-container" });
-    const updateSelectedSkillsDisplay = /* @__PURE__ */ __name(() => {
-      selectedSkillsDisplay.empty();
-      const skills = this.plugin.settings.skills || [];
-      selectedSkillIds.forEach((skillId) => {
-        const skill = skills.find((s) => s.id === skillId);
-        if (skill) {
-          const tag = selectedSkillsDisplay.createEl("span", { cls: "detail-skill-tag" });
-          tag.createEl("span", { text: skill.name });
-          const removeBtn = tag.createEl("span", { cls: "detail-skill-tag-remove" });
-          (0, import_obsidian2.setIcon)(removeBtn, "x");
-          removeBtn.addEventListener("click", (e) => {
-            e.stopPropagation();
-            const idx = selectedSkillIds.indexOf(skillId);
-            if (idx > -1) selectedSkillIds.splice(idx, 1);
-            updateSelectedSkillsDisplay();
-          });
-        }
-      });
-      if (selectedSkillIds.length === 0) {
-        selectedSkillsDisplay.createEl("span", {
-          text: "No skills attached",
-          cls: "detail-skills-placeholder"
-        });
-      }
-    }, "updateSelectedSkillsDisplay");
-    updateSelectedSkillsDisplay();
-    const skillInput = skillInputContainer.createEl("input", {
-      type: "text",
-      placeholder: "Type to add skill...",
-      cls: "detail-skill-input"
-    });
-    const skillSuggest = new SkillSuggest(this.app, skillInput, this.plugin);
-    skillSuggest.onSelect = (skill) => {
-      if (!selectedSkillIds.includes(skill.id)) {
-        selectedSkillIds.push(skill.id);
-        updateSelectedSkillsDisplay();
-      }
-    };
+    const selectedSkillIds = this.attachSkillPicker(box, habit.skillIds);
     const saveHabit = /* @__PURE__ */ __name(async () => {
       const previousTitle = habit.title;
       habit.title = titleInput.value.trim() || habit.title;
@@ -3473,13 +3475,11 @@ var _QuestLogView = class _QuestLogView extends import_obsidian2.ItemView {
     if (quest.description) {
       box.createEl("p", {
         text: quest.description,
-        cls: "quest-detail-desc",
-        attr: { style: "background: transparent; border: none; padding: 0; color: #ccc; resize: none;" }
+        cls: "quest-detail-desc quest-detail-desc-plain"
       });
     }
     const stars2 = /* @__PURE__ */ __name((n) => "\u2B50".repeat(n), "stars");
     const statsTable = box.createEl("table", { cls: "quest-detail-stats-table" });
-    statsTable.style.cssText = "width: 100%; border-collapse: collapse; font-size: 12px;";
     const rows = [
       ["XP Earned", quest.xp.toLocaleString()],
       ["Difficulty", stars2(quest.difficulty)],
@@ -3488,13 +3488,7 @@ var _QuestLogView = class _QuestLogView extends import_obsidian2.ItemView {
       ["Created", _QuestLogView.formatDate(quest.created)],
       ["Completed", _QuestLogView.formatDate(quest.completedAt)]
     ];
-    rows.forEach(([label, value]) => {
-      const tr = statsTable.createEl("tr");
-      const td1 = tr.createEl("td", { text: label });
-      td1.style.cssText = "color: #888; padding: 4px 8px 4px 0; font-weight: bold;";
-      const td2 = tr.createEl("td", { text: value });
-      td2.style.cssText = "color: #fff; padding: 4px 0; text-align: right;";
-    });
+    this.fillStatsTable(statsTable, rows);
     const btnRow = box.createEl("div", { cls: "quest-detail-buttons" });
     btnRow.style.justifyContent = "center";
     const closeBtn = btnRow.createEl("button", {
@@ -3516,11 +3510,19 @@ var _QuestLogView = class _QuestLogView extends import_obsidian2.ItemView {
         return;
       }
       const [restored] = this.plugin.settings.completedQuests.splice(idx, 1);
+      const hadNote = await retireNote(
+        this.plugin,
+        questNotePaths(this.plugin, restored, this.plugin.settings.completedQuests.concat([restored]), this.plugin.settings.completedFolderPath || "Quest Log/Completed")
+      );
       const { completedAt, ...activeQuest } = restored;
       this.plugin.settings.quests.push(activeQuest);
       this.plugin.settings.currentXp = Math.max(0, this.plugin.settings.currentXp - restored.xp);
       this.plugin.settings.questsCompleted = Math.max(0, this.plugin.settings.questsCompleted - 1);
+      const coins = Math.max(1, Math.min(50, Math.round(restored.xp / 1e4)));
+      this.plugin.settings.coins = Math.max(0, (this.plugin.settings.coins || 0) - coins);
+      this.revokeSkillXp(restored.xp, restored.skillIds);
       await this.plugin.saveSettings();
+      if (hadNote) await writeQuestFile(this.plugin, activeQuest);
       overlay.removeClass("open");
       this.updateHeader();
       this.renderCompletedList(this._completedListContainer);
@@ -3545,13 +3547,11 @@ var _QuestLogView = class _QuestLogView extends import_obsidian2.ItemView {
     if (habit.description) {
       box.createEl("p", {
         text: habit.description,
-        cls: "quest-detail-desc",
-        attr: { style: "background: transparent; border: none; padding: 0; color: #ccc; resize: none;" }
+        cls: "quest-detail-desc quest-detail-desc-plain"
       });
     }
     const stars2 = /* @__PURE__ */ __name((n) => "\u2B50".repeat(n), "stars");
     const statsTable = box.createEl("table", { cls: "quest-detail-stats-table" });
-    statsTable.style.cssText = "width: 100%; border-collapse: collapse; font-size: 12px;";
     const rows = [
       ["XP Earned", habit.xp.toLocaleString()],
       ["Difficulty", stars2(habit.difficulty)],
@@ -3560,13 +3560,7 @@ var _QuestLogView = class _QuestLogView extends import_obsidian2.ItemView {
       ["Type", "Habit (Repeatable)"],
       ["Completed", _QuestLogView.formatDate(habit.completedAt)]
     ];
-    rows.forEach(([label, value]) => {
-      const tr = statsTable.createEl("tr");
-      const td1 = tr.createEl("td", { text: label });
-      td1.style.cssText = "color: #888; padding: 4px 8px 4px 0; font-weight: bold;";
-      const td2 = tr.createEl("td", { text: value });
-      td2.style.cssText = "color: #fff; padding: 4px 0; text-align: right;";
-    });
+    this.fillStatsTable(statsTable, rows);
     const btnRow = box.createEl("div", { cls: "quest-detail-buttons" });
     btnRow.style.justifyContent = "center";
     const closeBtn = btnRow.createEl("button", {
@@ -3590,8 +3584,9 @@ var _QuestLogView = class _QuestLogView extends import_obsidian2.ItemView {
         return;
       }
       this.plugin.settings.completedHabits.splice(idx, 1);
+      await retireNote(this.plugin, [completedHabitNotePath(this.plugin, habit, habit.completedAt)]);
       this.plugin.settings.currentXp = Math.max(0, this.plugin.settings.currentXp - habit.xp);
-      this.plugin.settings.questsCompleted = Math.max(0, this.plugin.settings.questsCompleted - 1);
+      this.revokeSkillXp(habit.xp, habit.skillIds);
       await this.plugin.saveSettings();
       overlay.removeClass("open");
       this.updateHeader();
@@ -3605,20 +3600,20 @@ var _QuestLogView = class _QuestLogView extends import_obsidian2.ItemView {
   }
 };
 __name(_QuestLogView, "QuestLogView");
-__publicField(_QuestLogView, "getXpMultiplier", Xp.getXpMultiplier);
-__publicField(_QuestLogView, "getXpForLvl", Xp.getXpForLvl);
-__publicField(_QuestLogView, "getLevel", Xp.getLevel);
-__publicField(_QuestLogView, "xpProgress", Xp.xpProgress);
-__publicField(_QuestLogView, "generateXpCurveTable", Xp.generateXpCurveTable);
-__publicField(_QuestLogView, "getNextMilestones", Xp.getNextMilestones);
-__publicField(_QuestLogView, "getSkillXpForLvl", Xp.getSkillXpForLvl);
-__publicField(_QuestLogView, "getSkillLevel", Xp.getSkillLevel);
-__publicField(_QuestLogView, "getSkillXpProgress", Xp.getSkillXpProgress);
+__publicField(_QuestLogView, "getXpMultiplier", Xp.getXpMultiplier.bind(Xp));
+__publicField(_QuestLogView, "getXpForLvl", Xp.getXpForLvl.bind(Xp));
+__publicField(_QuestLogView, "getLevel", Xp.getLevel.bind(Xp));
+__publicField(_QuestLogView, "xpProgress", Xp.xpProgress.bind(Xp));
+__publicField(_QuestLogView, "generateXpCurveTable", Xp.generateXpCurveTable.bind(Xp));
+__publicField(_QuestLogView, "getNextMilestones", Xp.getNextMilestones.bind(Xp));
+__publicField(_QuestLogView, "getSkillXpForLvl", Xp.getSkillXpForLvl.bind(Xp));
+__publicField(_QuestLogView, "getSkillLevel", Xp.getSkillLevel.bind(Xp));
+__publicField(_QuestLogView, "getSkillXpProgress", Xp.getSkillXpProgress.bind(Xp));
 __publicField(_QuestLogView, "DIFFICULTY_LABELS", Xp.DIFFICULTY_LABELS);
 __publicField(_QuestLogView, "URGENCY_LABELS", Xp.URGENCY_LABELS);
 __publicField(_QuestLogView, "IMPACT_LABELS", Xp.IMPACT_LABELS);
-__publicField(_QuestLogView, "calcXp", Xp.calcXp);
-__publicField(_QuestLogView, "getLevelTitle", Xp.getLevelTitle);
+__publicField(_QuestLogView, "calcXp", Xp.calcXp.bind(Xp));
+__publicField(_QuestLogView, "getLevelTitle", Xp.getLevelTitle.bind(Xp));
 __publicField(_QuestLogView, "safeName", safeName);
 __publicField(_QuestLogView, "formatDate", formatDate);
 __publicField(_QuestLogView, "formatHabitTimestamp", formatHabitTimestamp);
@@ -3730,14 +3725,22 @@ var _QuestLog = class _QuestLog extends import_obsidian3.Plugin {
       }
       this.settings = JSON.parse(JSON.stringify(DEFAULT_SETTINGS));
       await this.saveSettings();
+      const left = [];
+      for (const folderPath of foldersToWipe) {
+        if (vault.getAbstractFileByPath(folderPath)) left.push(folderPath);
+      }
+      if (vault.getAbstractFileByPath(userProfilePath)) left.push(userProfilePath);
+      var foldersCleared = left.length === 0;
     } finally {
       this._isResetting = false;
     }
     const leaves = this.app.workspace.getLeavesOfType(QUESTLOG_VIEW_TYPE);
-    if (leaves.length > 0 && leaves[0].view && typeof leaves[0].view.refreshListsAndHeader === "function") {
-      leaves[0].view.refreshListsAndHeader();
+    for (const leaf of leaves) {
+      if (leaf.view && typeof leaf.view.refreshListsAndHeader === "function") {
+        leaf.view.refreshListsAndHeader();
+      }
     }
-    return true;
+    return foldersCleared;
   }
   onunload() {
     if (this._heroNameTimer) {
