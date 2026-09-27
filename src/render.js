@@ -94,7 +94,11 @@ var _Xp = class _Xp {
     const xpNeeded = Math.max(0, xpForNext - xpFromPrev);
     const rawProgress = (xp || 0) - xpFromPrev;
     const into = xpNeeded > 0 ? Math.min(xpNeeded, Math.max(0, rawProgress)) : 0;
-    const pct = xpNeeded > 0 ? Math.min(100, Math.max(0, Math.round(into / xpNeeded * 100))) : 100;
+    // Continuous % (not Math.round): integer % stepped the master bar at high
+    // levels — e.g. ~7k quest XP is <<1% of a wide band, so fill sat until a
+    // whole-percent threshold then jumped. Sub-percent precision keeps width
+    // tracking into/xpNeeded; CSS accepts fractional %.
+    const pct = xpNeeded > 0 ? Math.min(100, Math.max(0, into / xpNeeded * 100)) : 100;
     return { xpForNext, xpFromPrev, xpNeeded, into, pct, level: derivedLevel };
   }
   static generateXpCurveTable(difficulty = 10, maxLevel = 50) {
@@ -157,7 +161,7 @@ var _Xp = class _Xp {
     const xpNeeded = Math.max(0, xpForNext - xpForCurrent);
     const rawProgress = xp - xpForCurrent;
     const xpProgress = xpNeeded > 0 ? Math.min(xpNeeded, Math.max(0, rawProgress)) : 0;
-    const pct = xpNeeded > 0 ? Math.min(100, Math.max(0, Math.round(xpProgress / xpNeeded * 100))) : 100;
+    const pct = xpNeeded > 0 ? Math.min(100, Math.max(0, xpProgress / xpNeeded * 100)) : 100;
     return {
       xp,
       level,
@@ -817,7 +821,7 @@ var _QuestLogView = class _QuestLogView extends obsidianNS.ItemView {
     if (this._levelBadgeEl) this._levelBadgeEl.setText(`${level}`);
     if (this._subtitleEl) this._subtitleEl.setText(_QuestLogView.getLevelTitle(level));
     if (this._xpTextEl) this._xpTextEl.setText(`${bar.into.toLocaleString()} / ${bar.xpNeeded.toLocaleString()}`);
-    if (this._xpBarFill) this._xpBarFill.style.width = `${bar.pct}%`;
+    if (this._xpBarFill) this._xpBarFill.style.width = `${Number(bar.pct.toFixed(4))}%`;
   }
   createSlider(container, label, labels, color, initialValue, onChange) {
     const group = container.createEl("div", { cls: "quest-slider-group" });
@@ -1175,7 +1179,7 @@ var _QuestLogView = class _QuestLogView extends obsidianNS.ItemView {
       cls: "xp-bar-container"
     });
     const xpBarFill = xpBarContainer.createEl("div", { cls: "xp-bar-fill" });
-    xpBarFill.style.width = `${percent}%`;
+    xpBarFill.style.width = `${Number(Number(percent).toFixed(4))}%`;
     this._xpBarFill = xpBarFill;
     const fabBtn = container.createEl("button", { cls: "quest-fab" });
     const fabIcon = fabBtn.createEl("span", { cls: "fab-icon" });

@@ -2,6 +2,14 @@
 
 Vault project notes (design / ship history). Durable code tree: `/workspace/Quest-Log-src`. Ship folder: `.obsidian/plugins/quest-log` (four files only).
 
+## 0.6.10 — 2026-09-26
+
+Micah via Atlas/Riku — master XP bar fill stepped in notches instead of tracking continuously:
+
+- Symptom: XP text (`into / needed`) updated after quests, but the soft-blue master bar sat still until a threshold then jumped; worse at high levels (~20 × ~7k XP invisible).
+- Root cause: `Xp.xpProgress` used `Math.round(into / xpNeeded * 100)` → integer CSS `%`. At high levels one percent of the band is tens of thousands of XP, so quest-sized gains never moved the fill until a whole-percent boundary.
+- Fix: continuous percent (`into / xpNeeded * 100`, no integer round); header/`updateHeader` set fill width with 4-decimal `%`. Soft blue `--ql-xp-master` `#4b6cb7` unchanged. 0.6.9 level recompute (`getLevel` lo+1, clamp into) preserved. Skill `getSkillXpProgress` same continuous `%` (same quantization).
+
 ## 0.6.9 — 2026-09-26
 
 Micah via Atlas/Riku — master XP bar progress fix (same class as skill XP bug):
