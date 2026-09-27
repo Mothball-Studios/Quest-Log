@@ -1221,7 +1221,7 @@ var _QuestLogView = class _QuestLogView extends obsidianNS.ItemView {
       slidersSection,
       "Difficulty",
       _QuestLogView.DIFFICULTY_LABELS,
-      "#4b6cb7",
+      "#3b82f6",
       3,
       updateXpPreview
     );
@@ -1358,7 +1358,7 @@ var _QuestLogView = class _QuestLogView extends obsidianNS.ItemView {
       habitSlidersSection,
       "Difficulty",
       _QuestLogView.DIFFICULTY_LABELS,
-      "#4b6cb7",
+      "#3b82f6",
       3,
       updateHabitXpPreview
     );
@@ -2018,7 +2018,7 @@ var _QuestLogView = class _QuestLogView extends obsidianNS.ItemView {
       slidersSection,
       "Difficulty",
       _QuestLogView.DIFFICULTY_LABELS,
-      "#4b6cb7",
+      "#3b82f6",
       item.difficulty || 3,
       updateXpPreview
     );

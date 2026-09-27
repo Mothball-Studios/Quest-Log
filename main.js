@@ -2536,7 +2536,7 @@ var require_render = __commonJS({
             slidersSection,
             "Difficulty",
             _QuestLogView2.DIFFICULTY_LABELS,
-            "#4b6cb7",
+            "#3b82f6",
             3,
             updateXpPreview
           );
@@ -2673,7 +2673,7 @@ var require_render = __commonJS({
             habitSlidersSection,
             "Difficulty",
             _QuestLogView2.DIFFICULTY_LABELS,
-            "#4b6cb7",
+            "#3b82f6",
             3,
             updateHabitXpPreview
           );
@@ -3329,7 +3329,7 @@ var require_render = __commonJS({
             slidersSection,
             "Difficulty",
             _QuestLogView2.DIFFICULTY_LABELS,
-            "#4b6cb7",
+            "#3b82f6",
             item.difficulty || 3,
             updateXpPreview
           );
