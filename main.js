@@ -2442,7 +2442,7 @@ var require_render = __commonJS({
                 text: `${xp.toLocaleString()} XP`,
                 cls: "linked-selector-row-xp"
               });
-              if (rewardsOn) {
+              if (rewardsOn && kind === "quest") {
                 const coinWrap = meta.createEl("span", { cls: "linked-selector-row-coins" });
                 const coinIcon = coinWrap.createEl("span", { cls: "linked-selector-row-coin-icon" });
                 setIcon(coinIcon, "coins");
@@ -2556,7 +2556,7 @@ var require_render = __commonJS({
                 text: `${xp.toLocaleString()} XP`,
                 cls: "linked-selector-row-xp"
               });
-              if (rewardsOn) {
+              if (rewardsOn && !isHabit) {
                 const coinWrap = meta.createEl("span", { cls: "linked-selector-row-coins" });
                 const coinIcon = coinWrap.createEl("span", { cls: "linked-selector-row-coin-icon" });
                 setIcon(coinIcon, "coins");

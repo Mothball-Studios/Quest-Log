@@ -1443,7 +1443,7 @@
   box-sizing: border-box;
 }
 /* Detach on attached quest/habit rows (skill details + creation):
-   bordered button chrome — larger tap target, distinct from bare row icon */
+   28×28 hit area, bare X only — no border or background block */
 .detail-linked-row-remove {
   flex: 0 0 auto;
   margin-left: 8px;
@@ -1453,19 +1453,22 @@
   width: 28px;
   height: 28px;
   padding: 0;
-  border-radius: 6px;
-  border: 1px solid var(--ql-border, #2a2a2a);
-  background-color: #1a1a1a;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  background-color: transparent;
   color: #c4c9d0;
   cursor: pointer;
   box-sizing: border-box;
   line-height: 1;
+  box-shadow: none;
 }
 .detail-linked-row-remove:hover {
-  border-color: var(--ql-danger, #ef4444);
-  background-color: rgba(239, 68, 68, 0.12);
+  border: none;
+  background: transparent;
+  background-color: transparent;
   color: var(--ql-danger, #ef4444);
-  box-shadow: 0 0 10px rgba(239, 68, 68, 0.35);
+  box-shadow: none;
 }
 .detail-linked-row-remove-icon {
   display: inline-flex;

@@ -2,6 +2,14 @@
 
 Vault project notes (design / ship history). Durable code tree: `/workspace/Quest-Log-src`. Ship folder: `.obsidian/plugins/quest-log` (four files only).
 
+## 0.6.19 — 2026-09-26
+
+Micah via Atlas COO APPROVED — Quest Log UI post 0.6.18. Skill details + creation, attach quests + attach habits:
+
+1. Detach X: keep 28×28 size, strip bordered/button container — bare X only, no border or background block.
+2. Habit rows: never show coin count, even when rewardsMode on. Remove coin display from habit rows entirely (attached + selector). Display-only — habits do not give coins; no habit coin economy change.
+3. Quest rows: always show coin count when rewardsMode on (attached + selector).
+
 ## 0.6.18 — 2026-09-26
 
 Micah via Atlas COO APPROVED — Quest Log UI post 0.6.17:

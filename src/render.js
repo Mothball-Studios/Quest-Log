@@ -1121,7 +1121,7 @@ var _QuestLogView = class _QuestLogView extends obsidianNS.ItemView {
       selectedIds.forEach((id) => {
         const item = list.find((x) => x && String(x.id) === String(id));
         if (!item) return;
-        // Match quest/habit selector rows: left edge + tint, title, XP, coins when rewardsMode
+        // Match quest/habit selector rows: left edge + tint, title, XP; coins when rewardsMode (quests only)
         const row = selectedDisplay.createEl("div", {
           cls: `skills-selector-row linked-selector-row ${typeCls}-selector-row detail-linked-attached-row`
         });
@@ -1136,7 +1136,8 @@ var _QuestLogView = class _QuestLogView extends obsidianNS.ItemView {
           text: `${xp.toLocaleString()} XP`,
           cls: "linked-selector-row-xp"
         });
-        if (rewardsOn) {
+        // Habits never grant coins — omit coin display on habit attached rows always
+        if (rewardsOn && kind === "quest") {
           const coinWrap = meta.createEl("span", { cls: "linked-selector-row-coins" });
           const coinIcon = coinWrap.createEl("span", { cls: "linked-selector-row-coin-icon" });
           setIcon(coinIcon, "coins");
@@ -1250,7 +1251,8 @@ var _QuestLogView = class _QuestLogView extends obsidianNS.ItemView {
           text: `${xp.toLocaleString()} XP`,
           cls: "linked-selector-row-xp"
         });
-        if (rewardsOn) {
+        // Habits never grant coins — omit coin display on habit selector rows always
+        if (rewardsOn && !isHabit) {
           const coinWrap = meta.createEl("span", { cls: "linked-selector-row-coins" });
           const coinIcon = coinWrap.createEl("span", { cls: "linked-selector-row-coin-icon" });
           setIcon(coinIcon, "coins");
