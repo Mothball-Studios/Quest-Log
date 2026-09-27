@@ -2,6 +2,21 @@
 
 Vault project notes (design / ship history). Durable code tree: `/workspace/Quest-Log-src`. Ship folder: `.obsidian/plugins/quest-log` (four files only).
 
+## 0.6.11 — 2026-09-26
+
+Micah via Atlas/Riku — creation + details modal sync:
+
+1. Unify quest + habit creation into one shared `openCreateModal({ type })` (same type-flag pattern as `openDetailModal`).
+2. Creation Cancel → X icon top-right (same 16px-ink / 24px-box treatment as details close: default `#c4c9d0`, red hover).
+3. Create button spans full bottom width.
+4. Keep creation-modal slider LABEL styling; details-modal slider labels updated to match (bars untouched).
+5. Creation rewards section matches details reward layout (centered Reward + divider; XP centered; coins left / XP right when rewardsMode).
+6. Creation sliders default to first slot (1 / lowest); default XP = lowest band (100), not middle ~7071.
+7. Skill creation only: Cancel → X top-right; Create Skill button full bottom width.
+8. Details: creation-modal-style header divider between header row (created date / trash / open note / close X) and the title field.
+
+Preserves type tokens (`--ql-quest`, `--ql-habit`, `--ql-skill`, `--ql-xp-master`), 0.6.9 master XP recompute, and 0.6.10 continuous % fill.
+
 ## 0.6.10 — 2026-09-26
 
 Micah via Atlas/Riku — master XP bar fill stepped in notches instead of tracking continuously:

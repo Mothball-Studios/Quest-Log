@@ -2492,268 +2492,30 @@ var require_render = __commonJS({
           const fabIcon = fabBtn.createEl("span", { cls: "fab-icon" });
           setIcon(fabIcon, "plus");
           fabBtn.style.display = "flex";
-          const overlay = container.createEl("div", {
+          const createOverlay = container.createEl("div", {
             cls: "quest-creation-overlay ql-overlay"
           });
-          overlay.addEventListener("mousedown", (e) => {
-            overlay._mouseDownOnOverlay = e.target === overlay;
+          createOverlay.addEventListener("mousedown", (e) => {
+            createOverlay._mouseDownOnOverlay = e.target === createOverlay;
           });
-          overlay.addEventListener("click", (e) => {
-            if (e.target === overlay && overlay._mouseDownOnOverlay) {
-              overlay.removeClass("open");
+          createOverlay.addEventListener("click", (e) => {
+            if (e.target === createOverlay && createOverlay._mouseDownOnOverlay) {
+              createOverlay.removeClass("open");
             }
           });
-          const modalBox = overlay.createEl("div", { cls: "quest-modal quest-context ql-modal" });
-          const modalHeader = modalBox.createEl("div", { cls: "quest-modal-header" });
-          const headerIcon = modalHeader.createEl("span", {
-            cls: "quest-modal-header-icon"
-          });
-          setIcon(headerIcon, "scroll");
-          modalHeader.createEl("span", { text: "New Quest" });
-          const titleInput = modalBox.createEl("input", {
-            type: "text",
-            placeholder: "Quest Title...",
-            cls: "quest-modal-title"
-          });
-          const descInput = modalBox.createEl("textarea", {
-            attr: { placeholder: "Instructions..." },
-            cls: "quest-modal-desc"
-          });
-          const slidersSection = modalBox.createEl("div", {
-            cls: "quest-sliders-section"
-          });
-          var diffSlider, urgSlider, impSlider;
-          this.drainSliders();
-          this._sliders = [];
-          const xpPreview = { el: null };
-          const updateXpPreview = /* @__PURE__ */ __name(() => {
-            const xp = _QuestLogView2.calcXp(
-              diffSlider._getValue(),
-              urgSlider._getValue(),
-              impSlider._getValue()
-            );
-            xpPreview.el.setText(`${xp.toLocaleString()} XP`);
-          }, "updateXpPreview");
-          diffSlider = this.createSlider(
-            slidersSection,
-            "Difficulty",
-            _QuestLogView2.DIFFICULTY_LABELS,
-            "#3b82f6",
-            3,
-            updateXpPreview
-          );
-          urgSlider = this.createSlider(
-            slidersSection,
-            "Urgency",
-            _QuestLogView2.URGENCY_LABELS,
-            "#f59e0b",
-            3,
-            updateXpPreview
-          );
-          impSlider = this.createSlider(
-            slidersSection,
-            "Impact",
-            _QuestLogView2.IMPACT_LABELS,
-            "#a855f7",
-            3,
-            updateXpPreview
-          );
-          const xpRow = modalBox.createEl("div", { cls: "quest-xp-preview-row" });
-          xpRow.createEl("span", { text: "Reward", cls: "quest-xp-preview-label" });
-          xpPreview.el = xpRow.createEl("span", {
-            text: `${_QuestLogView2.calcXp(3, 3, 3).toLocaleString()} XP`,
-            cls: "quest-xp-preview-value"
-          });
-          const selectedSkillIds = this.attachSkillPicker(modalBox, []);
-          const btnContainer = modalBox.createEl("div", {
-            cls: "quest-modal-buttons"
-          });
-          const cancelBtn = btnContainer.createEl("button", {
-            text: "Cancel",
-            cls: "quest-modal-cancel-btn"
-          });
-          const createBtn = btnContainer.createEl("button", {
-            cls: "quest-modal-create-btn"
-          });
-          const createBtnIcon = createBtn.createEl("span", {
-            cls: "quest-modal-create-btn-icon"
-          });
-          setIcon(createBtnIcon, "plus");
-          createBtn.createEl("span", { text: "Create Quest" });
-          const closeOverlay = /* @__PURE__ */ __name(() => {
-            overlay.removeClass("open");
-            titleInput.value = "";
-            descInput.value = "";
-            diffSlider._setValue(3);
-            urgSlider._setValue(3);
-            impSlider._setValue(3);
-            updateXpPreview();
-            selectedSkillIds.length = 0;
-            selectedSkillIds.refresh();
-          }, "closeOverlay");
+          const createBox = createOverlay.createEl("div", { cls: "quest-modal ql-modal" });
+          this._createOverlay = createOverlay;
+          this._createBox = createBox;
           var activeTab = this._activeTab || "QUESTS";
           var currentView = this._currentView || "active";
           fabBtn.addEventListener("click", () => {
             if (activeTab === "QUESTS") {
-              overlay.addClass("open");
-              titleInput.focus();
+              this.openCreateModal({ type: "quest" });
             } else if (activeTab === "HABITS") {
-              habitOverlay.addClass("open");
-              habitTitleInput.focus();
+              this.openCreateModal({ type: "habit" });
             } else if (activeTab === "SKILLS") {
               skillOverlay.addClass("open");
               skillNameInput.focus();
-            }
-          });
-          cancelBtn.addEventListener("click", closeOverlay);
-          createBtn.addEventListener("click", async () => {
-            if (titleInput.value.trim() !== "") {
-              const xp = _QuestLogView2.calcXp(
-                diffSlider._getValue(),
-                urgSlider._getValue(),
-                impSlider._getValue()
-              );
-              const quest = {
-                id: Date.now().toString(),
-                title: titleInput.value.trim(),
-                description: descInput.value.trim(),
-                difficulty: diffSlider._getValue(),
-                urgency: urgSlider._getValue(),
-                impact: impSlider._getValue(),
-                xp,
-                created: (/* @__PURE__ */ new Date()).toISOString(),
-                skillIds: [...selectedSkillIds]
-              };
-              this.plugin.settings.quests.push(quest);
-              await this.plugin.saveSettings();
-              this.renderQuestList(questListContainer);
-              new obsidianNS.Notice(`Created Quest: ${quest.title} (${xp.toLocaleString()} XP)`);
-              closeOverlay();
-            } else {
-              new obsidianNS.Notice("Add Quest Title First!");
-            }
-          });
-          const habitOverlay = container.createEl("div", {
-            cls: "quest-creation-overlay ql-overlay"
-          });
-          habitOverlay.addEventListener("mousedown", (e) => {
-            habitOverlay._mouseDownOnOverlay = e.target === habitOverlay;
-          });
-          habitOverlay.addEventListener("click", (e) => {
-            if (e.target === habitOverlay && habitOverlay._mouseDownOnOverlay) {
-              habitOverlay.removeClass("open");
-            }
-          });
-          const habitModalBox = habitOverlay.createEl("div", { cls: "quest-modal habit-context ql-modal" });
-          const habitModalHeader = habitModalBox.createEl("div", { cls: "quest-modal-header" });
-          const habitHeaderIcon = habitModalHeader.createEl("span", { cls: "quest-modal-header-icon" });
-          setIcon(habitHeaderIcon, "repeat");
-          habitModalHeader.createEl("span", { text: "New Habit" });
-          const habitTitleInput = habitModalBox.createEl("input", {
-            type: "text",
-            placeholder: "Habit Title...",
-            cls: "quest-modal-title"
-          });
-          const habitDescInput = habitModalBox.createEl("textarea", {
-            attr: { placeholder: "Description..." },
-            cls: "quest-modal-desc"
-          });
-          const habitSlidersSection = habitModalBox.createEl("div", {
-            cls: "quest-sliders-section"
-          });
-          var habitDiffSlider, habitUrgSlider, habitImpSlider;
-          const habitXpPreview = { el: null };
-          const updateHabitXpPreview = /* @__PURE__ */ __name(() => {
-            const xp = _QuestLogView2.calcXp(
-              habitDiffSlider._getValue(),
-              habitUrgSlider._getValue(),
-              habitImpSlider._getValue()
-            );
-            habitXpPreview.el.setText(`${xp.toLocaleString()} XP`);
-          }, "updateHabitXpPreview");
-          habitDiffSlider = this.createSlider(
-            habitSlidersSection,
-            "Difficulty",
-            _QuestLogView2.DIFFICULTY_LABELS,
-            "#3b82f6",
-            3,
-            updateHabitXpPreview
-          );
-          habitUrgSlider = this.createSlider(
-            habitSlidersSection,
-            "Urgency",
-            _QuestLogView2.URGENCY_LABELS,
-            "#f59e0b",
-            3,
-            updateHabitXpPreview
-          );
-          habitImpSlider = this.createSlider(
-            habitSlidersSection,
-            "Impact",
-            _QuestLogView2.IMPACT_LABELS,
-            "#a855f7",
-            3,
-            updateHabitXpPreview
-          );
-          const habitXpRow = habitModalBox.createEl("div", { cls: "quest-xp-preview-row" });
-          habitXpRow.createEl("span", { text: "Reward", cls: "quest-xp-preview-label" });
-          habitXpPreview.el = habitXpRow.createEl("span", {
-            text: `${_QuestLogView2.calcXp(3, 3, 3).toLocaleString()} XP`,
-            cls: "quest-xp-preview-value"
-          });
-          const habitSelectedSkillIds = this.attachSkillPicker(habitModalBox, []);
-          const habitBtnContainer = habitModalBox.createEl("div", {
-            cls: "quest-modal-buttons"
-          });
-          const habitCancelBtn = habitBtnContainer.createEl("button", {
-            text: "Cancel",
-            cls: "quest-modal-cancel-btn"
-          });
-          const habitCreateBtn = habitBtnContainer.createEl("button", {
-            cls: "quest-modal-create-btn"
-          });
-          const habitCreateBtnIcon = habitCreateBtn.createEl("span", {
-            cls: "quest-modal-create-btn-icon"
-          });
-          setIcon(habitCreateBtnIcon, "plus");
-          habitCreateBtn.createEl("span", { text: "Create Habit" });
-          const closeHabitOverlay = /* @__PURE__ */ __name(() => {
-            habitOverlay.removeClass("open");
-            habitTitleInput.value = "";
-            habitDescInput.value = "";
-            habitDiffSlider._setValue(3);
-            habitUrgSlider._setValue(3);
-            habitImpSlider._setValue(3);
-            updateHabitXpPreview();
-            habitSelectedSkillIds.length = 0;
-            habitSelectedSkillIds.refresh();
-          }, "closeHabitOverlay");
-          habitCancelBtn.addEventListener("click", closeHabitOverlay);
-          habitCreateBtn.addEventListener("click", async () => {
-            if (habitTitleInput.value.trim() !== "") {
-              const xp = _QuestLogView2.calcXp(
-                habitDiffSlider._getValue(),
-                habitUrgSlider._getValue(),
-                habitImpSlider._getValue()
-              );
-              const habit = {
-                id: Date.now().toString(),
-                title: habitTitleInput.value.trim(),
-                description: habitDescInput.value.trim(),
-                difficulty: habitDiffSlider._getValue(),
-                urgency: habitUrgSlider._getValue(),
-                impact: habitImpSlider._getValue(),
-                xp,
-                created: (/* @__PURE__ */ new Date()).toISOString(),
-                skillIds: [...habitSelectedSkillIds]
-              };
-              this.plugin.settings.habits.push(habit);
-              await this.plugin.saveSettings();
-              this.renderHabitList(habitsContent);
-              new obsidianNS.Notice(`Created Habit: ${habit.title} (${xp.toLocaleString()} XP)`);
-              closeHabitOverlay();
-            } else {
-              new obsidianNS.Notice("Add Habit Title First!");
             }
           });
           let rewardOverlay = null;
@@ -3039,6 +2801,12 @@ var require_render = __commonJS({
           const skillHeaderIcon = skillModalHeader.createEl("span", { cls: "quest-modal-header-icon" });
           setIcon(skillHeaderIcon, "zap");
           skillModalHeader.createEl("span", { text: "New Skill" });
+          const skillCloseBtn = skillModalHeader.createEl("button", {
+            cls: "quest-detail-close-btn quest-modal-close-btn",
+            attr: { "aria-label": "Close" }
+          });
+          const skillCloseIcon = skillCloseBtn.createEl("span", { cls: "quest-detail-close-icon" });
+          setIcon(skillCloseIcon, "x");
           const skillNameInput = skillModalBox.createEl("input", {
             type: "text",
             placeholder: "Skill Name...",
@@ -3056,12 +2824,8 @@ var require_render = __commonJS({
           const skillBtnContainer = skillModalBox.createEl("div", {
             cls: "quest-modal-buttons"
           });
-          const skillCancelBtn = skillBtnContainer.createEl("button", {
-            text: "Cancel",
-            cls: "quest-modal-cancel-btn"
-          });
           const skillCreateBtn = skillBtnContainer.createEl("button", {
-            cls: "quest-modal-create-btn"
+            cls: "quest-modal-create-btn quest-modal-create-btn-full"
           });
           const skillCreateBtnIcon = skillCreateBtn.createEl("span", {
             cls: "quest-modal-create-btn-icon"
@@ -3073,7 +2837,7 @@ var require_render = __commonJS({
             skillNameInput.value = "";
             skillDescInput.value = "";
           }, "closeSkillOverlay");
-          skillCancelBtn.addEventListener("click", closeSkillOverlay);
+          skillCloseBtn.addEventListener("click", closeSkillOverlay);
           skillCreateBtn.addEventListener("click", async () => {
             if (skillNameInput.value.trim() !== "") {
               const skill = {
@@ -3192,6 +2956,148 @@ var require_render = __commonJS({
           });
         }
         // ----------------------------------------
+        // SHARED CREATE MODAL (quest | habit)
+        // Same type-flag pattern as openDetailModal.
+        // ----------------------------------------
+        openCreateModal({ type }) {
+          const isHabit = type === "habit";
+          const overlay = this._createOverlay;
+          const box = this._createBox;
+          this.drainSliders(box);
+          box.empty();
+          box.removeClass("habit-context");
+          box.removeClass("quest-context");
+          box.removeClass("skill-context");
+          if (isHabit) box.addClass("habit-context");
+          else box.addClass("quest-context");
+          overlay.addClass("open");
+          const modalHeader = box.createEl("div", { cls: "quest-modal-header" });
+          const headerIcon = modalHeader.createEl("span", { cls: "quest-modal-header-icon" });
+          setIcon(headerIcon, isHabit ? "repeat" : "scroll");
+          modalHeader.createEl("span", { text: isHabit ? "New Habit" : "New Quest" });
+          const closeBtn = modalHeader.createEl("button", {
+            cls: "quest-detail-close-btn quest-modal-close-btn",
+            attr: { "aria-label": "Close" }
+          });
+          const closeIcon = closeBtn.createEl("span", { cls: "quest-detail-close-icon" });
+          setIcon(closeIcon, "x");
+          const titleInput = box.createEl("input", {
+            type: "text",
+            placeholder: isHabit ? "Habit Title..." : "Quest Title...",
+            cls: "quest-modal-title"
+          });
+          const descInput = box.createEl("textarea", {
+            attr: { placeholder: isHabit ? "Description..." : "Instructions..." },
+            cls: "quest-modal-desc"
+          });
+          const slidersSection = box.createEl("div", { cls: "quest-sliders-section" });
+          const xpPreview = { el: null, coinEl: null };
+          const updateXpPreview = /* @__PURE__ */ __name(() => {
+            const xp = _QuestLogView2.calcXp(
+              diffSlider._getValue(),
+              urgSlider._getValue(),
+              impSlider._getValue()
+            );
+            xpPreview.el.setText(`${xp.toLocaleString()} XP`);
+            if (xpPreview.coinEl) {
+              xpPreview.coinEl.setText(
+                `+${Math.max(1, Math.min(50, Math.round(xp / 1e4)))}`
+              );
+            }
+          }, "updateXpPreview");
+          const diffSlider = this.createSlider(
+            slidersSection,
+            "Difficulty",
+            _QuestLogView2.DIFFICULTY_LABELS,
+            "#3b82f6",
+            1,
+            updateXpPreview
+          );
+          const urgSlider = this.createSlider(
+            slidersSection,
+            "Urgency",
+            _QuestLogView2.URGENCY_LABELS,
+            "#f59e0b",
+            1,
+            updateXpPreview
+          );
+          const impSlider = this.createSlider(
+            slidersSection,
+            "Impact",
+            _QuestLogView2.IMPACT_LABELS,
+            "#a855f7",
+            1,
+            updateXpPreview
+          );
+          const xpRow = box.createEl("div", { cls: "quest-xp-preview-row quest-detail-reward" });
+          xpRow.createEl("span", { text: "Reward", cls: "quest-xp-preview-label" });
+          xpRow.createEl("div", { cls: "quest-detail-reward-divider" });
+          const rewardBody = xpRow.createEl("div", { cls: "quest-detail-reward-body" });
+          const showCoins = Boolean(this.plugin.settings.rewardsMode) && !isHabit;
+          const defaultXp = _QuestLogView2.calcXp(1, 1, 1);
+          if (showCoins) {
+            rewardBody.addClass("has-extra");
+            const coinWrap = rewardBody.createEl("span", { cls: "quest-detail-reward-coins" });
+            const coinIcon = coinWrap.createEl("span", { cls: "quest-detail-reward-coin-icon" });
+            setIcon(coinIcon, "coins");
+            xpPreview.coinEl = coinWrap.createEl("span", {
+              cls: "quest-detail-reward-coin-text",
+              text: `+${Math.max(1, Math.min(50, Math.round(defaultXp / 1e4)))}`
+            });
+          }
+          xpPreview.el = rewardBody.createEl("span", {
+            text: `${defaultXp.toLocaleString()} XP`,
+            cls: "quest-xp-preview-value"
+          });
+          const selectedSkillIds = this.attachSkillPicker(box, []);
+          const btnContainer = box.createEl("div", { cls: "quest-modal-buttons" });
+          const createBtn = btnContainer.createEl("button", {
+            cls: "quest-modal-create-btn quest-modal-create-btn-full"
+          });
+          const createBtnIcon = createBtn.createEl("span", { cls: "quest-modal-create-btn-icon" });
+          setIcon(createBtnIcon, "plus");
+          createBtn.createEl("span", { text: isHabit ? "Create Habit" : "Create Quest" });
+          const closeOverlay = /* @__PURE__ */ __name(() => {
+            overlay.removeClass("open");
+          }, "closeOverlay");
+          closeBtn.addEventListener("click", closeOverlay);
+          createBtn.addEventListener("click", async () => {
+            if (titleInput.value.trim() !== "") {
+              const xp = _QuestLogView2.calcXp(
+                diffSlider._getValue(),
+                urgSlider._getValue(),
+                impSlider._getValue()
+              );
+              const item = {
+                id: Date.now().toString(),
+                title: titleInput.value.trim(),
+                description: descInput.value.trim(),
+                difficulty: diffSlider._getValue(),
+                urgency: urgSlider._getValue(),
+                impact: impSlider._getValue(),
+                xp,
+                created: (/* @__PURE__ */ new Date()).toISOString(),
+                skillIds: [...selectedSkillIds]
+              };
+              if (isHabit) {
+                this.plugin.settings.habits.push(item);
+                await this.plugin.saveSettings();
+                this.renderHabitList(this._habitListContainer);
+                new obsidianNS.Notice(`Created Habit: ${item.title} (${xp.toLocaleString()} XP)`);
+              } else {
+                this.plugin.settings.quests.push(item);
+                await this.plugin.saveSettings();
+                this.renderQuestList(this._questListContainer);
+                new obsidianNS.Notice(`Created Quest: ${item.title} (${xp.toLocaleString()} XP)`);
+              }
+              closeOverlay();
+            } else {
+              new obsidianNS.Notice(isHabit ? "Add Habit Title First!" : "Add Quest Title First!");
+            }
+          });
+          titleInput.focus();
+        }
+        // ----------------------------------------
         // SHARED DETAIL MODAL (quest | habit)
         // Branch only type-specific diffs; layout/header/body shared.
         // ----------------------------------------
@@ -3279,6 +3185,7 @@ var require_render = __commonJS({
             cls: "quest-detail-close-icon"
           });
           setIcon(closeIcon, "x");
+          headerRow.addClass("has-divider");
           const titleInput = box.createEl("input", {
             type: "text",
             value: item.title,

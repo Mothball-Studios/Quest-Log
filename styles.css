@@ -804,6 +804,38 @@
   top: 3px;
 }
 
+/* Create modal: Cancel → X top-right (same ink/box treatment as detail close) */
+.quest-modal-header .quest-modal-close-btn,
+.quest-modal-header .quest-detail-close-btn {
+  margin-left: auto;
+  flex: 0 0 auto;
+  background-color: transparent !important;
+  color: #c4c9d0;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 4px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: inherit;
+  font-weight: inherit;
+  line-height: 1;
+}
+.quest-modal-header .quest-modal-close-btn:hover,
+.quest-modal-header .quest-detail-close-btn:hover {
+  background-color: transparent !important;
+  color: var(--ql-danger, #ef4444);
+  box-shadow: 0 0 12px rgba(239, 68, 68, 0.5);
+}
+
+/* Create button spans full bottom width when Cancel is an X */
+.quest-modal-create-btn-full {
+  flex: 1 1 100%;
+  width: 100%;
+}
+
 /* ============================================================
    QUEST LIST
    ============================================================ */
@@ -911,6 +943,11 @@
   justify-content: space-between;
   position: relative;
 }
+/* Creation-modal-style header divider (between header row and title) */
+.quest-detail-header-row.has-divider {
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--ql-border, #2a2a2a);
+}
 
 .quest-detail-modal-title {
   color: #ffffff;
@@ -1014,12 +1051,7 @@
   gap: 8px;
 }
 
-.quest-detail-box .quest-slider-label {
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.5px;
-  margin-bottom: 4px;
-}
+/* Detail slider LABELS inherit creation-modal .quest-slider-label (11px/bold/0.8px); bars untouched */
 
 .quest-detail-box .quest-slider-value {
   color: #ccc;
@@ -1043,8 +1075,8 @@
   opacity: 0.5;
 }
 
-/* --- Detail-specific XP preview (Reward block) --- */
-.quest-detail-box .quest-xp-preview-row.quest-detail-reward {
+/* --- Shared Reward block (create + detail) --- */
+.quest-xp-preview-row.quest-detail-reward {
   display: flex;
   flex-direction: column;
   align-items: stretch;
@@ -1057,7 +1089,7 @@
   margin-bottom: 0;
   box-shadow: none;
 }
-.quest-detail-box .quest-detail-reward .quest-xp-preview-label {
+.quest-detail-reward .quest-xp-preview-label {
   color: #888;
   font-size: 12px;
   font-weight: 700;
@@ -1068,24 +1100,24 @@
   display: block;
   margin: 0 0 6px;
 }
-.quest-detail-box .quest-detail-reward-divider {
+.quest-detail-reward-divider {
   width: 100%;
   height: 0;
   border: none;
   border-top: 1px solid var(--ql-border, #2a2a2a);
   margin: 0 0 10px;
 }
-.quest-detail-box .quest-detail-reward-body {
+.quest-detail-reward-body {
   display: flex;
   align-items: center;
   justify-content: center;
   width: 100%;
   min-height: 1.4em;
 }
-.quest-detail-box .quest-detail-reward-body.has-extra {
+.quest-detail-reward-body.has-extra {
   justify-content: space-between;
 }
-.quest-detail-box .quest-detail-reward-coins {
+.quest-detail-reward-coins {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -1093,17 +1125,17 @@
   font-size: 18px;
   font-weight: 700;
 }
-.quest-detail-box .quest-detail-reward-coin-icon {
+.quest-detail-reward-coin-icon {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   color: #ffd700;
 }
-.quest-detail-box .quest-detail-reward-coin-icon svg {
+.quest-detail-reward-coin-icon svg {
   width: 18px;
   height: 18px;
 }
-.quest-detail-box .quest-detail-reward .quest-xp-preview-value {
+.quest-detail-reward .quest-xp-preview-value {
   /* Quest default; habit-context overrides to --ql-habit */
   color: var(--ql-quest, #3b82f6);
   font-size: 20px;
