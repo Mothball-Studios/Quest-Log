@@ -19,3 +19,7 @@ npm run ship    # build + copy only main.js, styles.css, manifest.json into vaul
 `npm run ship` does **not** copy `src/`, `node_modules/`, or `.git/`, and does **not** overwrite `data.json`.
 
 See `/workspace/Quest-Log-BUILD.md` for the full pipeline notes.
+
+## Version bumps (standing)
+
+**Bump `manifest.json` (and matching `package.json` version) on every push** of Quest Log to `origin`. Never push session/product work while leaving the manifest version unchanged.

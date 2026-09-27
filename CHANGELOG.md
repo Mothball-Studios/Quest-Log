@@ -2,9 +2,15 @@
 
 Vault project notes (design / ship history). Durable code tree: `/workspace/Quest-Log-src`. Ship folder: `.obsidian/plugins/quest-log` (four files only).
 
+## 0.6.0 — 2026-09-26
+
+Version bump for the session that landed as `4a82388` (detail modal polish, skill XP fix, slider/star/icon polish, reward block reorg, modular `src/` + ship rail).
+
+**Standing:** bump `manifest.json` / `package.json` on every future Quest Log push.
+
 ## 2026-09-26 — detail modal polish, skill XP fix, studio rename
 
-Session work on Quest Log UI/UX plus studio seat rename. Manifest still **0.5.5** (no stamp this entry).
+Session work on Quest Log UI/UX plus studio seat rename. Stamped as **0.6.0** in the follow-up bump commit.
 
 ### Skill XP renderer
 - Fixed stale stored skill level and wrong curve usage (`userDifficulty` vs `skillDifficulty`).

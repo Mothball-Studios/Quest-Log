@@ -2,6 +2,7 @@
 # Ship Quest Log build artifacts into the vault plugin folder.
 # Standing split (Micah): durable git tree stays at /workspace/Quest-Log-src;
 # deployable plugin folder gets ONLY the three ship files (+ runtime data.json left alone).
+# Standing: bump manifest.json (+ package.json) version on every push before ship.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
