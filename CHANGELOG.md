@@ -2,6 +2,14 @@
 
 Vault project notes (design / ship history). Durable code tree: `/workspace/Quest-Log-src`. Ship folder: `.obsidian/plugins/quest-log` (four files only).
 
+## 0.6.9 — 2026-09-26
+
+Micah via Atlas/Riku — master XP bar progress fix (same class as skill XP bug):
+
+- Header showed full bar + impossible progress (e.g. `89,644 / 82,556` into > needed) for `currentXp` past the displayed level threshold.
+- Root cause: `profile.getLevel` returned binary-search `lo` (attained threshold index) while `Xp.xpProgress` used skill-style bands (`getXpForLvl(level-1)` → `getXpForLvl(level)`), i.e. expected `lo+1`. Wrong band → into > xpNeeded → clamped-looking 100% fill + wrong XP text. Color token `--ql-xp-master` `#4b6cb7` was already correct.
+- Fix: `profile.getLevel` now returns `lo + 1` (matches `Xp.getLevel` / skill `getSkillLevel`). `Xp.xpProgress` always recomputes level from `currentXp` + `userDifficulty`, clamps into-level progress to `[0, xpNeeded]`, and header/`updateHeader` use `bar.level` (do not trust a caller-passed level).
+
 ## 0.6.8 — 2026-09-26
 
 Micah — habit details Reward XP color fix:

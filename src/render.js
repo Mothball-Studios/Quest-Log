@@ -84,12 +84,18 @@ var _Xp = class _Xp {
     return lo + 1;
   }
   static xpProgress(level, xp, difficulty = 10) {
-    const xpForNext = this.getXpForLvl(level, difficulty);
-    const xpFromPrev = this.getXpForLvl(level - 1, difficulty);
-    const xpNeeded = xpForNext - xpFromPrev;
-    const into = (xp || 0) - xpFromPrev;
+    // Always derive level from xp + userDifficulty curve (same class of bug as
+    // getSkillXpProgress). Ignore caller-passed level — profile.getLevel used
+    // to return lo (off-by-one vs this band math) and any stale value would
+    // push into > xpNeeded → full bar + wrong "X / Y" text.
+    const derivedLevel = this.getLevel(xp, difficulty);
+    const xpFromPrev = this.getXpForLvl(derivedLevel - 1, difficulty);
+    const xpForNext = this.getXpForLvl(derivedLevel, difficulty);
+    const xpNeeded = Math.max(0, xpForNext - xpFromPrev);
+    const rawProgress = (xp || 0) - xpFromPrev;
+    const into = xpNeeded > 0 ? Math.min(xpNeeded, Math.max(0, rawProgress)) : 0;
     const pct = xpNeeded > 0 ? Math.min(100, Math.max(0, Math.round(into / xpNeeded * 100))) : 100;
-    return { xpForNext, xpFromPrev, xpNeeded, into, pct };
+    return { xpForNext, xpFromPrev, xpNeeded, into, pct, level: derivedLevel };
   }
   static generateXpCurveTable(difficulty = 10, maxLevel = 50) {
     const table = [];
@@ -805,9 +811,9 @@ var _QuestLogView = class _QuestLogView extends obsidianNS.ItemView {
   }
   updateHeader() {
     const currentXp = this.plugin.settings.currentXp;
-    const level = this.plugin.getLevel();
     const difficulty = this.plugin.settings.userDifficulty || 10;
-    const bar = _QuestLogView.xpProgress(level, currentXp, difficulty);
+    const bar = _QuestLogView.xpProgress(null, currentXp, difficulty);
+    const level = bar.level;
     if (this._levelBadgeEl) this._levelBadgeEl.setText(`${level}`);
     if (this._subtitleEl) this._subtitleEl.setText(_QuestLogView.getLevelTitle(level));
     if (this._xpTextEl) this._xpTextEl.setText(`${bar.into.toLocaleString()} / ${bar.xpNeeded.toLocaleString()}`);
@@ -1114,9 +1120,9 @@ var _QuestLogView = class _QuestLogView extends obsidianNS.ItemView {
     });
     const header = container.createEl("div", { cls: "quest-header" });
     const currentXp = this.plugin.settings.currentXp;
-    const calculatedLvl = this.plugin.getLevel();
     const difficulty = this.plugin.settings.userDifficulty || 10;
-    const bar = _QuestLogView.xpProgress(calculatedLvl, currentXp, difficulty);
+    const bar = _QuestLogView.xpProgress(null, currentXp, difficulty);
+    const calculatedLvl = bar.level;
     const progressXp = bar.into;
     const totalXpInLvl = bar.xpNeeded;
     const percent = bar.pct;

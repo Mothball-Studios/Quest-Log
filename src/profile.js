@@ -48,7 +48,10 @@ function getLevel(currentXp, difficulty = 10) {
     if (getXpForLvl(mid, difficulty) <= xp) lo = mid;
     else hi = mid - 1;
   }
-  return lo;
+  // Match Xp.getLevel / skill getSkillLevel: level N = band between
+  // getXpForLvl(N-1) and getXpForLvl(N). Returning `lo` alone made
+  // xpProgress use the previous band (into > needed → full bar).
+  return lo + 1;
 }
 
 function generateXpCurveTable(difficulty = 10, maxLevel = 5) {
