@@ -1121,19 +1121,19 @@
   min-height: 1.4em;
 }
 .quest-detail-reward-body.has-extra {
-  /* coins two-fifths + XP four-fifths (true 2:4 / 1:2 under Reward header) */
-  display: grid;
-  grid-template-columns: 2fr 4fr;
+  /* even split like .quest-modal-buttons — no fr tracks */
+  display: flex;
+  justify-content: space-between;
   align-items: stretch;
-  justify-content: stretch;
-  gap: 0;
+  gap: 12px;
+  width: 100%;
 }
-/* Slot wrappers: each grid cell centers its content (structural, not justify-self alone) */
+/* Equal flex cells; each value centered in its half */
 .quest-detail-reward-slot {
+  flex: 1;
   display: flex;
   justify-content: center;
   align-items: center;
-  width: 100%;
   min-width: 0;
   box-sizing: border-box;
   text-align: center;

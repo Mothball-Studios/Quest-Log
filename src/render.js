@@ -2029,7 +2029,7 @@ var _QuestLogView = class _QuestLogView extends obsidianNS.ItemView {
       cls: "quest-modal-desc"
     });
     // Reward above sliders (match details order): centered Reward + divider;
-    // XP centered; coins 2fr / XP 4fr under header when rewardsMode (quests grant coins).
+    // XP centered; coins + XP equal flex halves under header when rewardsMode (quests grant coins).
     const xpRow = box.createEl("div", { cls: "quest-xp-preview-row quest-detail-reward" });
     xpRow.createEl("span", { text: "Reward", cls: "quest-xp-preview-label" });
     xpRow.createEl("div", { cls: "quest-detail-reward-divider" });
@@ -2248,7 +2248,7 @@ var _QuestLogView = class _QuestLogView extends obsidianNS.ItemView {
     descBox.style.height = "auto";
     descBox.style.height = descBox.scrollHeight + "px";
     // Reward block above sliders (Micah): open/inline, centered label + divider;
-    // XP alone centered, or coins 2fr / XP 4fr under header when rewardsMode (quests grant coins).
+    // XP alone centered, or coins + XP equal flex halves under header when rewardsMode (quests grant coins).
     const xpRow = box.createEl("div", { cls: "quest-xp-preview-row quest-detail-reward" });
     xpRow.createEl("span", { text: "Reward", cls: "quest-xp-preview-label" });
     xpRow.createEl("div", { cls: "quest-detail-reward-divider" });

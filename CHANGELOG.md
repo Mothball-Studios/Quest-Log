@@ -2,6 +2,13 @@
 
 Vault project notes (design / ship history). Durable code tree: `/workspace/Quest-Log-src`. Ship folder: `.obsidian/plugins/quest-log` (four files only).
 
+## 0.6.32 — 2026-09-26
+
+Micah via Atlas COO APPROVED — reward slot layout:
+
+- Abandon 2fr/4fr grid; equal flex reward slots (button-style) for coins + XP under Reward header.
+- `src/render.js` comment-only (docs the equal-flex halves). `main.js` md5 unchanged from 0.6.31.
+
 ## 0.6.31 — 2026-09-26
 
 Micah via Atlas COO APPROVED — leftover CSS after 0.6.30:
