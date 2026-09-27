@@ -4002,7 +4002,7 @@ var require_render = __commonJS({
           });
         }
         // ----------------------------------------
-        // Skill 2-col grids: full-row span when title wraps (shared)
+        // Skill 2-col grids: wrap → full-row + pack longs top (shared)
         // ----------------------------------------
         skillTitleWraps(titleEl) {
           if (!titleEl) return false;
@@ -4027,11 +4027,38 @@ var require_render = __commonJS({
           const items = Array.from(gridEl.children).filter((el) => {
             return el.classList.contains("skill-block") || el.classList.contains("skill-selector-row") || el.classList.contains("skills-selector-row") || el.classList.contains("detail-skill-attached-row");
           });
-          for (const el of items) el.classList.remove("skill-span-full");
-          void gridEl.offsetWidth;
-          for (const el of items) {
-            const title = el.querySelector(".detail-skill-attached-title");
-            if (title && this.skillTitleWraps(title)) el.classList.add("skill-span-full");
+          if (items.length === 0) return;
+          const others = Array.from(gridEl.children).filter((el) => !items.includes(el));
+          const ro = gridEl._qlSkillWrapRo;
+          if (ro) ro.disconnect();
+          try {
+            for (const el of items) el.classList.remove("skill-span-full");
+            void gridEl.offsetWidth;
+            const longs = [];
+            const shorts = [];
+            for (const el of items) {
+              const title = el.querySelector(".detail-skill-attached-title");
+              if (title && this.skillTitleWraps(title)) longs.push(el);
+              else shorts.push(el);
+            }
+            const desired = longs.concat(shorts);
+            let needReorder = desired.length !== items.length;
+            if (!needReorder) {
+              for (let i = 0; i < desired.length; i++) {
+                if (desired[i] !== items[i]) {
+                  needReorder = true;
+                  break;
+                }
+              }
+            }
+            if (needReorder) {
+              for (const el of desired) gridEl.appendChild(el);
+              for (const el of others) gridEl.appendChild(el);
+            }
+            for (const el of longs) el.classList.add("skill-span-full");
+            for (const el of shorts) el.classList.remove("skill-span-full");
+          } finally {
+            if (ro) ro.observe(gridEl);
           }
         }
         bindSkillGridWrapSpans(gridEl) {
