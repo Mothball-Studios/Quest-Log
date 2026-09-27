@@ -1,7 +1,7 @@
 {
   "id": "quest-log",
   "name": "Quest Log",
-  "version": "0.6.12",
+  "version": "0.6.13",
   "minAppVersion": "0.15.0",
   "description": "RPG style quest log to track your tasks as quests.",
   "author": "m1n1m0th",

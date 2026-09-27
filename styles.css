@@ -1195,23 +1195,80 @@
 .habit-context .quest-detail-complete-btn:hover {
   background-color: var(--ql-skill-hover, #16a34a) !important;
 }
-/* Detail modal skill selector */
+/* Detail + create: attach-skills block (mirrors reward section) */
+.detail-skills-section.quest-detail-reward,
 .detail-skills-section {
-  margin-top: 12px;
-  background-color: #111;
-  border: 1px solid var(--ql-border, #2a2a2a);
-  padding: 12px 14px;
-  border-radius: 8px;
+  margin-top: 4px;
+  margin-bottom: 0;
+  background: none;
+  border: none;
+  border-radius: 0;
+  padding: 4px 0 4px;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0;
+  box-shadow: none;
 }
 
-.detail-skills-label {
-  display: block;
+.detail-skills-header {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  margin: 0 0 6px;
+}
+
+.detail-skills-header-inner {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.detail-skills-section .detail-skills-label,
+.detail-skills-section .quest-xp-preview-label {
   color: #888;
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.5px;
   text-transform: uppercase;
-  margin-bottom: 8px;
+  text-align: center;
+  margin: 0;
+  display: inline;
+  width: auto;
+}
+
+.detail-skills-plus-btn {
+  flex: 0 0 auto;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 2px;
+  margin: 0;
+  color: #888;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  line-height: 1;
+}
+.detail-skills-plus-btn:hover {
+  color: var(--ql-skill, #22c55e);
+  background: transparent !important;
+}
+.detail-skills-plus-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.detail-skills-plus-icon svg {
+  width: 14px;
+  height: 14px;
+}
+
+.detail-skills-divider {
+  margin: 0 0 10px;
 }
 
 .detail-selected-skills {
@@ -1219,13 +1276,16 @@
   flex-wrap: wrap;
   gap: 6px;
   min-height: 28px;
-  margin-bottom: 8px;
+  margin-bottom: 0;
+  justify-content: center;
 }
 
 .detail-skills-placeholder {
   color: #555;
   font-size: 12px;
   font-style: italic;
+  text-align: center;
+  width: 100%;
 }
 
 .detail-skill-tag {
@@ -1256,27 +1316,94 @@
   height: 12px;
 }
 
-.detail-skill-input-container {
-  margin-top: 4px;
+/* Skills selector modal (opened from attach-skills plus) */
+.skills-selector-overlay {
+  z-index: 450;
 }
-
-.detail-skill-input {
-  width: 100%;
-  background-color: #1a1a1a;
-  border: 1px solid #3a3a3a;
-  border-radius: 6px;
-  padding: 8px 12px;
+.skills-selector-modal {
+  display: flex;
+  flex-direction: column;
+  max-height: min(80vh, 560px);
+  width: min(420px, 92%);
+  padding-bottom: 14px;
+}
+.skills-selector-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.skills-selector-title {
+  flex: 1;
   color: #fff;
+  font-size: 16px;
+  font-weight: 700;
+  text-align: left;
+}
+.skills-selector-search {
+  margin-bottom: 10px;
   font-size: 14px;
-  outline: none;
-  transition: border-color 0.2s;
-  box-sizing: border-box;
+  font-weight: 500;
 }
-.detail-skill-input:focus {
-  border-color: var(--ql-success, #22c55e);
+.skills-selector-divider {
+  margin: 0 0 8px;
 }
-.detail-skill-input::placeholder {
-  color: #555;
+.skills-selector-list {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  min-height: 120px;
+  max-height: 280px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 12px;
+  padding-right: 4px;
+}
+.skills-selector-empty {
+  color: #666;
+  font-size: 13px;
+  font-style: italic;
+  text-align: center;
+  padding: 24px 8px;
+}
+.skills-selector-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  background-color: #151515;
+  border: 1px solid transparent;
+  color: #ddd;
+  font-size: 14px;
+}
+.skills-selector-row:hover {
+  background-color: #1c1c1c;
+  border-color: var(--ql-border, #2a2a2a);
+}
+.skills-selector-checkbox {
+  flex: 0 0 auto;
+  accent-color: var(--ql-skill, #22c55e);
+  cursor: pointer;
+}
+.skills-selector-row-label {
+  flex: 1 1 auto;
+  color: #eee;
+}
+.skills-selector-legendary {
+  color: #f59e0b;
+  font-weight: 700;
+}
+.skills-selector-actions {
+  margin-top: auto;
+}
+.skills-selector-select-btn {
+  background-color: var(--ql-skill, #22c55e) !important;
+}
+.skills-selector-select-btn:hover {
+  background-color: var(--ql-skill-hover, #16a34a) !important;
+  box-shadow: 0 0 12px rgba(34, 197, 94, 0.5);
 }
 
 .quest-detail-buttons {

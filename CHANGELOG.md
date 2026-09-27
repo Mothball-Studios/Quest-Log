@@ -2,6 +2,17 @@
 
 Vault project notes (design / ship history). Durable code tree: `/workspace/Quest-Log-src`. Ship folder: `.obsidian/plugins/quest-log` (four files only).
 
+## 0.6.13 — 2026-09-26
+
+Micah via Atlas/Riku — skills attach redesign (details + creation):
+
+1. Kill collapsible / persistent text-field skill picker (`SkillSuggest` + type-to-add input).
+2. Attach-skills block mirrors Reward layout: centered **attach skills** header with small plus to the right of the label, divider under header.
+3. Empty state blurb: **no skills attached**.
+4. Plus opens **skills selector** modal: X close, search bar, dual dividers, scrollable multi-select list, **select** applies chips.
+5. Identical treatment on details and shared create (quest/habit) modals.
+6. Preserves type tokens / master XP bar fixes from 0.6.9–0.6.12.
+
 ## 0.6.12 — 2026-09-26
 
 Micah via Atlas/Riku — creation ↔ details slider polish (follow-on after 0.6.11):

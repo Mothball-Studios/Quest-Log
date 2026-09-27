@@ -1341,7 +1341,7 @@ var require_render = __commonJS({
       return { QuestLogView, QUESTLOG_VIEW_TYPE: QUESTLOG_VIEW_TYPE2 };
     }
     function createRenderModule(obsidianNS) {
-      const { ItemView, Notice, setIcon, AbstractInputSuggest } = obsidianNS;
+      const { ItemView, Notice, setIcon } = obsidianNS;
       function __name(fn, _n) {
         return fn;
       }
@@ -1658,29 +1658,6 @@ var require_render = __commonJS({
         return `${folder}/${safeName(habit.title)} - ${formatHabitTimestamp(completedAt)}.md`;
       }
       __name(completedHabitNotePath, "completedHabitNotePath");
-      var _SkillSuggest = class _SkillSuggest extends obsidianNS.AbstractInputSuggest {
-        constructor(app, inputEl, plugin) {
-          super(app, inputEl);
-          this.onSelect = null;
-          this.inputEl = inputEl;
-          this.plugin = plugin;
-        }
-        getSuggestions(query) {
-          const skills2 = this.plugin.settings.skills || [];
-          const lowerQuery = query.toLowerCase();
-          return skills2.filter((s) => s.name.toLowerCase().includes(lowerQuery));
-        }
-        renderSuggestion(skill, el) {
-          el.setText(skill.name + ` (Lvl ${skill.level || 1})`);
-        }
-        selectSuggestion(skill) {
-          this.inputEl.value = "";
-          this.close();
-          if (this.onSelect) this.onSelect(skill);
-        }
-      };
-      __name(_SkillSuggest, "SkillSuggest");
-      var SkillSuggest = _SkillSuggest;
       var _SkillRadarChart = class _SkillRadarChart {
         /**
          * @param {HTMLElement} container - The container element to render into
@@ -2263,10 +2240,18 @@ var require_render = __commonJS({
         }
         attachSkillPicker(parentEl, initialIds) {
           const selectedSkillIds = [...initialIds || []];
-          const skillsSection = parentEl.createEl("div", { cls: "detail-skills-section" });
-          skillsSection.createEl("span", { text: "Attached Skills", cls: "detail-skills-label" });
+          const skillsSection = parentEl.createEl("div", { cls: "detail-skills-section quest-detail-reward" });
+          const header = skillsSection.createEl("div", { cls: "detail-skills-header" });
+          const headerInner = header.createEl("div", { cls: "detail-skills-header-inner" });
+          headerInner.createEl("span", { text: "attach skills", cls: "quest-xp-preview-label detail-skills-label" });
+          const plusBtn = headerInner.createEl("button", {
+            cls: "detail-skills-plus-btn",
+            attr: { "aria-label": "plus", type: "button" }
+          });
+          const plusIcon = plusBtn.createEl("span", { cls: "detail-skills-plus-icon" });
+          setIcon(plusIcon, "plus");
+          skillsSection.createEl("div", { cls: "quest-detail-reward-divider detail-skills-divider" });
           const selectedSkillsDisplay = skillsSection.createEl("div", { cls: "detail-selected-skills" });
-          const skillInputContainer = skillsSection.createEl("div", { cls: "detail-skill-input-container" });
           const refresh = /* @__PURE__ */ __name(() => {
             selectedSkillsDisplay.empty();
             const skills2 = this.plugin.settings.skills || [];
@@ -2286,26 +2271,111 @@ var require_render = __commonJS({
             });
             if (selectedSkillIds.length === 0) {
               selectedSkillsDisplay.createEl("span", {
-                text: "No skills attached",
+                text: "no skills attached",
                 cls: "detail-skills-placeholder"
               });
             }
           }, "refreshSkillPicker");
           refresh();
-          const skillInput = skillInputContainer.createEl("input", {
-            type: "text",
-            placeholder: "Type to add skill...",
-            cls: "detail-skill-input"
+          plusBtn.addEventListener("click", (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            this.openSkillsSelectorModal(selectedSkillIds, refresh);
           });
-          const skillSuggest = new SkillSuggest(this.app, skillInput, this.plugin);
-          skillSuggest.onSelect = (skill) => {
-            if (!selectedSkillIds.includes(skill.id)) {
-              selectedSkillIds.push(skill.id);
-              refresh();
-            }
-          };
           selectedSkillIds.refresh = refresh;
           return selectedSkillIds;
+        }
+        openSkillsSelectorModal(selectedSkillIds, onApplied) {
+          const host = this.overlayHost();
+          if (!host) return;
+          const existing = host.querySelector(".skills-selector-overlay");
+          if (existing) existing.remove();
+          const overlay = host.createEl("div", {
+            cls: "skills-selector-overlay ql-overlay open"
+          });
+          const box = overlay.createEl("div", {
+            cls: "quest-modal skills-selector-modal ql-modal"
+          });
+          const header = box.createEl("div", { cls: "quest-modal-header skills-selector-header" });
+          header.createEl("span", { text: "skills selector", cls: "skills-selector-title" });
+          const closeBtn = header.createEl("button", {
+            cls: "quest-detail-close-btn quest-modal-close-btn",
+            attr: { "aria-label": "Close", type: "button" }
+          });
+          const closeIcon = closeBtn.createEl("span", { cls: "quest-detail-close-icon" });
+          setIcon(closeIcon, "x");
+          const searchInput = box.createEl("input", {
+            type: "text",
+            placeholder: "search bar",
+            cls: "skills-selector-search ql-input",
+            attr: { "aria-label": "search bar" }
+          });
+          box.createEl("div", { cls: "quest-detail-reward-divider skills-selector-divider" });
+          box.createEl("div", { cls: "quest-detail-reward-divider skills-selector-divider" });
+          const listEl = box.createEl("div", { cls: "skills-selector-list" });
+          const draft = new Set(selectedSkillIds);
+          const renderList = /* @__PURE__ */ __name((query = "") => {
+            listEl.empty();
+            const skills2 = [...this.plugin.settings.skills || []].sort(
+              (a, b) => (a.name || "").localeCompare(b.name || "")
+            );
+            const q = query.trim().toLowerCase();
+            const filtered = q ? skills2.filter((s) => (s.name || "").toLowerCase().includes(q)) : skills2;
+            if (filtered.length === 0) {
+              listEl.createEl("div", {
+                text: skills2.length === 0 ? "No skills yet" : "No matching skills",
+                cls: "skills-selector-empty"
+              });
+              return;
+            }
+            filtered.forEach((skill) => {
+              const id = skill.id;
+              const row = listEl.createEl("label", { cls: "skills-selector-row" });
+              const checkbox = row.createEl("input", {
+                type: "checkbox",
+                cls: "skills-selector-checkbox"
+              });
+              checkbox.checked = draft.has(id);
+              checkbox.addEventListener("change", () => {
+                if (checkbox.checked) draft.add(id);
+                else draft.delete(id);
+              });
+              row.createEl("span", {
+                text: skill.name + (skill.level ? ` (Lvl ${skill.level})` : ""),
+                cls: "skills-selector-row-label"
+              });
+              if (skill.legendary) {
+                row.createEl("span", { text: " \u2605", cls: "skills-selector-legendary" });
+              }
+            });
+          }, "renderSkillsSelectorList");
+          renderList();
+          searchInput.addEventListener("input", () => {
+            renderList(searchInput.value);
+          });
+          const btnRow = box.createEl("div", { cls: "quest-modal-buttons skills-selector-actions" });
+          const selectBtn = btnRow.createEl("button", {
+            cls: "quest-modal-create-btn quest-modal-create-btn-full skills-selector-select-btn",
+            attr: { type: "button" }
+          });
+          selectBtn.createEl("span", { text: "select" });
+          const close = /* @__PURE__ */ __name(() => {
+            overlay.remove();
+          }, "closeSkillsSelector");
+          closeBtn.addEventListener("click", close);
+          overlay.addEventListener("mousedown", (e) => {
+            overlay._mouseDownOnOverlay = e.target === overlay;
+          });
+          overlay.addEventListener("click", (e) => {
+            if (e.target === overlay && overlay._mouseDownOnOverlay) close();
+          });
+          selectBtn.addEventListener("click", () => {
+            selectedSkillIds.length = 0;
+            for (const id of draft) selectedSkillIds.push(id);
+            if (typeof onApplied === "function") onApplied();
+            close();
+          });
+          searchInput.focus();
         }
         fillStatsTable(table, rows) {
           rows.forEach(([label, value]) => {
@@ -2347,6 +2417,7 @@ var require_render = __commonJS({
             "quest-creation-overlay",
             "quest-detail-overlay",
             "delete-confirm-overlay",
+            "skills-selector-overlay",
             "ql-levelup-overlay",
             "ql-confetti-container",
             "shop-purchase-overlay"
