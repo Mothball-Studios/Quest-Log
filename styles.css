@@ -1294,9 +1294,9 @@
 }
 
 .detail-selected-skills {
-  /* Attached skills: 3 per row, evenly spaced L→R, wrap (linked override below) */
+  /* Attached skills: 2 per row, evenly spaced L→R, wrap (linked override below) */
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   gap: 6px;
   min-height: 28px;
   margin-bottom: 0;

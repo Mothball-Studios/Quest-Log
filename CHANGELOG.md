@@ -2,6 +2,13 @@
 
 Vault project notes (design / ship history). Durable code tree: `/workspace/Quest-Log-src`. Ship folder: `.obsidian/plugins/quest-log` (four files only).
 
+## 0.6.22 — 2026-09-26
+
+Micah via Atlas COO APPROVED — Quest Log UI post 0.6.21:
+
+1. Quest/habit details attach-skills grid: **3 → 2** pretty blocks per row (`repeat(2, 1fr)`). Pretty block chrome unchanged.
+2. Skills Selector picker still **2-across**. CSS + manifest only; `main.js` unchanged from 0.6.21.
+
 ## 0.6.21 — 2026-09-26
 
 Micah via Atlas COO APPROVED — Quest Log UI post 0.6.20. Ship once when all three done:
