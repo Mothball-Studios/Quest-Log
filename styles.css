@@ -1129,10 +1129,21 @@
   gap: 0;
 }
 .quest-detail-reward-body.has-extra .quest-detail-reward-coins {
-  justify-self: center;
+  width: 100%;
+  justify-self: stretch;
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  box-sizing: border-box;
 }
 .quest-detail-reward-body.has-extra .quest-xp-preview-value {
-  justify-self: center;
+  width: 100%;
+  justify-self: stretch;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  box-sizing: border-box;
 }
 .quest-detail-reward-coins {
   display: inline-flex;

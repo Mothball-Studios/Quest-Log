@@ -2,6 +2,12 @@
 
 Vault project notes (design / ship history). Durable code tree: `/workspace/Quest-Log-src`. Ship folder: `.obsidian/plugins/quest-log` (four files only).
 
+## 0.6.29 — 2026-09-26
+
+Micah via Atlas COO APPROVED — Quest Log UI post 0.6.28:
+
+1. Quest reward coins / XP values centered inside their **2fr / 4fr** slots (CSS-only; `main.js` unchanged).
+
 ## 0.6.28 — 2026-09-26
 
 Micah via Atlas COO APPROVED — Quest Log UI post 0.6.27:
