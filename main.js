@@ -3829,16 +3829,19 @@ var require_render = __commonJS({
               text: `${(Number(habit.xp) || 0).toLocaleString()} XP`,
               cls: "quest-block-xp"
             });
+            const body = block.createEl("div", { cls: "quest-block-body" });
             if (habit.description) {
-              const descWrap = block.createEl("div", {
+              const descWrap = body.createEl("div", {
                 cls: "quest-block-desc-wrap"
               });
               descWrap.createEl("span", {
                 text: habit.description,
                 cls: "quest-block-desc-text"
               });
+            } else {
+              body.createEl("div", { cls: "quest-block-desc-spacer" });
             }
-            const actionRow = block.createEl("div", { cls: "habit-action-row" });
+            const actionRow = body.createEl("div", { cls: "habit-action-row" });
             const failBtn = actionRow.createEl("button", { cls: "habit-fail-btn-mini" });
             const failIcon = failBtn.createEl("span", { cls: "habit-btn-icon" });
             setIcon(failIcon, "x");

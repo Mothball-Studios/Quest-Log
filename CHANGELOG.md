@@ -2,6 +2,14 @@
 
 Vault project notes (design / ship history). Durable code tree: `/workspace/Quest-Log-src`. Ship folder: `.obsidian/plugins/quest-log` (four files only).
 
+## 0.6.40 — 2026-09-26
+
+Micah via Atlas COO APPROVED — Habits tab list Fail|Complete layout:
+
+1. **Habits** (`renderHabitList` / `.habit-block`): Fail + Complete move RIGHT on the desc row (same horizontal alignment as Quests tab complete — desc | buttons). Not a full-width bottom row.
+2. Size: each habit fail/complete is a **2:1 rectangle** (width = 2× Quests complete square height; height matches that square). Adjacent fail|complete equal 50/50 rects.
+3. Quests complete stays square. Details/creation untouched.
+
 ## 0.6.39 — 2026-09-26
 
 Micah via Atlas COO APPROVED — Main Quests + Habits tab list redesigns:

@@ -2035,19 +2035,16 @@
 .habit-block .quest-block-xp {
   color: var(--ql-habit, #a855f7);
 }
-.habit-block > .quest-block-desc-wrap {
-  flex: 0 0 auto;
-  width: 100%;
-  max-width: 100%;
-}
+/* Habit list: Fail|Complete sit in .quest-block-body (desc row), not a full-width bottom row */
 
 .habit-action-row {
-  display: flex;
-  justify-content: stretch;
-  align-items: stretch;
-  margin-top: 2px;
+  display: inline-flex;
+  flex: 0 0 auto;
+  justify-content: flex-start;
+  align-items: center;
   gap: 8px;
-  width: 100%;
+  width: auto;
+  margin-top: 0;
 }
 
 .habit-complete-btn {
@@ -2108,20 +2105,23 @@
   align-items: center;
 }
 
-/* Habit list Fail|Complete — full bottom width 50/50 (match detail .quest-detail-buttons) */
+/* Habit list Fail|Complete — right of desc; 2:1 rects (W=2×H; H matches .quest-complete-btn square) */
 .habit-complete-btn-mini {
-  flex: 1;
+  flex: 0 0 auto;
+  box-sizing: border-box;
+  width: 56px;
+  height: 28px;
+  min-width: 56px;
+  min-height: 28px;
   background-color: var(--ql-success, #22c55e) !important;
   color: #fff !important;
   border: none !important;
-  padding: 8px 12px;
-  border-radius: 8px;
+  padding: 0;
+  border-radius: 4px;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 0;
-  min-height: 36px;
 }
 .habit-complete-btn-mini:hover {
   background-color: #16a34a;
@@ -2129,21 +2129,29 @@
 }
 
 .habit-fail-btn-mini {
-  flex: 1;
+  flex: 0 0 auto;
+  box-sizing: border-box;
+  width: 56px;
+  height: 28px;
+  min-width: 56px;
+  min-height: 28px;
   background-color: var(--ql-danger, #ef4444) !important;
   color: #fff !important;
   border: none !important;
-  padding: 8px 12px;
-  border-radius: 8px;
+  padding: 0;
+  border-radius: 4px;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 0;
-  min-height: 36px;
 }
 .habit-fail-btn-mini:hover {
   background-color: #dc2626;
+}
+.habit-action-row .habit-btn-icon svg {
+  width: 14px;
+  height: 14px;
+  display: block;
 }
 
 /* Quest list complete — sits at end of desc row (desc fades toward it) */
