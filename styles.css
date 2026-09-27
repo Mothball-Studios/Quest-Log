@@ -2105,7 +2105,7 @@
   align-items: center;
 }
 
-/* Habit list Fail|Complete — right of desc; 2:1 rects (W=2×H; H matches .quest-complete-btn square) */
+/* Habit list Fail|Complete — right of desc; 2:1 rects 56×28 (match .quest-complete-btn) */
 .habit-complete-btn-mini {
   flex: 0 0 auto;
   box-sizing: border-box;
@@ -2149,18 +2149,24 @@
   background-color: #dc2626;
 }
 .habit-action-row .habit-btn-icon svg {
-  width: 14px;
-  height: 14px;
+  /* Match Quests list check (Obsidian --icon-m 18px / locked below); check ≡ X */
+  width: 18px;
+  height: 18px;
   display: block;
 }
 
-/* Quest list complete — sits at end of desc row (desc fades toward it) */
+/* Quest list complete — 2:1 rect matching Habits complete (56×28) */
 .quest-complete-btn {
   flex: 0 0 auto;
+  box-sizing: border-box;
+  width: 56px;
+  height: 28px;
+  min-width: 56px;
+  min-height: 28px;
   background-color: var(--ql-success, #22c55e) !important;
   color: #fff !important;
   border: none !important;
-  padding: 6px;
+  padding: 0;
   border-radius: 4px;
   cursor: pointer;
   position: static;
@@ -2170,14 +2176,15 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 28px;
-  min-height: 28px;
 }
 .quest-complete-btn:hover {
   background-color: #16a34a;
   box-shadow: 0 0 8px rgba(34, 197, 94, 0.5);
 }
 .quest-complete-btn .quest-btn-icon svg {
+  /* Lock Obsidian --icon-m (18px) so Habits list can match without host CSS */
+  width: 18px;
+  height: 18px;
   display: block;
 }
 

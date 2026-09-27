@@ -2,6 +2,14 @@
 
 Vault project notes (design / ship history). Durable code tree: `/workspace/Quest-Log-src`. Ship folder: `.obsidian/plugins/quest-log` (four files only).
 
+## 0.6.41 — 2026-09-26
+
+Micah via Atlas COO APPROVED — Quests complete size parity + Habits list icon parity:
+
+1. **Quests** list `.quest-complete-btn`: square 28×28 → Habits-style **56×28** 2:1 rect (same outer size as `.habit-complete-btn-mini`). Habits fail/complete outer size unchanged (stay 56×28).
+2. **Habits** list icons: check SVG raised to match Quests list check; fail X raised to that same size — Habits check ≡ Habits X ≡ Quests check (18×18 list-scoped; Quests locks Obsidian --icon-m).
+3. Details/creation untouched (list-scoped selectors only).
+
 ## 0.6.40 — 2026-09-26
 
 Micah via Atlas COO APPROVED — Habits tab list Fail|Complete layout:
