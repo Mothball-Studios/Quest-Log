@@ -10,7 +10,7 @@
   /* Type colors — locked hex (not theme interactive-accent) */
   --ql-quest: #3b82f6; /* vibrant blue — quest type chrome only */
   --ql-quest-hover: #2563eb;
-  --ql-xp: #c084fc; /* soft purple — XP bars/values/level badge (softer than --ql-habit #a855f7) */
+  --ql-xp-master: #4b6cb7; /* soft blue — master level badge + master XP bar only */
   --ql-habit: #a855f7; /* vibrant purple */
   --ql-habit-hover: #9333ea;
   --ql-skill: #22c55e; /* green */
@@ -411,7 +411,7 @@
    ============================================================ */
 
 .level-badge {
-  background: linear-gradient(135deg, var(--ql-xp, #c084fc) 0%, #2a1848 100%);
+  background: linear-gradient(135deg, var(--ql-xp-master, #4b6cb7) 0%, #182848 100%);
   width: 60px;
   height: 60px;
   display: flex;
@@ -500,7 +500,7 @@
 }
 .xp-text {
   margin: 0;
-  color: var(--ql-xp, #c084fc);
+  color: var(--ql-xp-master, #4b6cb7);
   font-size: 14px;
   font-weight: bold;
 }
@@ -521,7 +521,7 @@
   margin-bottom: 17px;
 }
 .xp-bar-fill {
-  background-color: var(--ql-xp, #c084fc);
+  background-color: var(--ql-xp-master, #4b6cb7);
   height: 100%;
 }
 
@@ -754,7 +754,7 @@
   letter-spacing: 0.5px;
 }
 .quest-xp-preview-value {
-  color: var(--ql-xp, #c084fc);
+  color: var(--ql-quest, #3b82f6);
   font-size: 20px;
   font-weight: bold;
 }
@@ -882,7 +882,7 @@
 }
 
 .quest-block-xp {
-  color: var(--ql-xp, #c084fc);
+  color: var(--ql-quest, #3b82f6);
   font-size: 11px;
   font-weight: bold;
   text-transform: uppercase;
@@ -1104,8 +1104,8 @@
   height: 18px;
 }
 .quest-detail-box .quest-detail-reward .quest-xp-preview-value {
-  /* Unified soft XP purple (independent of type color) */
-  color: var(--ql-xp, #c084fc);
+  /* Quest default; habit-context overrides to --ql-habit */
+  color: var(--ql-quest, #3b82f6);
   font-size: 20px;
   font-weight: 700;
 }
@@ -1120,7 +1120,7 @@
   border-color: var(--ql-quest, #3b82f6);
 }
 .quest-context .quest-xp-preview-value {
-  color: var(--ql-xp, #c084fc);
+  color: var(--ql-quest, #3b82f6);
 }
 .quest-context .quest-modal-create-btn {
   background-color: var(--ql-quest, #3b82f6) !important;
@@ -1133,7 +1133,7 @@
   border-color: var(--ql-quest, #3b82f6);
 }
 .quest-context .quest-detail-box .quest-xp-preview-value {
-  color: var(--ql-xp, #c084fc);
+  color: var(--ql-quest, #3b82f6);
 }
 
 /* Habit context — type accents only (header title stays neutral) */
@@ -1146,7 +1146,7 @@
   border-color: var(--ql-habit, #a855f7);
 }
 .habit-context .quest-xp-preview-value {
-  color: var(--ql-xp, #c084fc);
+  color: var(--ql-habit, #a855f7);
 }
 .habit-context .quest-modal-create-btn {
   background-color: var(--ql-habit, #a855f7) !important;
@@ -1160,7 +1160,7 @@
 }
 /* Beat .quest-detail-box .quest-detail-reward .quest-xp-preview-value (same 3-class specificity; later wins) */
 .habit-context .quest-detail-box .quest-xp-preview-value {
-  color: var(--ql-xp, #c084fc);
+  color: var(--ql-habit, #a855f7);
 }
 .habit-context .quest-detail-complete-btn {
   background-color: var(--ql-success, #22c55e) !important;
@@ -1531,7 +1531,7 @@
   border-color: var(--ql-habit, #a855f7);
 }
 .habit-block .quest-block-xp {
-  color: var(--ql-xp, #c084fc);
+  color: var(--ql-habit, #a855f7);
 }
 
 .habit-action-row {
@@ -1743,11 +1743,11 @@
   border-color: var(--ql-skill-hover, #16a34a);
 }
 
-/* Skill level badge — unified soft XP purple */
+/* Skill level badge — list/panel only (skill green) */
 .skill-level-badge {
   font-size: 11px;
   font-weight: bold;
-  color: var(--ql-xp, #c084fc);
+  color: var(--ql-skill, #22c55e);
   text-transform: uppercase;
   letter-spacing: 1px;
 }
@@ -1762,7 +1762,7 @@
 
 .skill-xp-fill {
   height: 100%;
-  background-color: var(--ql-xp, #c084fc);
+  background-color: var(--ql-skill, #22c55e);
   transition: width 0.3s ease;
 }
 

@@ -2,6 +2,17 @@
 
 Vault project notes (design / ship history). Durable code tree: `/workspace/Quest-Log-src`. Ship folder: `.obsidian/plugins/quest-log` (four files only).
 
+## 0.6.7 — 2026-09-26
+
+Micah via Atlas/Riku — XP color surface split (kill soft-purple bleed):
+
+- New `--ql-xp-master` `#4b6cb7` for master level badge + master XP bar only (gradient dark end restored to `#182848`).
+- Skill list/panel: LVL number + XP bar use `--ql-skill` `#22c55e` (only green XP surface this pass).
+- Quest blocks + quest detail/create Reward XP → `--ql-quest` `#3b82f6`.
+- Habit blocks + habit detail/create Reward XP → `--ql-habit` `#a855f7`.
+- Removed global soft-purple `--ql-xp` `#c084fc` so changing one surface never bleeds.
+- Skill details modal unchanged.
+
 ## 0.6.6 — 2026-09-26
 
 Micah via Atlas/Riku — detail modal type-bleed + unified soft XP purple:
