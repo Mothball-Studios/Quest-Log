@@ -2,6 +2,13 @@
 
 Vault project notes (design / ship history). Durable code tree: `/workspace/Quest-Log-src`. Ship folder: `.obsidian/plugins/quest-log` (four files only).
 
+## 0.6.37 — 2026-09-26
+
+Micah via Atlas COO APPROVED — Skills tab title-wrap regression (CSS-only):
+
+- Title wraps on its own row(s); desc stays single-line fade under.
+- `main.js` unchanged from 0.6.36.
+
 ## 0.6.36 — 2026-09-26
 
 Micah via Atlas COO APPROVED — Skills tab skill cards:
