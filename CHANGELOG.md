@@ -2,6 +2,13 @@
 
 Vault project notes (design / ship history). Durable code tree: `/workspace/Quest-Log-src`. Ship folder: `.obsidian/plugins/quest-log` (four files only).
 
+## 0.6.23 — 2026-09-26
+
+Micah via Atlas COO APPROVED — Quest Log UI post 0.6.22:
+
+1. Capitalize selector UI copy: placeholders **Type Skill Name** / **Type Quest Name** / **Type Habit Name**; action button **Select**.
+2. Mobile: skills/quests/habits/linked selector overlays fixed full-viewport and `z-index: 10050` above detail/creation modals (`9999`), so selectors are usable on phone.
+
 ## 0.6.22 — 2026-09-26
 
 Micah via Atlas COO APPROVED — Quest Log UI post 0.6.21:

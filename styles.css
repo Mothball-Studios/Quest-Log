@@ -2423,6 +2423,24 @@
     z-index: 9999;
   }
 
+  /* Selectors must stack ABOVE detail/creation (9999) — otherwise unusable on mobile */
+  .skills-selector-overlay,
+  .quests-selector-overlay,
+  .habits-selector-overlay,
+  .linked-selector-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+  }
+  .skills-selector-overlay.open,
+  .quests-selector-overlay.open,
+  .habits-selector-overlay.open,
+  .linked-selector-overlay.open {
+    z-index: 10050;
+  }
+
   /* Header row */
   .quest-detail-header-row {
     display: flex;

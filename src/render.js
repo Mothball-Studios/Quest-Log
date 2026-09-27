@@ -1019,9 +1019,9 @@ var _QuestLogView = class _QuestLogView extends obsidianNS.ItemView {
     setIcon(closeIcon, "x");
     const searchInput = box.createEl("input", {
       type: "text",
-      placeholder: "type skill name",
+      placeholder: "Type Skill Name",
       cls: "skills-selector-search ql-input",
-      attr: { "aria-label": "type skill name" }
+      attr: { "aria-label": "Type Skill Name" }
     });
     box.createEl("div", { cls: "quest-detail-reward-divider skills-selector-divider" });
     const listEl = box.createEl("div", { cls: "skills-selector-list" });
@@ -1079,7 +1079,7 @@ var _QuestLogView = class _QuestLogView extends obsidianNS.ItemView {
       cls: "quest-modal-create-btn quest-modal-create-btn-full skills-selector-select-btn",
       attr: { type: "button" }
     });
-    selectBtn.createEl("span", { text: "select" });
+    selectBtn.createEl("span", { text: "Select" });
     const close = /* @__PURE__ */ __name(() => {
       overlay.remove();
     }, "closeSkillsSelector");
@@ -1234,9 +1234,9 @@ var _QuestLogView = class _QuestLogView extends obsidianNS.ItemView {
     setIcon(closeIcon, "x");
     const searchInput = box.createEl("input", {
       type: "text",
-      placeholder: isHabit ? "type habit name" : "type quest name",
+      placeholder: isHabit ? "Type Habit Name" : "Type Quest Name",
       cls: "skills-selector-search ql-input",
-      attr: { "aria-label": isHabit ? "type habit name" : "type quest name" }
+      attr: { "aria-label": isHabit ? "Type Habit Name" : "Type Quest Name" }
     });
     box.createEl("div", { cls: "quest-detail-reward-divider skills-selector-divider" });
     const listEl = box.createEl("div", { cls: "skills-selector-list linked-selector-list" });
@@ -1302,7 +1302,7 @@ var _QuestLogView = class _QuestLogView extends obsidianNS.ItemView {
       cls: `quest-modal-create-btn quest-modal-create-btn-full skills-selector-select-btn linked-selector-select-btn ${typeCls}-selector-select-btn`,
       attr: { type: "button" }
     });
-    selectBtn.createEl("span", { text: "select" });
+    selectBtn.createEl("span", { text: "Select" });
     const close = /* @__PURE__ */ __name(() => {
       overlay.remove();
     }, isHabit ? "closeHabitsSelector" : "closeQuestsSelector");
