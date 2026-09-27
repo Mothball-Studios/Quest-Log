@@ -2,6 +2,13 @@
 
 Vault project notes (design / ship history). Durable code tree: `/workspace/Quest-Log-src`. Ship folder: `.obsidian/plugins/quest-log` (four files only).
 
+## 0.6.33 — 2026-09-26
+
+Micah via Atlas COO APPROVED — Main Skills tab skill cards:
+
+- Skill-block title wrap + level bottom-align matching selector/details (`detail-skill-attached-title-row` / title / level).
+- CSS: skill-block title sizing + padding-right when note icon present.
+
 ## 0.6.32 — 2026-09-26
 
 Micah via Atlas COO APPROVED — reward slot layout:

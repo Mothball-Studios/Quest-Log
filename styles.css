@@ -2226,6 +2226,15 @@
 .skill-block {
   position: relative;
 }
+/* Main Skills tab cards: reuse selector/details title|level row treatment */
+.skill-block .detail-skill-attached-title {
+  font-size: 14px;
+  font-weight: bold;
+  color: #fff;
+}
+.skill-block.has-note .detail-skill-attached-title-row {
+  padding-right: 22px; /* clear absolute .skill-note-icon */
+}
 
 /* Skill section label */
 .quest-modal-section-label {
