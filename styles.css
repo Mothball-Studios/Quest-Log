@@ -1420,6 +1420,112 @@
   box-shadow: 0 0 12px rgba(34, 197, 94, 0.5);
 }
 
+/* Skill detail/create: attach quests / attach habits (mirror attach-skills) */
+.detail-quest-plus-btn:hover {
+  color: var(--ql-quest, #3b82f6);
+}
+.detail-habit-plus-btn:hover {
+  color: var(--ql-habit, #a855f7);
+}
+.detail-quest-tag {
+  background-color: rgba(59, 130, 246, 0.2);
+  color: var(--ql-quest, #3b82f6);
+}
+.detail-habit-tag {
+  background-color: rgba(168, 85, 247, 0.2);
+  color: var(--ql-habit, #a855f7);
+}
+
+/* Quests / Habits selector modals (from skill attach plus) */
+.quests-selector-overlay,
+.habits-selector-overlay,
+.linked-selector-overlay {
+  z-index: 450;
+}
+.quest-selector-row,
+.linked-selector-row.quest-selector-row {
+  border-left: 3px solid var(--ql-quest, #3b82f6);
+  background-color: rgba(59, 130, 246, 0.08);
+}
+.quest-selector-row:hover,
+.linked-selector-row.quest-selector-row:hover {
+  background-color: rgba(59, 130, 246, 0.16);
+  border-color: var(--ql-quest, #3b82f6);
+}
+.habit-selector-row,
+.linked-selector-row.habit-selector-row {
+  border-left: 3px solid var(--ql-habit, #a855f7);
+  background-color: rgba(168, 85, 247, 0.08);
+}
+.habit-selector-row:hover,
+.linked-selector-row.habit-selector-row:hover {
+  background-color: rgba(168, 85, 247, 0.16);
+  border-color: var(--ql-habit, #a855f7);
+}
+.quest-selector-row .linked-selector-checkbox,
+.linked-selector-row.quest-selector-row .skills-selector-checkbox {
+  accent-color: var(--ql-quest, #3b82f6);
+}
+.habit-selector-row .linked-selector-checkbox,
+.linked-selector-row.habit-selector-row .skills-selector-checkbox {
+  accent-color: var(--ql-habit, #a855f7);
+}
+.linked-selector-row-body {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.linked-selector-row-title {
+  color: #eee;
+  font-weight: 600;
+}
+.linked-selector-row-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.quest-selector-row .linked-selector-row-xp,
+.linked-selector-row.quest-selector-row .linked-selector-row-xp {
+  color: var(--ql-quest, #3b82f6);
+}
+.habit-selector-row .linked-selector-row-xp,
+.linked-selector-row.habit-selector-row .linked-selector-row-xp {
+  color: var(--ql-habit, #a855f7);
+}
+.linked-selector-row-coins {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: #f59e0b;
+}
+.linked-selector-row-coin-icon {
+  display: inline-flex;
+  align-items: center;
+}
+.linked-selector-row-coin-icon svg {
+  width: 12px;
+  height: 12px;
+}
+.quest-selector-select-btn {
+  background-color: var(--ql-quest, #3b82f6) !important;
+}
+.quest-selector-select-btn:hover {
+  background-color: var(--ql-quest-hover, #2563eb) !important;
+  box-shadow: 0 0 12px rgba(59, 130, 246, 0.5);
+}
+.habit-selector-select-btn {
+  background-color: var(--ql-habit, #a855f7) !important;
+}
+.habit-selector-select-btn:hover {
+  background-color: var(--ql-habit-hover, #9333ea) !important;
+  box-shadow: 0 0 12px rgba(168, 85, 247, 0.5);
+}
+
 .quest-detail-buttons {
   display: flex;
   gap: 12px;

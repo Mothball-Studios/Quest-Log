@@ -1068,7 +1068,201 @@ var _QuestLogView = class _QuestLogView extends obsidianNS.ItemView {
     });
     searchInput.focus();
   }
-  fillStatsTable(table, rows) {
+  coinRewardForXp(xp) {
+    return Math.max(1, Math.min(50, Math.round(Number(xp) / 1e4 || 0)));
+  }
+  idsLinkedToSkill(skillId, kind) {
+    const list = kind === "habit" ? this.plugin.settings.habits || [] : this.plugin.settings.quests || [];
+    const sid = String(skillId);
+    return list.filter((item) => item && Array.isArray(item.skillIds) && item.skillIds.map(String).includes(sid)).map((item) => String(item.id));
+  }
+  syncSkillLinks(skillId, questIds, habitIds) {
+    const sid = String(skillId);
+    const qSet = new Set((questIds || []).map(String));
+    const hSet = new Set((habitIds || []).map(String));
+    const patchList = /* @__PURE__ */ __name((list, selected) => {
+      for (const item of list || []) {
+        if (!item || item.id == null) continue;
+        const ids = new Set((item.skillIds || []).map(String));
+        if (selected.has(String(item.id))) ids.add(sid);
+        else ids.delete(sid);
+        item.skillIds = [...ids];
+      }
+    }, "patchSkillLinkList");
+    patchList(this.plugin.settings.quests, qSet);
+    patchList(this.plugin.settings.habits, hSet);
+  }
+  attachLinkedPicker(parentEl, opts) {
+    const kind = opts.kind === "habit" ? "habit" : "quest";
+    const selectedIds = [...opts.initialIds || []].map(String);
+    const typeCls = kind;
+    const section = parentEl.createEl("div", {
+      cls: `detail-skills-section detail-linked-section detail-${typeCls}-linked-section quest-detail-reward`
+    });
+    const header = section.createEl("div", { cls: "detail-skills-header" });
+    header.createEl("span", {
+      text: opts.label,
+      cls: "quest-xp-preview-label detail-skills-label"
+    });
+    const plusBtn = header.createEl("button", {
+      cls: `detail-skills-plus-btn detail-linked-plus-btn detail-${typeCls}-plus-btn`,
+      attr: { "aria-label": "plus", type: "button" }
+    });
+    const plusIcon = plusBtn.createEl("span", { cls: "detail-skills-plus-icon" });
+    setIcon(plusIcon, "plus");
+    section.createEl("div", { cls: "quest-detail-reward-divider detail-skills-divider" });
+    const selectedDisplay = section.createEl("div", {
+      cls: `detail-selected-skills detail-selected-linked detail-selected-${typeCls}s`
+    });
+    const refresh = /* @__PURE__ */ __name(() => {
+      selectedDisplay.empty();
+      const list = kind === "habit" ? this.plugin.settings.habits || [] : this.plugin.settings.quests || [];
+      selectedIds.forEach((id) => {
+        const item = list.find((x) => x && String(x.id) === String(id));
+        if (!item) return;
+        const tag = selectedDisplay.createEl("span", {
+          cls: `detail-skill-tag detail-linked-tag detail-${typeCls}-tag`
+        });
+        tag.createEl("span", { text: item.title || "Untitled" });
+        const removeBtn = tag.createEl("span", { cls: "detail-skill-tag-remove" });
+        setIcon(removeBtn, "x");
+        removeBtn.addEventListener("click", (e) => {
+          e.stopPropagation();
+          const i = selectedIds.findIndex((x) => String(x) === String(id));
+          if (i > -1) selectedIds.splice(i, 1);
+          refresh();
+        });
+      });
+      if (selectedIds.length === 0) {
+        selectedDisplay.createEl("span", {
+          text: opts.emptyText,
+          cls: "detail-skills-placeholder"
+        });
+      }
+    }, kind === "habit" ? "refreshHabitLinkedPicker" : "refreshQuestLinkedPicker");
+    refresh();
+    plusBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      this.openLinkedSelectorModal(selectedIds, refresh, kind);
+    });
+    selectedIds.refresh = refresh;
+    return selectedIds;
+  }
+  openLinkedSelectorModal(selectedIds, onApplied, kind) {
+    const isHabit = kind === "habit";
+    const typeCls = isHabit ? "habit" : "quest";
+    const host = this.overlayHost();
+    if (!host) return;
+    const overlayCls = `${typeCls}s-selector-overlay`;
+    const existing = host.querySelector(`.${overlayCls}`);
+    if (existing) existing.remove();
+    const overlay = host.createEl("div", {
+      cls: `${overlayCls} linked-selector-overlay ql-overlay open`
+    });
+    const box = overlay.createEl("div", {
+      cls: `quest-modal ${typeCls}s-selector-modal linked-selector-modal skills-selector-modal ${typeCls}-context ql-modal`
+    });
+    const header = box.createEl("div", { cls: "quest-modal-header skills-selector-header" });
+    header.createEl("span", {
+      text: isHabit ? "Habits Selector" : "Quests Selector",
+      cls: "skills-selector-title"
+    });
+    const closeBtn = header.createEl("button", {
+      cls: "quest-detail-close-btn quest-modal-close-btn",
+      attr: { "aria-label": "Close", type: "button" }
+    });
+    const closeIcon = closeBtn.createEl("span", { cls: "quest-detail-close-icon" });
+    setIcon(closeIcon, "x");
+    const searchInput = box.createEl("input", {
+      type: "text",
+      placeholder: isHabit ? "type habit name" : "type quest name",
+      cls: "skills-selector-search ql-input",
+      attr: { "aria-label": isHabit ? "type habit name" : "type quest name" }
+    });
+    box.createEl("div", { cls: "quest-detail-reward-divider skills-selector-divider" });
+    const listEl = box.createEl("div", { cls: "skills-selector-list linked-selector-list" });
+    const draft = new Set([...selectedIds].map(String));
+    const rewardsOn = Boolean(this.plugin.settings.rewardsMode);
+    const renderList = /* @__PURE__ */ __name((query = "") => {
+      listEl.empty();
+      const items = [...(isHabit ? this.plugin.settings.habits || [] : this.plugin.settings.quests || [])].sort(
+        (a, b) => (a.title || "").localeCompare(b.title || "")
+      );
+      const q = query.trim().toLowerCase();
+      const filtered = q ? items.filter((it) => (it.title || "").toLowerCase().includes(q)) : items;
+      if (filtered.length === 0) {
+        listEl.createEl("div", {
+          text: items.length === 0 ? isHabit ? "No habits yet" : "No quests yet" : isHabit ? "No matching habits" : "No matching quests",
+          cls: "skills-selector-empty"
+        });
+        return;
+      }
+      filtered.forEach((item) => {
+        const id = String(item.id);
+        const row = listEl.createEl("label", {
+          cls: `skills-selector-row linked-selector-row ${typeCls}-selector-row`
+        });
+        const checkbox = row.createEl("input", {
+          type: "checkbox",
+          cls: "skills-selector-checkbox linked-selector-checkbox"
+        });
+        checkbox.checked = draft.has(id);
+        checkbox.addEventListener("change", () => {
+          if (checkbox.checked) draft.add(id);
+          else draft.delete(id);
+        });
+        const body = row.createEl("span", { cls: "linked-selector-row-body" });
+        body.createEl("span", {
+          text: item.title || "Untitled",
+          cls: "skills-selector-row-label linked-selector-row-title"
+        });
+        const meta = body.createEl("span", { cls: "linked-selector-row-meta" });
+        const xp = Number(item.xp) || 0;
+        meta.createEl("span", {
+          text: `${xp.toLocaleString()} XP`,
+          cls: "linked-selector-row-xp"
+        });
+        if (rewardsOn) {
+          const coinWrap = meta.createEl("span", { cls: "linked-selector-row-coins" });
+          const coinIcon = coinWrap.createEl("span", { cls: "linked-selector-row-coin-icon" });
+          setIcon(coinIcon, "coins");
+          coinWrap.createEl("span", {
+            text: `+${this.coinRewardForXp(xp)}`,
+            cls: "linked-selector-row-coin-text"
+          });
+        }
+      });
+    }, isHabit ? "renderHabitsSelectorList" : "renderQuestsSelectorList");
+    renderList();
+    searchInput.addEventListener("input", () => {
+      renderList(searchInput.value);
+    });
+    const btnRow = box.createEl("div", { cls: "quest-modal-buttons skills-selector-actions" });
+    const selectBtn = btnRow.createEl("button", {
+      cls: `quest-modal-create-btn quest-modal-create-btn-full skills-selector-select-btn linked-selector-select-btn ${typeCls}-selector-select-btn`,
+      attr: { type: "button" }
+    });
+    selectBtn.createEl("span", { text: "select" });
+    const close = /* @__PURE__ */ __name(() => {
+      overlay.remove();
+    }, isHabit ? "closeHabitsSelector" : "closeQuestsSelector");
+    closeBtn.addEventListener("click", close);
+    overlay.addEventListener("mousedown", (e) => {
+      overlay._mouseDownOnOverlay = e.target === overlay;
+    });
+    overlay.addEventListener("click", (e) => {
+      if (e.target === overlay && overlay._mouseDownOnOverlay) close();
+    });
+    selectBtn.addEventListener("click", () => {
+      selectedIds.length = 0;
+      for (const id of draft) selectedIds.push(id);
+      if (typeof onApplied === "function") onApplied();
+      close();
+    });
+    searchInput.focus();
+  }
+    fillStatsTable(table, rows) {
     rows.forEach(([label, value]) => {
       const tr = table.createEl("tr");
       tr.createEl("td", { text: label, cls: "quest-detail-stat-label" });
@@ -1109,6 +1303,8 @@ var _QuestLogView = class _QuestLogView extends obsidianNS.ItemView {
       "quest-detail-overlay",
       "delete-confirm-overlay",
       "skills-selector-overlay",
+      "quests-selector-overlay",
+      "habits-selector-overlay",
       "ql-levelup-overlay",
       "ql-confetti-container",
       "shop-purchase-overlay"
@@ -1584,6 +1780,19 @@ var _QuestLogView = class _QuestLogView extends obsidianNS.ItemView {
       text: "Skills level up automatically when attached to quests or habits.",
       cls: "skill-creation-info-text"
     });
+    const selectedQuestIds = this.attachLinkedPicker(skillModalBox, {
+      kind: "quest",
+      label: "attach quests",
+      emptyText: "no quests attached",
+      initialIds: []
+    });
+    const selectedHabitIds = this.attachLinkedPicker(skillModalBox, {
+      kind: "habit",
+      label: "attach habits",
+      emptyText: "no habits attached",
+      initialIds: []
+    });
+    skillModalBox.createEl("div", { cls: "quest-detail-reward-divider detail-actions-divider" });
     const skillBtnContainer = skillModalBox.createEl("div", {
       cls: "quest-modal-buttons"
     });
@@ -1599,6 +1808,10 @@ var _QuestLogView = class _QuestLogView extends obsidianNS.ItemView {
       skillOverlay.removeClass("open");
       skillNameInput.value = "";
       skillDescInput.value = "";
+      selectedQuestIds.length = 0;
+      selectedHabitIds.length = 0;
+      if (typeof selectedQuestIds.refresh === "function") selectedQuestIds.refresh();
+      if (typeof selectedHabitIds.refresh === "function") selectedHabitIds.refresh();
     }, "closeSkillOverlay");
     skillCloseBtn.addEventListener("click", closeSkillOverlay);
     skillCreateBtn.addEventListener("click", async () => {
@@ -1613,8 +1826,11 @@ var _QuestLogView = class _QuestLogView extends obsidianNS.ItemView {
           created: (/* @__PURE__ */ new Date()).toISOString()
         };
         this.plugin.settings.skills.push(skill);
+        this.syncSkillLinks(skill.id, selectedQuestIds, selectedHabitIds);
         await this.plugin.saveSettings();
         this.renderSkillList(skillsContent);
+        if (this._questListContainer) this.renderQuestList(this._questListContainer);
+        if (this._habitListContainer) this.renderHabitList(this._habitListContainer);
         new obsidianNS.Notice(`Created Skill: ${skill.name}`);
         closeSkillOverlay();
       } else {
@@ -2719,18 +2935,29 @@ var _QuestLogView = class _QuestLogView extends obsidianNS.ItemView {
       text: `${xpInfo.xpProgress.toLocaleString()} / ${xpInfo.xpNeeded.toLocaleString()} XP`,
       cls: "skill-xp-progress-text"
     });
-    const skillInfo = box.createEl("div", { cls: "skill-detail-info" });
-    skillInfo.createEl("span", {
-      text: "Attach this skill to quests or habits to gain XP.",
-      cls: "skill-detail-info-text"
+    const selectedQuestIds = this.attachLinkedPicker(box, {
+      kind: "quest",
+      label: "attach quests",
+      emptyText: "no quests attached",
+      initialIds: this.idsLinkedToSkill(skill.id, "quest")
+    });
+    const selectedHabitIds = this.attachLinkedPicker(box, {
+      kind: "habit",
+      label: "attach habits",
+      emptyText: "no habits attached",
+      initialIds: this.idsLinkedToSkill(skill.id, "habit")
     });
     const saveSkill = /* @__PURE__ */ __name(async () => {
       const previousName = skill.name;
       skill.name = nameInput.value.trim() || skill.name;
       skill.description = descBox.value.trim();
+      this.syncSkillLinks(skill.id, selectedQuestIds, selectedHabitIds);
       await this.plugin.saveSettings();
       this.renderSkillList(this._skillListContainer);
+      if (this._questListContainer) this.renderQuestList(this._questListContainer);
+      if (this._habitListContainer) this.renderHabitList(this._habitListContainer);
     }, "saveSkill");
+    box.createEl("div", { cls: "quest-detail-reward-divider detail-actions-divider" });
     const btnRow = box.createEl("div", { cls: "quest-detail-buttons" });
     const closeBtn = btnRow.createEl("button", {
       text: "Close",

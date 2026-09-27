@@ -2,6 +2,16 @@
 
 Vault project notes (design / ship history). Durable code tree: `/workspace/Quest-Log-src`. Ship folder: `.obsidian/plugins/quest-log` (four files only).
 
+## 0.6.16 — 2026-09-26
+
+Micah via Atlas COO — skill details + skill creation: separate quest / habit attach:
+
+1. Skill details and skill creation each get sequential **attach quests** and **attach habits** sections (reward-style header + plus → selector modal → chips under divider; empty blurbs when none).
+2. Quest selector rows use `--ql-quest` `#3b82f6`; habit selector rows use `--ql-habit` `#a855f7`. Rows show title, XP, and coin reward when rewardsMode is on.
+3. Selecting quests/habits from a skill syncs that skill into each item's `skillIds` (active lists). Identical treatment on details and creation.
+
+Preserves 0.6.13–0.6.15 attach-skills patterns on quest/habit modals.
+
 ## 0.6.15 — 2026-09-26
 
 Micah via Atlas/Riku — UI follow-on post 0.6.14 (details + creation):
