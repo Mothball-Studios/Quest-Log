@@ -2,6 +2,14 @@
 
 Vault project notes (design / ship history). Durable code tree: `/workspace/Quest-Log-src`. Ship folder: `.obsidian/plugins/quest-log` (four files only).
 
+## 0.6.27 — 2026-09-26
+
+Micah via Atlas COO APPROVED — Quest Log UI post 0.6.26:
+
+1. Unify Create FAB baseline: `.quest-fab` + `.quest-log-fab` share **30px** desktop / **80px** mobile.
+2. Drop shop-separate **50px / 125px** bottoms; shop keeps gold color only.
+3. CSS + manifest only; `main.js` unchanged from 0.6.26.
+
 ## 0.6.26 — 2026-09-26
 
 Micah via Atlas COO APPROVED — Quest Log UI post 0.6.25:

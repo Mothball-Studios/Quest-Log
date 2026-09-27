@@ -570,20 +570,28 @@
 }
 
 /* ============================================================
-   FAB BUTTON
+   FAB BUTTON — shared geometry for all Create FABs (quest/habit/skill/shop)
    ============================================================ */
 
 .quest-fab,
-.quest-fab.fab-quests {
+.quest-fab.fab-quests,
+.quest-log-fab {
   position: absolute;
   bottom: 30px;
   right: 30px;
   width: 50px;
   height: 50px;
   border-radius: 50%;
-  background-color: var(--ql-quest, #3b82f6) !important;
   border: none;
-  transition: background-color 0.2s ease;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s ease, box-shadow 0.2s ease;
+}
+.quest-fab,
+.quest-fab.fab-quests {
+  background-color: var(--ql-quest, #3b82f6) !important;
 }
 .quest-fab.fab-habits {
   background-color: var(--ql-habit, #a855f7) !important;
@@ -591,8 +599,10 @@
 .quest-fab.fab-skills {
   background-color: var(--ql-skill, #22c55e) !important;
 }
-.quest-fab span.fab-icon {
-  padding-top: 4px;
+.quest-fab span.fab-icon,
+.quest-log-fab .fab-icon {
+  display: flex;
+  padding-top: 0;
   align-items: center !important;
   justify-content: center !important;
 }
@@ -2537,19 +2547,14 @@
     padding: 12px 20px;
   }
 
-  /* FAB: raise by ~one FAB height (50px); horizontal unchanged. Desktop keeps bottom: 30px. */
+  /* All Create FABs share one mobile baseline (match .quest-fab) */
   .quest-fab,
   .quest-fab.fab-quests,
   .quest-fab.fab-habits,
-  .quest-fab.fab-skills {
-    bottom: 80px; /* 30px + 50px FAB */
-  }
-
-  /* Shop create FAB: raise ~1.5 button heights to clear Obsidian mobile action bar */
+  .quest-fab.fab-skills,
   .quest-log-fab,
-  .quest-log-fab.fab-shop,
-  .fab-shop {
-    bottom: 125px; /* 50px desktop + 1.5×50px — clear Obsidian mobile action bar */
+  .quest-log-fab.fab-shop {
+    bottom: 80px; /* 30px + 50px FAB */
   }
 }
 
@@ -3475,27 +3480,9 @@
   color: #e55;
 }
 
-/* Shop FAB (gold) — was missing base .quest-log-fab geometry */
+/* Shop FAB color only — geometry lives with .quest-fab / .quest-log-fab shared rule */
 .quest-log-fab {
-  position: absolute;
-  bottom: 50px; /* desktop: a little higher than main FAB's 30px (Micah) */
-  right: 30px;
-  width: 50px;
-  height: 50px;
-  border-radius: 50%;
-  border: none;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 60;
-  transition: background-color 0.2s ease, box-shadow 0.2s ease;
-  box-sizing: border-box;
-}
-.quest-log-fab .fab-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding-top: 0;
+  z-index: 60; /* above shop list content */
 }
 .fab-shop {
   background: linear-gradient(135deg, #ffd700, #ff8c00) !important;
