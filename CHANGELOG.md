@@ -2,6 +2,14 @@
 
 Vault project notes (design / ship history). Durable code tree: `/workspace/Quest-Log-src`. Ship folder: `.obsidian/plugins/quest-log` (four files only).
 
+## 0.6.15 — 2026-09-26
+
+Micah via Atlas/Riku — UI follow-on post 0.6.14 (details + creation):
+
+1. Skills Selector search placeholder: **type skill name** (was "search bar").
+2. Attach-skills header plus: keep position; slightly bigger (18px); color match close X (`#c4c9d0`) for visibility.
+3. Details + creation modals: horizontal divider above confirm (and fail if present) — line between skills list and bottom action buttons; no extra padding.
+
 ## 0.6.14 — 2026-09-26
 
 Micah via Atlas/Riku — skills attach polish (follow-on on 0.6.13; details + creation identical):

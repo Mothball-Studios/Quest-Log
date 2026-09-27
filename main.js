@@ -2305,9 +2305,9 @@ var require_render = __commonJS({
           setIcon(closeIcon, "x");
           const searchInput = box.createEl("input", {
             type: "text",
-            placeholder: "search bar",
+            placeholder: "type skill name",
             cls: "skills-selector-search ql-input",
-            attr: { "aria-label": "search bar" }
+            attr: { "aria-label": "type skill name" }
           });
           box.createEl("div", { cls: "quest-detail-reward-divider skills-selector-divider" });
           const listEl = box.createEl("div", { cls: "skills-selector-list" });
@@ -3119,6 +3119,7 @@ var require_render = __commonJS({
             updateXpPreview
           );
           const selectedSkillIds = this.attachSkillPicker(box, []);
+          box.createEl("div", { cls: "quest-detail-reward-divider detail-actions-divider" });
           const btnContainer = box.createEl("div", { cls: "quest-modal-buttons" });
           const createBtn = btnContainer.createEl("button", {
             cls: "quest-modal-create-btn quest-modal-create-btn-full"
@@ -3344,6 +3345,7 @@ var require_render = __commonJS({
             await saveItem();
             overlay.removeClass("open");
           });
+          box.createEl("div", { cls: "quest-detail-reward-divider detail-actions-divider" });
           const btnRow = box.createEl("div", { cls: "quest-detail-buttons" });
           if (isHabit) {
             const failBtn = btnRow.createEl("button", {
