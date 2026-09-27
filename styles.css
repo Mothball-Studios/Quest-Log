@@ -973,14 +973,16 @@
 }
 
 .quest-detail-title-input {
-  flex: 1;
+  /* Match .quest-modal-title (creation) exactly — size + styling */
+  width: 100%;
+  flex: none;
   min-width: 0;
   background-color: #111;
   border: 1px solid #333;
   box-shadow: none;
   color: #fff;
   font-size: 16px;
-  font-weight: 600;
+  font-weight: bold;
   padding: 12px 14px;
   border-radius: 8px;
   outline: none;
@@ -2450,11 +2452,14 @@
     font-size: 16px;
   }
 
-  /* Title input */
+  /* Title inputs: keep creation/selector size (16px) — do not shrink details below creation */
   .quest-detail-title-input,
   .quest-modal-title {
-    font-size: 15px;
-    padding: 10px 12px;
+    font-size: 16px;
+    font-weight: bold;
+    padding: 12px 14px;
+    width: 100%;
+    box-sizing: border-box;
   }
 
   /* Description textarea */

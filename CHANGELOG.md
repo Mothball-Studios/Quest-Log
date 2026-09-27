@@ -2,6 +2,13 @@
 
 Vault project notes (design / ship history). Durable code tree: `/workspace/Quest-Log-src`. Ship folder: `.obsidian/plugins/quest-log` (four files only).
 
+## 0.6.24 — 2026-09-26
+
+Micah via Atlas COO APPROVED — Quest Log UI post 0.6.23:
+
+1. Details title input matches creation for skill / quest / habit: shared `quest-modal-title` chrome (full width, bold, 16px, same padding).
+2. Mobile: keep title inputs at **16px** (do not shrink details below creation).
+
 ## 0.6.23 — 2026-09-26
 
 Micah via Atlas COO APPROVED — Quest Log UI post 0.6.22:

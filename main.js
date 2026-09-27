@@ -3529,7 +3529,7 @@ var require_render = __commonJS({
           const titleInput = box.createEl("input", {
             type: "text",
             value: item.title,
-            cls: "quest-detail-title-input"
+            cls: "quest-detail-title-input quest-modal-title"
           });
           const descBox = box.createEl("textarea", {
             text: item.description || "",
@@ -4275,7 +4275,7 @@ var require_render = __commonJS({
           const nameInput = box.createEl("input", {
             type: "text",
             value: skill.name,
-            cls: "quest-detail-title-input"
+            cls: "quest-detail-title-input quest-modal-title"
           });
           const descBox = box.createEl("textarea", {
             text: skill.description || "",

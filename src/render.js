@@ -2234,7 +2234,7 @@ var _QuestLogView = class _QuestLogView extends obsidianNS.ItemView {
     const titleInput = box.createEl("input", {
       type: "text",
       value: item.title,
-      cls: "quest-detail-title-input"
+      cls: "quest-detail-title-input quest-modal-title"
     });
     const descBox = box.createEl("textarea", {
       text: item.description || "",
@@ -2987,7 +2987,7 @@ var _QuestLogView = class _QuestLogView extends obsidianNS.ItemView {
     const nameInput = box.createEl("input", {
       type: "text",
       value: skill.name,
-      cls: "quest-detail-title-input"
+      cls: "quest-detail-title-input quest-modal-title"
     });
     const descBox = box.createEl("textarea", {
       text: skill.description || "",
