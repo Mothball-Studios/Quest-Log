@@ -2293,6 +2293,8 @@ var require_render = __commonJS({
                 text: "no skills attached",
                 cls: "detail-skills-placeholder"
               });
+            } else {
+              this.bindSkillGridWrapSpans(selectedSkillsDisplay);
             }
           }, "refreshSkillPicker");
           refresh();
@@ -2374,6 +2376,7 @@ var require_render = __commonJS({
               const xpFill = xpBar.createEl("div", { cls: "skill-xp-fill" });
               xpFill.style.width = `${xpInfo.pct}%`;
             });
+            this.bindSkillGridWrapSpans(listEl);
           }, "renderSkillsSelectorList");
           renderList();
           searchInput.addEventListener("input", () => {
@@ -3999,6 +4002,54 @@ var require_render = __commonJS({
           });
         }
         // ----------------------------------------
+        // Skill 2-col grids: full-row span when title wraps (shared)
+        // ----------------------------------------
+        skillTitleWraps(titleEl) {
+          if (!titleEl) return false;
+          try {
+            const range = document.createRange();
+            range.selectNodeContents(titleEl);
+            if (range.getClientRects().length >= 2) return true;
+          } catch (_) {
+          }
+          const cs = getComputedStyle(titleEl);
+          let lh = parseFloat(cs.lineHeight);
+          if (!lh || Number.isNaN(lh)) {
+            lh = (parseFloat(cs.fontSize) || 14) * 1.25;
+          }
+          return titleEl.scrollHeight > lh * 1.4;
+        }
+        applySkillGridWrapSpans(gridEl) {
+          if (!gridEl) return;
+          if (gridEl.classList.contains("linked-selector-list") || gridEl.classList.contains("detail-selected-linked")) {
+            return;
+          }
+          const items = Array.from(gridEl.children).filter((el) => {
+            return el.classList.contains("skill-block") || el.classList.contains("skill-selector-row") || el.classList.contains("skills-selector-row") || el.classList.contains("detail-skill-attached-row");
+          });
+          for (const el of items) el.classList.remove("skill-span-full");
+          void gridEl.offsetWidth;
+          for (const el of items) {
+            const title = el.querySelector(".detail-skill-attached-title");
+            if (title && this.skillTitleWraps(title)) el.classList.add("skill-span-full");
+          }
+        }
+        bindSkillGridWrapSpans(gridEl) {
+          if (!gridEl) return;
+          if (gridEl.classList.contains("linked-selector-list") || gridEl.classList.contains("detail-selected-linked")) {
+            return;
+          }
+          const run = () => {
+            requestAnimationFrame(() => this.applySkillGridWrapSpans(gridEl));
+          };
+          run();
+          if (typeof ResizeObserver === "undefined") return;
+          if (gridEl._qlSkillWrapRo) gridEl._qlSkillWrapRo.disconnect();
+          const ro = new ResizeObserver(() => run());
+          ro.observe(gridEl);
+          gridEl._qlSkillWrapRo = ro;
+        }
+        // ----------------------------------------
         // SKILL LIST RENDERING
         // ----------------------------------------
         renderSkillList(container) {
@@ -4037,6 +4088,7 @@ var require_render = __commonJS({
               this.openSkillDetail(skill);
             });
           });
+          this.bindSkillGridWrapSpans(grid);
         }
         // ----------------------------------------
         // SKILL DETAIL VIEW

@@ -2,6 +2,13 @@
 
 Vault project notes (design / ship history). Durable code tree: `/workspace/Quest-Log-src`. Ship folder: `.obsidian/plugins/quest-log` (four files only).
 
+## 0.6.34 — 2026-09-26
+
+Micah via Atlas COO APPROVED — skill grid wrap span:
+
+- Skill 2-col grids: full-row span (`.skill-span-full`) when title wraps 2+ lines; short titles stay 2-across.
+- Shared `bindSkillGridWrapSpans` on Skills tab, selector list, and attached skills display.
+
 ## 0.6.33 — 2026-09-26
 
 Micah via Atlas COO APPROVED — Main Skills tab skill cards:

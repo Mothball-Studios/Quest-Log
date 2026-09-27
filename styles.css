@@ -2169,6 +2169,11 @@
   grid-template-columns: repeat(2, 1fr);
   gap: 10px;
 }
+/* Skill 2-col grids: wrapping titles take the full row */
+.skill-span-full {
+  grid-column: 1 / -1;
+}
+
 
 .skill-list-container {
   display: flex;
