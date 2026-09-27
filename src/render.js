@@ -1830,11 +1830,16 @@ var _QuestLogView = class _QuestLogView extends obsidianNS.ItemView {
     });
     const skillCloseIcon = skillCloseBtn.createEl("span", { cls: "quest-detail-close-icon" });
     setIcon(skillCloseIcon, "x");
-    const skillNameInput = skillModalBox.createEl("input", {
-      type: "text",
-      placeholder: "Skill Name...",
+    const skillNameInput = skillModalBox.createEl("textarea", {
+      attr: { placeholder: "Skill Name...", rows: "1" },
       cls: "quest-modal-title"
     });
+    const autosizeSkillTitle = /* @__PURE__ */ __name((el) => {
+      el.style.height = "auto";
+      el.style.height = el.scrollHeight + "px";
+    }, "autosizeSkillTitle");
+    autosizeSkillTitle(skillNameInput);
+    skillNameInput.addEventListener("input", () => autosizeSkillTitle(skillNameInput));
     const skillDescInput = skillModalBox.createEl("textarea", {
       attr: { placeholder: "Description..." },
       cls: "quest-modal-desc"
@@ -3040,9 +3045,10 @@ var _QuestLogView = class _QuestLogView extends obsidianNS.ItemView {
    * Shared Skills level block for DETAILS + CREATION modals (identical DOM).
    * Inside section, top→bottom:
    *   1. Divider
-   *   2. Level number LEFT | xpProgress / xpNeeded XP RIGHT
-   *   3. XP bar
-   *   4. Divider (separates from attached quests)
+   *   2. "Level" header
+   *   3. Level number LEFT | xpProgress / xpNeeded XP RIGHT
+   *   4. XP bar
+   *   5. Divider (separates from attached quests)
    * No divider above the section (between title/desc and level) — rejected.
    */
   renderSkillLevelBlock(parentEl, skill) {
@@ -3050,6 +3056,8 @@ var _QuestLogView = class _QuestLogView extends obsidianNS.ItemView {
     const xpInfo = _QuestLogView.getSkillXpProgress(skill || { xp: 0, level: 1 }, difficulty);
     const levelSection = parentEl.createEl("div", { cls: "skill-level-section" });
     levelSection.createEl("div", { cls: "quest-detail-reward-divider skill-level-top-divider" });
+    // Visible "Level" header ABOVE the level-number / remaining-XP line (0.6.47).
+    levelSection.createEl("span", { text: "Level", cls: "skill-level-label" });
     const levelRow = levelSection.createEl("div", { cls: "skill-level-row" });
     const levelNum = xpInfo.level || 1;
     levelRow.createEl("span", {
@@ -3131,11 +3139,17 @@ var _QuestLogView = class _QuestLogView extends obsidianNS.ItemView {
       cls: "quest-detail-close-icon"
     });
     setIcon(closeIcon, "x");
-    const nameInput = box.createEl("input", {
-      type: "text",
-      value: skill.name,
-      cls: "quest-detail-title-input quest-modal-title"
+    const nameInput = box.createEl("textarea", {
+      text: skill.name,
+      cls: "quest-detail-title-input quest-modal-title",
+      attr: { rows: "1" }
     });
+    const autosizeSkillDetailTitle = /* @__PURE__ */ __name((el) => {
+      el.style.height = "auto";
+      el.style.height = el.scrollHeight + "px";
+    }, "autosizeSkillDetailTitle");
+    autosizeSkillDetailTitle(nameInput);
+    nameInput.addEventListener("input", () => autosizeSkillDetailTitle(nameInput));
     const descBox = box.createEl("textarea", {
       text: skill.description || "",
       cls: "quest-detail-desc",
@@ -3143,7 +3157,7 @@ var _QuestLogView = class _QuestLogView extends obsidianNS.ItemView {
     });
     descBox.style.height = "auto";
     descBox.style.height = descBox.scrollHeight + "px";
-    // Shared level block (identical to skill creation): divider → level|xp → bar → divider.
+    // Shared level block (identical to skill creation): divider → Level → level|xp → bar → divider.
     // No divider between title/desc and this section.
     this.renderSkillLevelBlock(box, skill);
     const selectedQuestIds = this.attachLinkedPicker(box, {

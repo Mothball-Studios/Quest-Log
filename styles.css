@@ -2456,12 +2456,27 @@
 .skill-context .quest-detail-title-input:focus {
   border-color: var(--ql-skill, #22c55e);
 }
+
+/* Skill title box (DETAILS + CREATION): word-wrappable — long titles wrap, no horizontal overflow. */
+.skill-context textarea.quest-modal-title,
+.skill-context textarea.quest-detail-title-input {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  overflow-x: hidden;
+  overflow-y: hidden;
+  resize: none;
+  min-height: 0;
+  line-height: 1.35;
+  font-family: inherit;
+  field-sizing: content;
+}
 .skill-context .quest-detail-box .quest-xp-preview-value {
   color: var(--ql-skill, #22c55e);
 }
 
 /* Skill level section (DETAILS + CREATION — identical).
-   Visual header structure (mirrors Reward): divider → level|xp line → bar → divider.
+   Visual header structure: divider → "Level" header → level|xp line → bar → divider.
    No divider between title/desc and this section. */
 .skill-level-section {
   display: flex;
@@ -2493,11 +2508,15 @@
 }
 
 .skill-level-label {
+  display: block;
+  width: 100%;
   font-size: 12px;
   font-weight: bold;
   text-transform: uppercase;
   letter-spacing: 0.5px;
   color: #888;
+  margin: 0 0 8px;
+  line-height: 1.2;
 }
 
 .skill-level-value {

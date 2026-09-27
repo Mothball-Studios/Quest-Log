@@ -2,6 +2,13 @@
 
 Vault project notes (design / ship history). Durable code tree: `/workspace/Quest-Log-src`. Ship folder: `.obsidian/plugins/quest-log` (four files only).
 
+## 0.6.47 — 2026-09-26
+
+Luke via Atlas COO APPROVED (assign) — Skills DETAILS + CREATION level header + wrapping title:
+
+1. Level section order: **top divider → "Level" header → level|XP line → bar → bottom divider** (shared `renderSkillLevelBlock`).
+2. Title box (skill name) word-wrappable in both modals — long titles wrap (textarea + CSS overflow-wrap) instead of overflowing/truncating.
+
 ## 0.6.46 — 2026-09-26
 
 Luke via Atlas COO APPROVED (assign) — Skills DETAILS + CREATION identical level block:
