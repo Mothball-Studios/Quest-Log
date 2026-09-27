@@ -2166,7 +2166,8 @@
 /* Skill grid - 2 columns */
 .skill-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  /* minmax(0,1fr): equal half-cols that shrink so long titles wrap (not expand the track) */
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
 }
 /* Skill 2-col grids: wrapping titles take the full row (packed to top by JS) */
@@ -2186,6 +2187,7 @@
   flex-direction: column;
   gap: 6px;
   min-height: auto;
+  min-width: 0; /* allow 2-col track shrink so titles wrap at half-width */
   padding: 10px 12px;
 }
 
@@ -2222,17 +2224,21 @@
 }
 /* Main Skills tab: title wraps on its own row(s); desc single-line fade under */
 .skill-block .detail-skill-attached-title {
+  display: block;
   font-size: 14px;
   font-weight: bold;
   color: #fff;
-  flex: 0 1 auto;
-  flex-basis: 100%;
+  flex: 0 0 auto; /* column child: size to content height, not flex-basis 100% height */
   width: 100%;
   max-width: 100%;
   min-width: 0;
+  box-sizing: border-box;
   white-space: normal !important;
+  overflow: visible !important;
+  text-overflow: unset !important;
   overflow-wrap: anywhere;
   word-wrap: break-word;
+  line-height: 1.25;
 }
 .skill-block-band-left {
   flex: 1 1 auto;

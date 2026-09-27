@@ -2,6 +2,14 @@
 
 Vault project notes (design / ship history). Durable code tree: `/workspace/Quest-Log-src`. Ship folder: `.obsidian/plugins/quest-log` (four files only).
 
+## 0.6.38 — 2026-09-26
+
+Micah via Atlas COO APPROVED — Skills tab title-wrap + long-name pack:
+
+- Root: `.skill-grid` `1fr` tracks expanded to fit long titles (`min-width:auto`), so wrap measure never fired → no `.skill-span-full` / no longs-top pack.
+- Fix: `repeat(2, minmax(0, 1fr))` + `.skill-block { min-width: 0 }`; title `display:block` full left-col width (drop column `flex-basis:100%`).
+- Desc fade + selector/details/creation UIs untouched. JS pack helpers unchanged.
+
 ## 0.6.37 — 2026-09-26
 
 Micah via Atlas COO APPROVED — Skills tab title-wrap regression (CSS-only):
