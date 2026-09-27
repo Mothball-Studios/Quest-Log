@@ -2,6 +2,15 @@
 
 Vault project notes (design / ship history). Durable code tree: `/workspace/Quest-Log-src`. Ship folder: `.obsidian/plugins/quest-log` (four files only).
 
+## 0.6.6 — 2026-09-26
+
+Micah via Atlas/Riku — detail modal type-bleed + unified soft XP purple:
+
+- Detail modal header titles (Quest/Habit/Skill Details) no longer inherit type color; stay neutral white. Type colors remain on accents (icons, badges, focus borders, create buttons).
+- Reward label stays neutral (`#888`); Reward XP values no longer pick up quest blue / habit purple.
+- `--ql-xp` softened from blue `#4b6cb7` → soft purple `#c084fc` (softer than habit `#a855f7`) for XP bars, XP values, and level badges across quest/habit/skill list surfaces.
+- Skill details modal: header only neutralized; skill-internal XP (level value, detail XP bar, "XP / XP" progress text) left as-is.
+
 ## 0.6.5 — 2026-09-26
 
 Split quest chrome from XP chrome (Micah via Atlas/Riku):
