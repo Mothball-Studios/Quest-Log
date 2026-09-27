@@ -1109,7 +1109,18 @@
   min-height: 1.4em;
 }
 .quest-detail-reward-body.has-extra {
-  justify-content: space-between;
+  /* coins two-fifths + XP three-fifths of a 5-unit row (coherent reading of "two-fifths / rest") */
+  display: grid;
+  grid-template-columns: 2fr 3fr;
+  align-items: center;
+  justify-content: stretch;
+  gap: 0;
+}
+.quest-detail-reward-body.has-extra .quest-detail-reward-coins {
+  justify-self: center;
+}
+.quest-detail-reward-body.has-extra .quest-xp-preview-value {
+  justify-self: center;
 }
 .quest-detail-reward-coins {
   display: inline-flex;
@@ -1283,12 +1294,14 @@
 }
 
 .detail-selected-skills {
-  display: flex;
-  flex-wrap: wrap;
+  /* Attached skills: 3 per row, evenly spaced L→R, wrap (linked override below) */
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
   gap: 6px;
   min-height: 28px;
   margin-bottom: 0;
-  justify-content: center;
+  justify-content: stretch;
+  align-items: stretch;
 }
 
 .detail-skills-placeholder {
@@ -1297,6 +1310,7 @@
   font-style: italic;
   text-align: center;
   width: 100%;
+  grid-column: 1 / -1;
 }
 
 .detail-skill-tag {
@@ -1335,7 +1349,7 @@
   display: flex;
   flex-direction: column;
   max-height: min(80vh, 560px);
-  width: min(420px, 92%);
+  width: min(520px, 94%);
   padding-bottom: 14px;
   overflow: hidden; /* list scrolls inside; modal itself does not */
   gap: 10px;
@@ -1367,11 +1381,19 @@
   max-height: min(280px, 45vh);
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 6px;
   margin-bottom: 4px;
   padding-right: 4px;
+  align-content: start;
+}
+/* Quest/habit linked selectors stay single-column */
+.skills-selector-list.linked-selector-list {
+  display: flex;
+  flex-direction: column;
+  grid-template-columns: unset;
+  gap: 4px;
 }
 .skills-selector-empty {
   color: #666;
@@ -1418,6 +1440,62 @@
 .skills-selector-select-btn:hover {
   background-color: var(--ql-skill-hover, #16a34a) !important;
   box-shadow: 0 0 12px rgba(34, 197, 94, 0.5);
+}
+
+/* Skill attached blocks + skills selector rows — skill-green chrome */
+.skill-selector-row,
+.detail-skill-attached-row {
+  border-left: 3px solid var(--ql-skill, #22c55e);
+  background-color: rgba(34, 197, 94, 0.08);
+  align-items: center;
+  min-width: 0;
+  box-sizing: border-box;
+}
+.skill-selector-row:hover,
+.detail-skill-attached-row:hover {
+  background-color: rgba(34, 197, 94, 0.16);
+  border-color: var(--ql-skill, #22c55e);
+}
+.detail-skill-attached-row {
+  cursor: default;
+  width: 100%;
+}
+.detail-skill-attached-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  min-width: 0;
+  width: 100%;
+}
+.detail-skill-attached-title {
+  flex: 1 1 auto;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: 600;
+  color: #eee;
+}
+.detail-skill-attached-level {
+  flex: 0 0 auto;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--ql-skill, #22c55e);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+.detail-skill-attached-xp-bar,
+.skill-selector-row .skill-xp-bar {
+  height: 4px;
+  margin-top: 2px;
+}
+.skill-selector-row .skills-selector-checkbox {
+  accent-color: var(--ql-skill, #22c55e);
+}
+.skills-selector-empty {
+  grid-column: 1 / -1;
 }
 
 /* Skill detail/create: attach quests / attach habits (mirror attach-skills) */

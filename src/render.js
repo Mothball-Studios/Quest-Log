@@ -932,7 +932,7 @@ var _QuestLogView = class _QuestLogView extends obsidianNS.ItemView {
   }
   attachSkillPicker(parentEl, initialIds) {
     const selectedSkillIds = [...initialIds || []];
-    // Mirror reward-section layout: centered header label + plus on far right, divider, chips/empty
+    // Mirror reward-section layout: centered header label + plus on far right, divider, pretty skill blocks
     const skillsSection = parentEl.createEl("div", { cls: "detail-skills-section quest-detail-reward" });
     const header = skillsSection.createEl("div", { cls: "detail-skills-header" });
     header.createEl("span", { text: "attach skills", cls: "quest-xp-preview-label detail-skills-label" });
@@ -947,13 +947,34 @@ var _QuestLogView = class _QuestLogView extends obsidianNS.ItemView {
     const refresh = /* @__PURE__ */ __name(() => {
       selectedSkillsDisplay.empty();
       const skills = this.plugin.settings.skills || [];
+      const difficulty = this.plugin.settings.skillDifficulty || 10;
       selectedSkillIds.forEach((skillId) => {
         const skill = skills.find((s) => s.id === skillId);
         if (!skill) return;
-        const tag = selectedSkillsDisplay.createEl("span", { cls: "detail-skill-tag" });
-        tag.createEl("span", { text: skill.name });
-        const removeBtn = tag.createEl("span", { cls: "detail-skill-tag-remove" });
-        setIcon(removeBtn, "x");
+        const xpInfo = _QuestLogView.getSkillXpProgress(skill, difficulty);
+        // Pretty blocks: skill-green left edge + tint, title, level, mini XP bar (3-col grid via CSS)
+        const row = selectedSkillsDisplay.createEl("div", {
+          cls: "skills-selector-row skill-selector-row detail-skill-attached-row detail-linked-attached-row"
+        });
+        const body = row.createEl("span", { cls: "linked-selector-row-body detail-skill-attached-body" });
+        const titleRow = body.createEl("span", { cls: "detail-skill-attached-title-row" });
+        titleRow.createEl("span", {
+          text: skill.name || "Untitled",
+          cls: "skills-selector-row-label linked-selector-row-title detail-skill-attached-title"
+        });
+        titleRow.createEl("span", {
+          text: (skill.legendary ? "\u2605 " : "") + "Lvl " + (xpInfo.level || 1),
+          cls: "detail-skill-attached-level"
+        });
+        const xpBar = body.createEl("div", { cls: "skill-xp-bar detail-skill-attached-xp-bar" });
+        const xpFill = xpBar.createEl("div", { cls: "skill-xp-fill" });
+        xpFill.style.width = `${xpInfo.pct}%`;
+        const removeBtn = row.createEl("button", {
+          cls: "detail-linked-row-remove",
+          attr: { "aria-label": "Detach", type: "button" }
+        });
+        const removeIcon = removeBtn.createEl("span", { cls: "detail-linked-row-remove-icon" });
+        setIcon(removeIcon, "x");
         removeBtn.addEventListener("click", (e) => {
           e.stopPropagation();
           const idx = selectedSkillIds.indexOf(skillId);
@@ -1005,6 +1026,7 @@ var _QuestLogView = class _QuestLogView extends obsidianNS.ItemView {
     box.createEl("div", { cls: "quest-detail-reward-divider skills-selector-divider" });
     const listEl = box.createEl("div", { cls: "skills-selector-list" });
     const draft = new Set(selectedSkillIds);
+    const difficulty = this.plugin.settings.skillDifficulty || 10;
     const renderList = /* @__PURE__ */ __name((query = "") => {
       listEl.empty();
       const skills = [...(this.plugin.settings.skills || [])].sort((a, b) =>
@@ -1021,7 +1043,9 @@ var _QuestLogView = class _QuestLogView extends obsidianNS.ItemView {
       }
       filtered.forEach((skill) => {
         const id = skill.id;
-        const row = listEl.createEl("label", { cls: "skills-selector-row" });
+        const xpInfo = _QuestLogView.getSkillXpProgress(skill, difficulty);
+        // Pretty skill rows: green left edge + tint, title, level, XP bar (2-col grid via CSS)
+        const row = listEl.createEl("label", { cls: "skills-selector-row skill-selector-row" });
         const checkbox = row.createEl("input", {
           type: "checkbox",
           cls: "skills-selector-checkbox"
@@ -1031,13 +1055,19 @@ var _QuestLogView = class _QuestLogView extends obsidianNS.ItemView {
           if (checkbox.checked) draft.add(id);
           else draft.delete(id);
         });
-        row.createEl("span", {
-          text: skill.name + (skill.level ? ` (Lvl ${skill.level})` : ""),
-          cls: "skills-selector-row-label"
+        const body = row.createEl("span", { cls: "linked-selector-row-body" });
+        const titleRow = body.createEl("span", { cls: "detail-skill-attached-title-row" });
+        titleRow.createEl("span", {
+          text: skill.name || "Untitled",
+          cls: "skills-selector-row-label linked-selector-row-title detail-skill-attached-title"
         });
-        if (skill.legendary) {
-          row.createEl("span", { text: " \u2605", cls: "skills-selector-legendary" });
-        }
+        titleRow.createEl("span", {
+          text: (skill.legendary ? "\u2605 " : "") + "Lvl " + (xpInfo.level || 1),
+          cls: "detail-skill-attached-level"
+        });
+        const xpBar = body.createEl("div", { cls: "skill-xp-bar detail-skill-attached-xp-bar" });
+        const xpFill = xpBar.createEl("div", { cls: "skill-xp-fill" });
+        xpFill.style.width = `${xpInfo.pct}%`;
       });
     }, "renderSkillsSelectorList");
     renderList();
@@ -1999,7 +2029,7 @@ var _QuestLogView = class _QuestLogView extends obsidianNS.ItemView {
       cls: "quest-modal-desc"
     });
     // Reward above sliders (match details order): centered Reward + divider;
-    // XP centered; coins left / XP right when rewardsMode (quests grant coins).
+    // XP centered; coins 2fr / XP 3fr under header when rewardsMode (quests grant coins).
     const xpRow = box.createEl("div", { cls: "quest-xp-preview-row quest-detail-reward" });
     xpRow.createEl("span", { text: "Reward", cls: "quest-xp-preview-label" });
     xpRow.createEl("div", { cls: "quest-detail-reward-divider" });
@@ -2214,7 +2244,7 @@ var _QuestLogView = class _QuestLogView extends obsidianNS.ItemView {
     descBox.style.height = "auto";
     descBox.style.height = descBox.scrollHeight + "px";
     // Reward block above sliders (Micah): open/inline, centered label + divider;
-    // XP alone centered, or coins left + XP right when rewardsMode (quests grant coins).
+    // XP alone centered, or coins 2fr / XP 3fr under header when rewardsMode (quests grant coins).
     const xpRow = box.createEl("div", { cls: "quest-xp-preview-row quest-detail-reward" });
     xpRow.createEl("span", { text: "Reward", cls: "quest-xp-preview-label" });
     xpRow.createEl("div", { cls: "quest-detail-reward-divider" });

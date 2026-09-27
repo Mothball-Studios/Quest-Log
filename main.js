@@ -2254,13 +2254,33 @@ var require_render = __commonJS({
           const refresh = /* @__PURE__ */ __name(() => {
             selectedSkillsDisplay.empty();
             const skills2 = this.plugin.settings.skills || [];
+            const difficulty = this.plugin.settings.skillDifficulty || 10;
             selectedSkillIds.forEach((skillId) => {
               const skill = skills2.find((s) => s.id === skillId);
               if (!skill) return;
-              const tag = selectedSkillsDisplay.createEl("span", { cls: "detail-skill-tag" });
-              tag.createEl("span", { text: skill.name });
-              const removeBtn = tag.createEl("span", { cls: "detail-skill-tag-remove" });
-              setIcon(removeBtn, "x");
+              const xpInfo = _QuestLogView2.getSkillXpProgress(skill, difficulty);
+              const row = selectedSkillsDisplay.createEl("div", {
+                cls: "skills-selector-row skill-selector-row detail-skill-attached-row detail-linked-attached-row"
+              });
+              const body = row.createEl("span", { cls: "linked-selector-row-body detail-skill-attached-body" });
+              const titleRow = body.createEl("span", { cls: "detail-skill-attached-title-row" });
+              titleRow.createEl("span", {
+                text: skill.name || "Untitled",
+                cls: "skills-selector-row-label linked-selector-row-title detail-skill-attached-title"
+              });
+              titleRow.createEl("span", {
+                text: (skill.legendary ? "\u2605 " : "") + "Lvl " + (xpInfo.level || 1),
+                cls: "detail-skill-attached-level"
+              });
+              const xpBar = body.createEl("div", { cls: "skill-xp-bar detail-skill-attached-xp-bar" });
+              const xpFill = xpBar.createEl("div", { cls: "skill-xp-fill" });
+              xpFill.style.width = `${xpInfo.pct}%`;
+              const removeBtn = row.createEl("button", {
+                cls: "detail-linked-row-remove",
+                attr: { "aria-label": "Detach", type: "button" }
+              });
+              const removeIcon = removeBtn.createEl("span", { cls: "detail-linked-row-remove-icon" });
+              setIcon(removeIcon, "x");
               removeBtn.addEventListener("click", (e) => {
                 e.stopPropagation();
                 const idx = selectedSkillIds.indexOf(skillId);
@@ -2312,6 +2332,7 @@ var require_render = __commonJS({
           box.createEl("div", { cls: "quest-detail-reward-divider skills-selector-divider" });
           const listEl = box.createEl("div", { cls: "skills-selector-list" });
           const draft = new Set(selectedSkillIds);
+          const difficulty = this.plugin.settings.skillDifficulty || 10;
           const renderList = /* @__PURE__ */ __name((query = "") => {
             listEl.empty();
             const skills2 = [...this.plugin.settings.skills || []].sort(
@@ -2328,7 +2349,8 @@ var require_render = __commonJS({
             }
             filtered.forEach((skill) => {
               const id = skill.id;
-              const row = listEl.createEl("label", { cls: "skills-selector-row" });
+              const xpInfo = _QuestLogView2.getSkillXpProgress(skill, difficulty);
+              const row = listEl.createEl("label", { cls: "skills-selector-row skill-selector-row" });
               const checkbox = row.createEl("input", {
                 type: "checkbox",
                 cls: "skills-selector-checkbox"
@@ -2338,13 +2360,19 @@ var require_render = __commonJS({
                 if (checkbox.checked) draft.add(id);
                 else draft.delete(id);
               });
-              row.createEl("span", {
-                text: skill.name + (skill.level ? ` (Lvl ${skill.level})` : ""),
-                cls: "skills-selector-row-label"
+              const body = row.createEl("span", { cls: "linked-selector-row-body" });
+              const titleRow = body.createEl("span", { cls: "detail-skill-attached-title-row" });
+              titleRow.createEl("span", {
+                text: skill.name || "Untitled",
+                cls: "skills-selector-row-label linked-selector-row-title detail-skill-attached-title"
               });
-              if (skill.legendary) {
-                row.createEl("span", { text: " \u2605", cls: "skills-selector-legendary" });
-              }
+              titleRow.createEl("span", {
+                text: (skill.legendary ? "\u2605 " : "") + "Lvl " + (xpInfo.level || 1),
+                cls: "detail-skill-attached-level"
+              });
+              const xpBar = body.createEl("div", { cls: "skill-xp-bar detail-skill-attached-xp-bar" });
+              const xpFill = xpBar.createEl("div", { cls: "skill-xp-fill" });
+              xpFill.style.width = `${xpInfo.pct}%`;
             });
           }, "renderSkillsSelectorList");
           renderList();

@@ -2,6 +2,14 @@
 
 Vault project notes (design / ship history). Durable code tree: `/workspace/Quest-Log-src`. Ship folder: `.obsidian/plugins/quest-log` (four files only).
 
+## 0.6.21 — 2026-09-26
+
+Micah via Atlas COO APPROVED — Quest Log UI post 0.6.20. Ship once when all three done:
+
+1. Quest details + quest creation reward layout: coins / XP no longer pinned to extremes. Coins in **2fr** slot, XP in **3fr** slot (`grid-template-columns: 2fr 3fr` = two-fifths / three-fifths of a 5-unit row under the Reward header; coherent reading of "two-fifths / rest"). Habits unaffected (no coins).
+2. Attach skills in quest details + habit details: attached skills as pretty blocks (skill-green left edge `--ql-skill` `#22c55e`, light green bg, skill title, small green XP bar, level in green on the right in line with title). Three skills per row, evenly spaced L→R, wrap. Bare detach X preserved from 0.6.20.
+3. Skills selector picker: available skills as pretty rows (green left edge, green bg, title, level, green XP bar). Two skills side by side per row, fill L→R.
+
 ## 0.6.20 — 2026-09-26
 
 Micah via Atlas COO APPROVED — Quest Log UI post 0.6.19. Skill details + creation:
