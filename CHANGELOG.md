@@ -2,6 +2,10 @@
 
 Vault project notes (design / ship history). Durable code tree: `/workspace/Quest-Log-src`. Ship folder: `.obsidian/plugins/quest-log` (four files only).
 
+## 0.6.2 — 2026-09-26
+
+Skill graph hover/glow leftovers switched from quest blue to skill green.
+
 ## 0.6.1 — 2026-09-26
 
 Type color coding restored and locked (not theme `interactive-accent`):

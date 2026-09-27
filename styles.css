@@ -2284,7 +2284,7 @@
 }
 
 .skill-graph-back-btn:hover {
-  background-color: rgba(94, 135, 255, 0.1);
+  background-color: rgba(34, 197, 94, 0.1);
 }
 
 .skill-graph-title {
@@ -2392,7 +2392,7 @@
 }
 .skill-graph-picker-icon-btn:hover {
   color: var(--ql-skill, #22c55e);
-  box-shadow: 0 0 12px rgba(94, 135, 255, 0.5);
+  box-shadow: 0 0 12px rgba(34, 197, 94, 0.5);
 }
 .skill-graph-picker-icon-btn svg {
   width: 16px;
@@ -2542,7 +2542,7 @@
   transition: background-color 0.15s ease;
 }
 .skill-graph-picker-reset-btn:hover {
-  background: #4a73e6;
+  background: var(--ql-skill-hover, #16a34a);
 }
 
 /* Chart section - main content area */
