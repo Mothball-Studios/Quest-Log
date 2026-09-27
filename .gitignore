@@ -1,0 +1,8 @@
+# deps / build junk
+node_modules/
+*.bak
+main.js.next
+
+# runtime plugin state — lives only in vault plugin dir, never ship/overwrite from here
+data.json
+profile.json

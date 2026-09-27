@@ -1,0 +1,14 @@
+{
+  "name": "quest-log",
+  "version": "0.5.5",
+  "private": true,
+  "description": "Obsidian Quest Log plugin (modular source). Durable git tree: /workspace/Quest-Log-src. Ship copies only main.js/styles.css/manifest.json into vault plugin; never touches data.json.",
+  "scripts": {
+    "build": "esbuild src/main.js --bundle --outfile=main.js --external:obsidian --format=cjs --platform=node",
+    "build:next": "esbuild src/main.js --bundle --outfile=main.js.next --external:obsidian --format=cjs --platform=node",
+    "ship": "bash scripts/ship.sh"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.0"
+  }
+}

@@ -696,7 +696,7 @@
   top: 0;
   left: 0;
   height: 100%;
-  border-radius: 5px 0 0 5px;
+  border-radius: 5px;
   pointer-events: none;
   transition: width 0.05s ease;
   box-shadow: 0 0 6px currentColor;
@@ -898,6 +898,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  position: relative;
 }
 
 .quest-detail-modal-title {
@@ -998,7 +999,8 @@
 
 /* --- Detail-specific slider overrides --- */
 .quest-detail-box .quest-sliders-section {
-  gap: 16px;
+  /* Half of prior 16px — tighten medium→urgency / urgency→impact gaps */
+  gap: 8px;
 }
 
 .quest-detail-box .quest-slider-label {
@@ -1031,20 +1033,67 @@
 }
 
 /* --- Detail-specific XP preview (Reward block) --- */
-.quest-detail-box .quest-xp-preview-row {
-  background-color: #111;
-  border: 1px solid var(--ql-border, #2a2a2a);
-  padding: 12px 14px;
-  border-radius: 8px;
+.quest-detail-box .quest-xp-preview-row.quest-detail-reward {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0;
+  background: none;
+  border: none;
+  border-radius: 0;
+  /* Compact XP → difficulty: bottom padding half of prior 10px */
+  padding: 4px 0 4px;
+  margin-bottom: 0;
+  box-shadow: none;
 }
-.quest-detail-box .quest-xp-preview-label {
+.quest-detail-box .quest-detail-reward .quest-xp-preview-label {
   color: #888;
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.5px;
   text-transform: uppercase;
+  text-align: center;
+  width: 100%;
+  display: block;
+  margin: 0 0 6px;
 }
-.quest-detail-box .quest-xp-preview-value {
+.quest-detail-box .quest-detail-reward-divider {
+  width: 100%;
+  height: 0;
+  border: none;
+  border-top: 1px solid var(--ql-border, #2a2a2a);
+  margin: 0 0 10px;
+}
+.quest-detail-box .quest-detail-reward-body {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 1.4em;
+}
+.quest-detail-box .quest-detail-reward-body.has-extra {
+  justify-content: space-between;
+}
+.quest-detail-box .quest-detail-reward-coins {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #ffd700;
+  font-size: 18px;
+  font-weight: 700;
+}
+.quest-detail-box .quest-detail-reward-coin-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffd700;
+}
+.quest-detail-box .quest-detail-reward-coin-icon svg {
+  width: 18px;
+  height: 18px;
+}
+.quest-detail-box .quest-detail-reward .quest-xp-preview-value {
+  /* Keep XP value styling exactly as before */
   color: var(--ql-accent, #5e87ff);
   font-size: 20px;
   font-weight: 700;
@@ -1068,6 +1117,7 @@
 .habit-context .quest-detail-title-input:focus {
   border-color: #a855f7;
 }
+/* Beat .quest-detail-box .quest-detail-reward .quest-xp-preview-value (same 3-class specificity; later wins) */
 .habit-context .quest-detail-box .quest-xp-preview-value {
   color: #a855f7;
 }
@@ -1077,7 +1127,6 @@
 .habit-context .quest-detail-complete-btn:hover {
   background-color: #16a34a !important;
 }
-
 /* Detail modal skill selector */
 .detail-skills-section {
   margin-top: 12px;
@@ -1185,7 +1234,42 @@
 .quest-detail-btn-group {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 10px;
+}
+
+/* Icon-only Close when parked in the header action row (matches trash / open note) */
+.quest-detail-btn-group .quest-detail-close-btn {
+  flex: 0 0 auto;
+  background-color: transparent !important;
+  color: #c4c9d0;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 4px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: inherit;
+  font-weight: inherit;
+  line-height: 1;
+}
+.quest-detail-btn-group .quest-detail-close-btn:hover {
+  background-color: transparent !important;
+  color: var(--ql-danger, #ef4444);
+  box-shadow: 0 0 12px rgba(239, 68, 68, 0.5);
+}
+.quest-detail-close-icon {
+  /* Lucide "x" ink fills less of its viewBox than trash-2/file-text.
+     At 24px CSS the X ink measured 14px; scale to 24*(16/14) so ink hits 16px
+     to match trash/note ink height. */
+  --icon-size: calc(24px * 16 / 14);
+  display: inline-flex;
+  /* 1px up from prior (none) per Micah voice. */
+  transform: translateY(-1px);
+}
+.quest-detail-close-icon svg {
+  width: var(--icon-size, calc(24px * 16 / 14));
+  height: var(--icon-size, calc(24px * 16 / 14));
 }
 
 .quest-detail-delete-btn {
@@ -1207,6 +1291,7 @@
 .quest-detail-delete-icon svg {
   width: 18px;
   height: 18px;
+  transform: translateX(-3px);
 }
 
 .quest-detail-open-btn {
@@ -1228,6 +1313,7 @@
 .quest-detail-open-icon svg {
   width: 18px;
   height: 18px;
+  transform: translateX(-3px);
 }
 
 .quest-detail-spacer {
@@ -1258,10 +1344,21 @@
   height: 16px;
 }
 
-/* --- Created date meta --- */
+/* --- Created date meta (header row, horizontally centered; shared quest/habit) --- */
+.quest-detail-header-row .quest-detail-meta-text {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  color: #666;
+  font-size: 12px;
+  margin: 0;
+  white-space: nowrap;
+  pointer-events: none;
+}
 .quest-detail-box .habit-detail-meta {
   margin-top: 0;
 }
+.quest-detail-box .quest-detail-meta-text,
 .quest-detail-box .habit-detail-meta-text {
   color: #666;
   font-size: 12px;
@@ -1426,10 +1523,28 @@
   font-size: 13px;
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
 }
 .habit-fail-btn:hover {
   background-color: #dc2626;
+}
+
+/* Detail modal bottom row: Fail + Complete same size, 50/50 (Complete alone = full width via flex) */
+.quest-detail-buttons .habit-fail-btn {
+  flex: 1;
+  padding: 10px 20px;
+  font-size: 14px;
+}
+.quest-detail-buttons .habit-btn-icon svg {
+  width: 18px;
+  height: 18px;
+  display: block;
+}
+.quest-detail-buttons .quest-detail-complete-icon svg {
+  width: 18px;
+  height: 18px;
+  display: block;
 }
 
 .habit-btn-icon {
@@ -1541,6 +1656,7 @@
   text-align: center;
   margin-top: 4px;
 }
+.quest-detail-meta-text,
 .habit-detail-meta-text {
   color: #666;
   font-size: 12px;
@@ -1872,14 +1988,15 @@
     font-size: 11px;
   }
 
-  /* Buttons — full width on mobile, stacked */
+  /* Detail bottom actions stay side-by-side (50/50 Fail+Complete; Complete alone full-width) */
   .quest-detail-buttons {
-    flex-direction: column;
+    flex-direction: row;
     gap: 8px;
   }
 
   .quest-detail-close-btn,
   .quest-detail-complete-btn,
+  .quest-detail-buttons .habit-fail-btn,
   .quest-undo-btn,
   .quest-modal-cancel-btn,
   .quest-modal-create-btn {
@@ -1895,6 +2012,10 @@
   .habit-fail-btn {
     padding: 8px 12px;
     font-size: 12px;
+  }
+  .quest-detail-buttons .habit-fail-btn {
+    padding: 10px 16px;
+    font-size: 13px;
   }
 
   /* XP sliders */
