@@ -2460,19 +2460,36 @@
   color: var(--ql-skill, #22c55e);
 }
 
-/* Skill detail level section */
+/* Skill level section (DETAILS + CREATION — identical).
+   Visual header structure (mirrors Reward): divider → level|xp line → bar → divider.
+   No divider between title/desc and this section. */
 .skill-level-section {
-  background-color: #111;
-  border: 1px solid var(--ql-border, #2a2a2a);
-  border-radius: 8px;
-  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0;
+  background: none;
+  border: none;
+  border-radius: 0;
+  padding: 4px 0;
+  margin: 0;
+  box-shadow: none;
+}
+
+.skill-level-section .skill-level-top-divider {
+  margin: 0 0 10px;
+}
+
+.skill-level-section .skill-level-bottom-divider {
+  margin: 10px 0 0;
 }
 
 .skill-level-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 8px;
+  width: 100%;
+  margin: 0 0 8px;
 }
 
 .skill-level-label {
@@ -2484,9 +2501,10 @@
 }
 
 .skill-level-value {
-  font-size: 18px;
+  font-size: 16px;
   font-weight: bold;
-  color: var(--ql-success, #22c55e);
+  color: var(--ql-skill, #22c55e);
+  line-height: 1.2;
 }
 
 .skill-detail-xp-bar {
@@ -2494,18 +2512,22 @@
   background-color: #333;
   border-radius: 3px;
   overflow: hidden;
-  margin-bottom: 6px;
+  margin: 0;
+  width: 100%;
 }
 
 .skill-detail-xp-fill {
   height: 100%;
-  background-color: var(--ql-success, #22c55e);
+  background-color: var(--ql-skill, #22c55e);
   transition: width 0.3s ease;
 }
 
+.skill-level-row .skill-xp-progress-text,
 .skill-xp-progress-text {
   font-size: 11px;
-  color: #666;
+  color: #888;
+  line-height: 1.2;
+  text-align: right;
 }
 
 /* Legendary button */

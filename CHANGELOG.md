@@ -2,6 +2,15 @@
 
 Vault project notes (design / ship history). Durable code tree: `/workspace/Quest-Log-src`. Ship folder: `.obsidian/plugins/quest-log` (four files only).
 
+## 0.6.46 — 2026-09-26
+
+Luke via Atlas COO APPROVED (assign) — Skills DETAILS + CREATION identical level block:
+
+1. Level section = visual header structure: **divider → level|xp line → XP bar → divider**.
+2. Single line: level number LEFT; `xpProgress / xpNeeded` XP RIGHT (`getSkillXpProgress`).
+3. No divider between title/desc and level section (explicitly rejected). Creation drops info blurb; new skill shows Lvl 1, 0 / xpNeeded, empty bar.
+4. Both modals share `renderSkillLevelBlock`.
+
 ## 0.6.45 — 2026-09-26
 
 Luke via Atlas COO REPLACE — Skills selector/attached: NO description (Skills tab only):

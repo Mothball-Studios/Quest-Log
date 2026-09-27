@@ -1839,11 +1839,9 @@ var _QuestLogView = class _QuestLogView extends obsidianNS.ItemView {
       attr: { placeholder: "Description..." },
       cls: "quest-modal-desc"
     });
-    const skillInfo = skillModalBox.createEl("div", { cls: "skill-creation-info" });
-    skillInfo.createEl("span", {
-      text: "Skills level up automatically when attached to quests or habits.",
-      cls: "skill-creation-info-text"
-    });
+    // Identical level block as skill details (new skill = Lvl 1, 0 / xpNeeded, empty bar).
+    // No info blurb between desc and level — Atlas rejected divider/blurb there.
+    this.renderSkillLevelBlock(skillModalBox, { xp: 0, level: 1, legendary: false });
     const selectedQuestIds = this.attachLinkedPicker(skillModalBox, {
       kind: "quest",
       label: "attach quests",
@@ -3038,6 +3036,36 @@ var _QuestLogView = class _QuestLogView extends obsidianNS.ItemView {
       cls: "skill-graph-note"
     });
   }
+  /**
+   * Shared Skills level block for DETAILS + CREATION modals (identical DOM).
+   * Inside section, top→bottom:
+   *   1. Divider
+   *   2. Level number LEFT | xpProgress / xpNeeded XP RIGHT
+   *   3. XP bar
+   *   4. Divider (separates from attached quests)
+   * No divider above the section (between title/desc and level) — rejected.
+   */
+  renderSkillLevelBlock(parentEl, skill) {
+    const difficulty = this.plugin.settings.skillDifficulty || 10;
+    const xpInfo = _QuestLogView.getSkillXpProgress(skill || { xp: 0, level: 1 }, difficulty);
+    const levelSection = parentEl.createEl("div", { cls: "skill-level-section" });
+    levelSection.createEl("div", { cls: "quest-detail-reward-divider skill-level-top-divider" });
+    const levelRow = levelSection.createEl("div", { cls: "skill-level-row" });
+    const levelNum = xpInfo.level || 1;
+    levelRow.createEl("span", {
+      text: (skill && skill.legendary ? "\u2605 " : "") + String(levelNum),
+      cls: "skill-level-value"
+    });
+    levelRow.createEl("span", {
+      text: `${xpInfo.xpProgress.toLocaleString()} / ${xpInfo.xpNeeded.toLocaleString()} XP`,
+      cls: "skill-xp-progress-text"
+    });
+    const skillXpBar = levelSection.createEl("div", { cls: "skill-detail-xp-bar" });
+    const skillXpFill = skillXpBar.createEl("div", { cls: "skill-detail-xp-fill" });
+    skillXpFill.style.width = `${xpInfo.pct}%`;
+    levelSection.createEl("div", { cls: "quest-detail-reward-divider skill-level-bottom-divider" });
+    return { levelSection, xpInfo };
+  }
   openSkillDetail(skill) {
     const overlay = this._detailOverlay;
     const box = this._detailBox;
@@ -3048,7 +3076,6 @@ var _QuestLogView = class _QuestLogView extends obsidianNS.ItemView {
     box.removeClass("skill-context");
     box.addClass("skill-context");
     overlay.addClass("open");
-    const difficulty = this.plugin.settings.skillDifficulty || 10;
     // One-line header matching quest/habit: title | Created on … | trash → open note → close
     const headerRow = box.createEl("div", { cls: "quest-detail-header-row has-divider" });
     headerRow.createEl("span", {
@@ -3116,21 +3143,9 @@ var _QuestLogView = class _QuestLogView extends obsidianNS.ItemView {
     });
     descBox.style.height = "auto";
     descBox.style.height = descBox.scrollHeight + "px";
-    const xpInfo = _QuestLogView.getSkillXpProgress(skill, difficulty);
-    const levelSection = box.createEl("div", { cls: "skill-level-section" });
-    const levelRow = levelSection.createEl("div", { cls: "skill-level-row" });
-    levelRow.createEl("span", { text: "Level", cls: "skill-level-label" });
-    levelRow.createEl("span", {
-      text: skill.legendary ? `\u2605 ${skill.level}` : `${skill.level}`,
-      cls: "skill-level-value"
-    });
-    const skillXpBar = levelSection.createEl("div", { cls: "skill-detail-xp-bar" });
-    const skillXpFill = skillXpBar.createEl("div", { cls: "skill-detail-xp-fill" });
-    skillXpFill.style.width = `${xpInfo.pct}%`;
-    levelSection.createEl("span", {
-      text: `${xpInfo.xpProgress.toLocaleString()} / ${xpInfo.xpNeeded.toLocaleString()} XP`,
-      cls: "skill-xp-progress-text"
-    });
+    // Shared level block (identical to skill creation): divider → level|xp → bar → divider.
+    // No divider between title/desc and this section.
+    this.renderSkillLevelBlock(box, skill);
     const selectedQuestIds = this.attachLinkedPicker(box, {
       kind: "quest",
       label: "attach quests",
