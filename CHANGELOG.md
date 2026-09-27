@@ -2,6 +2,15 @@
 
 Vault project notes (design / ship history). Durable code tree: `/workspace/Quest-Log-src`. Ship folder: `.obsidian/plugins/quest-log` (four files only).
 
+## 0.6.26 — 2026-09-26
+
+Micah via Atlas COO APPROVED — Quest Log UI post 0.6.25:
+
+1. Shop create FAB: restore base `.quest-log-fab` geometry (50×50 absolute).
+2. Desktop shop FAB `bottom: 50px` (a little above main FAB's 30px).
+3. Mobile shop FAB `bottom: 125px` (~1.5 FAB heights above desktop) to clear Obsidian action bar.
+4. CSS + manifest only; `main.js` unchanged from 0.6.25.
+
 ## 0.6.25 — 2026-09-26
 
 Micah via Atlas COO APPROVED — Quest Log UI post 0.6.24:
