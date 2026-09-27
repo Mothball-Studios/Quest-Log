@@ -2,6 +2,15 @@
 
 Vault project notes (design / ship history). Durable code tree: `/workspace/Quest-Log-src`. Ship folder: `.obsidian/plugins/quest-log` (four files only).
 
+## 0.6.3 — 2026-09-26
+
+Luke consistency pass on Scope's 0.6.1/0.6.2 type tokens:
+
+- Habit list cards: hover border + XP text use `--ql-habit` (no longer inherit quest blue)
+- Detail modal context classes cleared/set so skill/quest/habit accents cannot bleed
+- Completed list labels both Quest (blue) and Habit (purple)
+- Skill radar polygon fill + leftover `#5e87ff`-era glows aligned to type tokens
+
 ## 0.6.2 — 2026-09-26
 
 Skill graph hover/glow leftovers switched from quest blue to skill green.

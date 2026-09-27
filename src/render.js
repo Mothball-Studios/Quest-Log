@@ -378,7 +378,7 @@ var _SkillRadarChart = class _SkillRadarChart {
     this.maxRadius = this.size / 2 - 50;
     this.numCircles = 5;
     this.polygonColor = "#22c55e";
-    this.polygonFill = "rgba(94, 135, 255, 0.4)";
+    this.polygonFill = "rgba(34, 197, 94, 0.4)";
     this.lineColor = "#3a3a3a";
     this.radialLineColor = "#444";
     this.textColor = "#aaa";
@@ -1884,13 +1884,11 @@ var _QuestLogView = class _QuestLogView extends obsidianNS.ItemView {
     const box = this._detailBox;
     this.drainSliders(box);
     box.empty();
-    if (isHabit) {
-      box.addClass("habit-context");
-      box.removeClass("quest-context");
-    } else {
-      box.addClass("quest-context");
-      box.removeClass("habit-context");
-    }
+    box.removeClass("habit-context");
+    box.removeClass("quest-context");
+    box.removeClass("skill-context");
+    if (isHabit) box.addClass("habit-context");
+    else box.addClass("quest-context");
     overlay.addClass("open");
     const headerRow = box.createEl("div", { cls: "quest-detail-header-row" });
     headerRow.createEl("span", {
@@ -2656,6 +2654,9 @@ var _QuestLogView = class _QuestLogView extends obsidianNS.ItemView {
     const box = this._detailBox;
     this.drainSliders(box);
     box.empty();
+    box.removeClass("habit-context");
+    box.removeClass("quest-context");
+    box.removeClass("skill-context");
     box.addClass("skill-context");
     overlay.addClass("open");
     const difficulty = this.plugin.settings.skillDifficulty || 10;
@@ -2787,12 +2788,10 @@ var _QuestLogView = class _QuestLogView extends obsidianNS.ItemView {
         text: `${item.xp.toLocaleString()} XP`,
         cls: "completed-block-xp"
       });
-      if (item._type === "habit") {
-        meta.createEl("span", {
-          text: "Habit",
-          cls: "completed-block-type"
-        });
-      }
+      meta.createEl("span", {
+        text: item._type === "habit" ? "Habit" : "Quest",
+        cls: `completed-block-type type-${item._type === "habit" ? "habit" : "quest"}`
+      });
       meta.createEl("span", {
         text: _QuestLogView.formatDate(item.completedAt),
         cls: "completed-block-date"
@@ -2815,6 +2814,9 @@ var _QuestLogView = class _QuestLogView extends obsidianNS.ItemView {
     this.drainSliders(box);
     box.empty();
     box.removeClass("habit-context");
+    box.removeClass("skill-context");
+    box.removeClass("quest-context");
+    box.addClass("quest-context");
     overlay.addClass("open");
     box.createEl("h2", {
       text: quest.title,
@@ -2886,6 +2888,9 @@ var _QuestLogView = class _QuestLogView extends obsidianNS.ItemView {
     const box = this._detailBox;
     this.drainSliders(box);
     box.empty();
+    box.removeClass("habit-context");
+    box.removeClass("skill-context");
+    box.removeClass("quest-context");
     box.addClass("habit-context");
     overlay.addClass("open");
     box.createEl("h2", {

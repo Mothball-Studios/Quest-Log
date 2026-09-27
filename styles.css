@@ -144,7 +144,7 @@
   color: var(--ql-text, #fff);
 }
 .ql-btn-primary:hover {
-  background-color: var(--ql-accent-hover, #4a73e6);
+  background-color: var(--ql-accent-hover, #3d5a9a);
 }
 .ql-btn-danger {
   background-color: var(--ql-danger, #ef4444);
@@ -383,7 +383,7 @@
 }
 .quest-menu-item.active-menu {
   color: var(--ql-accent, #4b6cb7);
-  background-color: rgba(94, 135, 255, 0.1);
+  background-color: rgba(75, 108, 183, 0.1);
 }
 .quest-menu-item svg {
   width: 18px;
@@ -793,8 +793,8 @@
   justify-content: center;
 }
 .quest-modal-create-btn:hover {
-  background-color: #4a73e6;
-  box-shadow: 0 0 12px rgba(94, 135, 255, 0.5);
+  background-color: var(--ql-quest-hover, #3d5a9a);
+  box-shadow: 0 0 12px rgba(75, 108, 183, 0.5);
 }
 .quest-modal-create-btn-icon svg {
   width: 16px;
@@ -1110,8 +1110,13 @@
 }
 
 /* Quest context — XP-bar blue accent */
+.quest-context .quest-modal-header-icon,
+.quest-context .quest-detail-modal-title {
+  color: var(--ql-quest, #4b6cb7);
+}
 .quest-context .quest-modal-title:focus,
-.quest-context .quest-modal-desc:focus {
+.quest-context .quest-modal-desc:focus,
+.quest-context .quest-detail-desc:focus {
   border-color: var(--ql-quest, #4b6cb7);
 }
 .quest-context .quest-xp-preview-value {
@@ -1132,8 +1137,13 @@
 }
 
 /* Habit context — purple accent */
+.habit-context .quest-modal-header-icon,
+.habit-context .quest-detail-modal-title {
+  color: var(--ql-habit, #a855f7);
+}
 .habit-context .quest-modal-title:focus,
-.habit-context .quest-modal-desc:focus {
+.habit-context .quest-modal-desc:focus,
+.habit-context .quest-detail-desc:focus {
   border-color: var(--ql-habit, #a855f7);
 }
 .habit-context .quest-xp-preview-value {
@@ -1157,7 +1167,7 @@
   background-color: var(--ql-success, #22c55e) !important;
 }
 .habit-context .quest-detail-complete-btn:hover {
-  background-color: #16a34a !important;
+  background-color: var(--ql-skill-hover, #16a34a) !important;
 }
 /* Detail modal skill selector */
 .detail-skills-section {
@@ -1340,7 +1350,7 @@
 }
 .quest-detail-open-btn:hover {
   color: var(--ql-accent, #4b6cb7);
-  box-shadow: 0 0 12px rgba(94, 135, 255, 0.5);
+  box-shadow: 0 0 12px rgba(75, 108, 183, 0.5);
 }
 .quest-detail-open-icon svg {
   width: 18px;
@@ -1518,6 +1528,12 @@
 .habit-block {
   border-left: 3px solid var(--ql-habit, #a855f7);
 }
+.habit-block:hover {
+  border-color: var(--ql-habit, #a855f7);
+}
+.habit-block .quest-block-xp {
+  color: var(--ql-habit, #a855f7);
+}
 
 .habit-action-row {
   display: flex;
@@ -1647,11 +1663,16 @@
 }
 
 .completed-block-type {
-  color: var(--ql-habit, #a855f7);
   font-size: 11px;
   font-weight: bold;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+}
+.completed-block-type.type-quest {
+  color: var(--ql-quest, #4b6cb7);
+}
+.completed-block-type.type-habit {
+  color: var(--ql-habit, #a855f7);
 }
 
 /* Habit detail title row with delete icon */
@@ -1720,14 +1741,14 @@
 }
 
 .skill-block:hover {
-  border-color: #16a34a;
+  border-color: var(--ql-skill-hover, #16a34a);
 }
 
 /* Skill level badge */
 .skill-level-badge {
   font-size: 11px;
   font-weight: bold;
-  color: var(--ql-success, #22c55e);
+  color: var(--ql-skill, #22c55e);
   text-transform: uppercase;
   letter-spacing: 1px;
 }
@@ -1742,7 +1763,7 @@
 
 .skill-xp-fill {
   height: 100%;
-  background-color: var(--ql-success, #22c55e);
+  background-color: var(--ql-skill, #22c55e);
   transition: width 0.3s ease;
 }
 
@@ -1773,8 +1794,13 @@
 }
 
 /* Skill context — green accent */
+.skill-context .quest-modal-header-icon,
+.skill-context .quest-detail-modal-title {
+  color: var(--ql-skill, #22c55e);
+}
 .skill-context .quest-modal-title:focus,
-.skill-context .quest-modal-desc:focus {
+.skill-context .quest-modal-desc:focus,
+.skill-context .quest-detail-desc:focus {
   border-color: var(--ql-skill, #22c55e);
 }
 .skill-context .quest-xp-preview-value {
