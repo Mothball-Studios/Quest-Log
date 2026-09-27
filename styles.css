@@ -717,8 +717,8 @@
 .custom-slider-thumb {
   position: absolute;
   top: 50%;
-  width: 24px;
-  height: 24px;
+  width: 20px;
+  height: 20px;
   transform: translate(-50%, -50%);
   pointer-events: none;
   transition: left 0.05s ease;
@@ -1051,14 +1051,8 @@
   gap: 8px;
 }
 
-/* Detail slider LABELS inherit creation-modal .quest-slider-label (11px/bold/0.8px); bars untouched */
-
-.quest-detail-box .quest-slider-value {
-  color: #ccc;
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.5px;
-}
+/* Detail slider LABELS + scale words inherit creation-modal
+   .quest-slider-label / .quest-slider-value (bars untouched) */
 
 .quest-detail-box .custom-slider-track {
   height: 10px;

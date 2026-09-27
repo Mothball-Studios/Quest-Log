@@ -2,6 +2,14 @@
 
 Vault project notes (design / ship history). Durable code tree: `/workspace/Quest-Log-src`. Ship folder: `.obsidian/plugins/quest-log` (four files only).
 
+## 0.6.12 — 2026-09-26
+
+Micah via Atlas/Riku — creation ↔ details slider polish (follow-on after 0.6.11):
+
+1. Creation-modal slider thumb star size matches details (20×20 clip-path thumb).
+2. Details Difficulty/Urgency/Impact labels + scale words inherit creation typography (weight/size/color); slider bars untouched.
+3. Creation Reward block moved above Difficulty/Urgency/Impact sliders (same order as details).
+
 ## 0.6.11 — 2026-09-26
 
 Micah via Atlas/Riku — creation + details modal sync:

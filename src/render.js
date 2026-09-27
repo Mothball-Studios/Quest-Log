@@ -1684,8 +1684,30 @@ var _QuestLogView = class _QuestLogView extends obsidianNS.ItemView {
       attr: { placeholder: isHabit ? "Description..." : "Instructions..." },
       cls: "quest-modal-desc"
     });
-    const slidersSection = box.createEl("div", { cls: "quest-sliders-section" });
+    // Reward above sliders (match details order): centered Reward + divider;
+    // XP centered; coins left / XP right when rewardsMode (quests grant coins).
+    const xpRow = box.createEl("div", { cls: "quest-xp-preview-row quest-detail-reward" });
+    xpRow.createEl("span", { text: "Reward", cls: "quest-xp-preview-label" });
+    xpRow.createEl("div", { cls: "quest-detail-reward-divider" });
+    const rewardBody = xpRow.createEl("div", { cls: "quest-detail-reward-body" });
     const xpPreview = { el: null, coinEl: null };
+    const showCoins = Boolean(this.plugin.settings.rewardsMode) && !isHabit;
+    const defaultXp = _QuestLogView.calcXp(1, 1, 1);
+    if (showCoins) {
+      rewardBody.addClass("has-extra");
+      const coinWrap = rewardBody.createEl("span", { cls: "quest-detail-reward-coins" });
+      const coinIcon = coinWrap.createEl("span", { cls: "quest-detail-reward-coin-icon" });
+      setIcon(coinIcon, "coins");
+      xpPreview.coinEl = coinWrap.createEl("span", {
+        cls: "quest-detail-reward-coin-text",
+        text: `+${Math.max(1, Math.min(50, Math.round(defaultXp / 1e4)))}`
+      });
+    }
+    xpPreview.el = rewardBody.createEl("span", {
+      text: `${defaultXp.toLocaleString()} XP`,
+      cls: "quest-xp-preview-value"
+    });
+    const slidersSection = box.createEl("div", { cls: "quest-sliders-section" });
     const updateXpPreview = /* @__PURE__ */ __name(() => {
       const xp = _QuestLogView.calcXp(
         diffSlider._getValue(),
@@ -1724,28 +1746,6 @@ var _QuestLogView = class _QuestLogView extends obsidianNS.ItemView {
       1,
       updateXpPreview
     );
-    // Reward layout matches details: centered Reward + divider; XP centered;
-    // coins left / XP right when rewardsMode (quests grant coins).
-    const xpRow = box.createEl("div", { cls: "quest-xp-preview-row quest-detail-reward" });
-    xpRow.createEl("span", { text: "Reward", cls: "quest-xp-preview-label" });
-    xpRow.createEl("div", { cls: "quest-detail-reward-divider" });
-    const rewardBody = xpRow.createEl("div", { cls: "quest-detail-reward-body" });
-    const showCoins = Boolean(this.plugin.settings.rewardsMode) && !isHabit;
-    const defaultXp = _QuestLogView.calcXp(1, 1, 1);
-    if (showCoins) {
-      rewardBody.addClass("has-extra");
-      const coinWrap = rewardBody.createEl("span", { cls: "quest-detail-reward-coins" });
-      const coinIcon = coinWrap.createEl("span", { cls: "quest-detail-reward-coin-icon" });
-      setIcon(coinIcon, "coins");
-      xpPreview.coinEl = coinWrap.createEl("span", {
-        cls: "quest-detail-reward-coin-text",
-        text: `+${Math.max(1, Math.min(50, Math.round(defaultXp / 1e4)))}`
-      });
-    }
-    xpPreview.el = rewardBody.createEl("span", {
-      text: `${defaultXp.toLocaleString()} XP`,
-      cls: "quest-xp-preview-value"
-    });
     const selectedSkillIds = this.attachSkillPicker(box, []);
     const btnContainer = box.createEl("div", { cls: "quest-modal-buttons" });
     const createBtn = btnContainer.createEl("button", {
