@@ -2268,7 +2268,7 @@ var require_render = __commonJS({
                 text: skill.name || "Untitled",
                 cls: "skills-selector-row-label linked-selector-row-title detail-skill-attached-title"
               });
-              body.createEl("span", {
+              titleRow.createEl("span", {
                 text: (skill.legendary ? "\u2605 " : "") + "Lvl " + (xpInfo.level || 1),
                 cls: "detail-skill-attached-level"
               });
@@ -2366,7 +2366,7 @@ var require_render = __commonJS({
                 text: skill.name || "Untitled",
                 cls: "skills-selector-row-label linked-selector-row-title detail-skill-attached-title"
               });
-              body.createEl("span", {
+              titleRow.createEl("span", {
                 text: (skill.legendary ? "\u2605 " : "") + "Lvl " + (xpInfo.level || 1),
                 cls: "detail-skill-attached-level"
               });
@@ -3338,7 +3338,8 @@ var require_render = __commonJS({
           const defaultXp = _QuestLogView2.calcXp(1, 1, 1);
           if (showCoins) {
             rewardBody.addClass("has-extra");
-            const coinWrap = rewardBody.createEl("span", { cls: "quest-detail-reward-coins" });
+            const coinSlot = rewardBody.createEl("div", { cls: "quest-detail-reward-slot" });
+            const coinWrap = coinSlot.createEl("span", { cls: "quest-detail-reward-coins" });
             const coinIcon = coinWrap.createEl("span", { cls: "quest-detail-reward-coin-icon" });
             setIcon(coinIcon, "coins");
             xpPreview.coinEl = coinWrap.createEl("span", {
@@ -3346,7 +3347,8 @@ var require_render = __commonJS({
               text: `+${Math.max(1, Math.min(50, Math.round(defaultXp / 1e4)))}`
             });
           }
-          xpPreview.el = rewardBody.createEl("span", {
+          const xpSlot = showCoins ? rewardBody.createEl("div", { cls: "quest-detail-reward-slot" }) : rewardBody;
+          xpPreview.el = xpSlot.createEl("span", {
             text: `${defaultXp.toLocaleString()} XP`,
             cls: "quest-xp-preview-value"
           });
@@ -3546,7 +3548,8 @@ var require_render = __commonJS({
           const showCoins = Boolean(this.plugin.settings.rewardsMode) && !isHabit;
           if (showCoins) {
             rewardBody.addClass("has-extra");
-            const coinWrap = rewardBody.createEl("span", { cls: "quest-detail-reward-coins" });
+            const coinSlot = rewardBody.createEl("div", { cls: "quest-detail-reward-slot" });
+            const coinWrap = coinSlot.createEl("span", { cls: "quest-detail-reward-coins" });
             const coinIcon = coinWrap.createEl("span", { cls: "quest-detail-reward-coin-icon" });
             setIcon(coinIcon, "coins");
             xpPreview.coinEl = coinWrap.createEl("span", {
@@ -3554,7 +3557,8 @@ var require_render = __commonJS({
               text: `+${Math.max(1, Math.min(50, Math.round(item.xp / 1e4)))}`
             });
           }
-          xpPreview.el = rewardBody.createEl("span", {
+          const xpSlot = showCoins ? rewardBody.createEl("div", { cls: "quest-detail-reward-slot" }) : rewardBody;
+          xpPreview.el = xpSlot.createEl("span", {
             text: `${item.xp.toLocaleString()} XP`,
             cls: "quest-xp-preview-value"
           });

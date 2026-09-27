@@ -952,7 +952,7 @@ var _QuestLogView = class _QuestLogView extends obsidianNS.ItemView {
         const skill = skills.find((s) => s.id === skillId);
         if (!skill) return;
         const xpInfo = _QuestLogView.getSkillXpProgress(skill, difficulty);
-        // Pretty blocks: title → level → XP bar (stacked; 2-col grid via CSS)
+        // Pretty blocks: title+level same row (level bottom-aligned), XP bar under; 2-col grid via CSS
         const row = selectedSkillsDisplay.createEl("div", {
           cls: "skills-selector-row skill-selector-row detail-skill-attached-row detail-linked-attached-row"
         });
@@ -962,7 +962,7 @@ var _QuestLogView = class _QuestLogView extends obsidianNS.ItemView {
           text: skill.name || "Untitled",
           cls: "skills-selector-row-label linked-selector-row-title detail-skill-attached-title"
         });
-        body.createEl("span", {
+        titleRow.createEl("span", {
           text: (skill.legendary ? "\u2605 " : "") + "Lvl " + (xpInfo.level || 1),
           cls: "detail-skill-attached-level"
         });
@@ -1044,7 +1044,7 @@ var _QuestLogView = class _QuestLogView extends obsidianNS.ItemView {
       filtered.forEach((skill) => {
         const id = skill.id;
         const xpInfo = _QuestLogView.getSkillXpProgress(skill, difficulty);
-        // Pretty skill rows: title → level → XP bar (stacked; 2-col grid via CSS)
+        // Pretty skill rows: title+level same row (level bottom-aligned), XP bar under; 2-col grid via CSS
         const row = listEl.createEl("label", { cls: "skills-selector-row skill-selector-row" });
         const checkbox = row.createEl("input", {
           type: "checkbox",
@@ -1061,7 +1061,7 @@ var _QuestLogView = class _QuestLogView extends obsidianNS.ItemView {
           text: skill.name || "Untitled",
           cls: "skills-selector-row-label linked-selector-row-title detail-skill-attached-title"
         });
-        body.createEl("span", {
+        titleRow.createEl("span", {
           text: (skill.legendary ? "\u2605 " : "") + "Lvl " + (xpInfo.level || 1),
           cls: "detail-skill-attached-level"
         });
@@ -2039,7 +2039,8 @@ var _QuestLogView = class _QuestLogView extends obsidianNS.ItemView {
     const defaultXp = _QuestLogView.calcXp(1, 1, 1);
     if (showCoins) {
       rewardBody.addClass("has-extra");
-      const coinWrap = rewardBody.createEl("span", { cls: "quest-detail-reward-coins" });
+      const coinSlot = rewardBody.createEl("div", { cls: "quest-detail-reward-slot" });
+      const coinWrap = coinSlot.createEl("span", { cls: "quest-detail-reward-coins" });
       const coinIcon = coinWrap.createEl("span", { cls: "quest-detail-reward-coin-icon" });
       setIcon(coinIcon, "coins");
       xpPreview.coinEl = coinWrap.createEl("span", {
@@ -2047,7 +2048,10 @@ var _QuestLogView = class _QuestLogView extends obsidianNS.ItemView {
         text: `+${Math.max(1, Math.min(50, Math.round(defaultXp / 1e4)))}`
       });
     }
-    xpPreview.el = rewardBody.createEl("span", {
+    const xpSlot = showCoins
+      ? rewardBody.createEl("div", { cls: "quest-detail-reward-slot" })
+      : rewardBody;
+    xpPreview.el = xpSlot.createEl("span", {
       text: `${defaultXp.toLocaleString()} XP`,
       cls: "quest-xp-preview-value"
     });
@@ -2253,7 +2257,8 @@ var _QuestLogView = class _QuestLogView extends obsidianNS.ItemView {
     const showCoins = Boolean(this.plugin.settings.rewardsMode) && !isHabit;
     if (showCoins) {
       rewardBody.addClass("has-extra");
-      const coinWrap = rewardBody.createEl("span", { cls: "quest-detail-reward-coins" });
+      const coinSlot = rewardBody.createEl("div", { cls: "quest-detail-reward-slot" });
+      const coinWrap = coinSlot.createEl("span", { cls: "quest-detail-reward-coins" });
       const coinIcon = coinWrap.createEl("span", { cls: "quest-detail-reward-coin-icon" });
       setIcon(coinIcon, "coins");
       xpPreview.coinEl = coinWrap.createEl("span", {
@@ -2261,7 +2266,10 @@ var _QuestLogView = class _QuestLogView extends obsidianNS.ItemView {
         text: `+${Math.max(1, Math.min(50, Math.round(item.xp / 1e4)))}`
       });
     }
-    xpPreview.el = rewardBody.createEl("span", {
+    const xpSlot = showCoins
+      ? rewardBody.createEl("div", { cls: "quest-detail-reward-slot" })
+      : rewardBody;
+    xpPreview.el = xpSlot.createEl("span", {
       text: `${item.xp.toLocaleString()} XP`,
       cls: "quest-xp-preview-value"
     });

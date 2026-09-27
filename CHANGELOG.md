@@ -2,6 +2,13 @@
 
 Vault project notes (design / ship history). Durable code tree: `/workspace/Quest-Log-src`. Ship folder: `.obsidian/plugins/quest-log` (four files only).
 
+## 0.6.30 — 2026-09-26
+
+Micah via Atlas COO APPROVED — Quest Log UI post 0.6.29:
+
+1. Skill attach + picker: title and level on the **same row** again (level bottom-aligned; title wraps).
+2. Quest reward: structural `.quest-detail-reward-slot` wrappers so coin + XP stay centered in **2fr / 4fr** cells.
+
 ## 0.6.29 — 2026-09-26
 
 Micah via Atlas COO APPROVED — Quest Log UI post 0.6.28:

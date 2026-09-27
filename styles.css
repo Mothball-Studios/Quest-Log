@@ -1124,26 +1124,25 @@
   /* coins two-fifths + XP four-fifths (true 2:4 / 1:2 under Reward header) */
   display: grid;
   grid-template-columns: 2fr 4fr;
-  align-items: center;
+  align-items: stretch;
   justify-content: stretch;
   gap: 0;
 }
-.quest-detail-reward-body.has-extra .quest-detail-reward-coins {
-  width: 100%;
-  justify-self: stretch;
-  display: inline-flex;
-  justify-content: center;
-  align-items: center;
-  box-sizing: border-box;
-}
-.quest-detail-reward-body.has-extra .quest-xp-preview-value {
-  width: 100%;
-  justify-self: stretch;
+/* Slot wrappers: each grid cell centers its content (structural, not justify-self alone) */
+.quest-detail-reward-slot {
   display: flex;
   justify-content: center;
   align-items: center;
-  text-align: center;
+  width: 100%;
+  min-width: 0;
   box-sizing: border-box;
+  text-align: center;
+}
+.quest-detail-reward-body.has-extra .quest-detail-reward-coins {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
 }
 .quest-detail-reward-coins {
   display: inline-flex;
@@ -1484,22 +1483,28 @@
   width: 100%;
 }
 .detail-skill-attached-title-row {
-  display: block;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 6px;
   min-width: 0;
   width: 100%;
 }
 .detail-skill-attached-title {
-  display: block;
+  flex: 1 1 auto;
   min-width: 0;
-  width: 100%;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: normal;
+  overflow: visible;
+  text-overflow: unset;
+  word-wrap: break-word;
+  overflow-wrap: anywhere;
   font-weight: 600;
   color: #eee;
+  line-height: 1.25;
 }
 .detail-skill-attached-level {
-  display: block;
+  flex: 0 0 auto;
+  align-self: flex-end;
   font-size: 11px;
   font-weight: 700;
   color: var(--ql-skill, #22c55e);
