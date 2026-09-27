@@ -2476,7 +2476,8 @@
 }
 
 /* Skill level section (DETAILS + CREATION — identical).
-   Visual header structure: divider → "Level" header → level|xp line → bar → divider.
+   Visual header structure: centered "Level" ABOVE top divider → level|xp line → bar.
+   No bottom divider under the bar (matches Attach Quests / Attach Habits).
    No divider between title/desc and this section. */
 .skill-level-section {
   display: flex;
@@ -2491,12 +2492,22 @@
   box-shadow: none;
 }
 
-.skill-level-section .skill-level-top-divider {
-  margin: 0 0 10px;
+/* Centered "Level" — mirror .detail-skills-section .detail-skills-label */
+.skill-level-label {
+  display: block;
+  width: 100%;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #888;
+  text-align: center;
+  margin: 0 0 6px;
+  line-height: 1.2;
 }
 
-.skill-level-section .skill-level-bottom-divider {
-  margin: 10px 0 0;
+.skill-level-section .skill-level-top-divider {
+  margin: 0 0 10px;
 }
 
 .skill-level-row {
@@ -2505,18 +2516,6 @@
   align-items: center;
   width: 100%;
   margin: 0 0 8px;
-}
-
-.skill-level-label {
-  display: block;
-  width: 100%;
-  font-size: 12px;
-  font-weight: bold;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: #888;
-  margin: 0 0 8px;
-  line-height: 1.2;
 }
 
 .skill-level-value {

@@ -2,6 +2,14 @@
 
 Vault project notes (design / ship history). Durable code tree: `/workspace/Quest-Log-src`. Ship folder: `.obsidian/plugins/quest-log` (four files only).
 
+## 0.6.48 — 2026-09-26
+
+Luke via Atlas COO APPROVED (assign) — Skills DETAILS + CREATION Level header reposition (follow-up on 0.6.47):
+
+1. Centered **"Level"** header **ABOVE** the top divider (same treatment as Attach Quests / Attach Habits) — not inside the level block below the divider.
+2. Order: centered Level → top divider → level|XP line → XP bar. **No bottom divider** under the bar (Attach sections have none).
+3. Keep word-wrappable title box from 0.6.47. Shared `renderSkillLevelBlock`.
+
 ## 0.6.47 — 2026-09-26
 
 Luke via Atlas COO APPROVED (assign) — Skills DETAILS + CREATION level header + wrapping title:

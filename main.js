@@ -4318,20 +4318,20 @@ var require_render = __commonJS({
         }
         /**
          * Shared Skills level block for DETAILS + CREATION modals (identical DOM).
-         * Inside section, top→bottom:
-         *   1. Divider
-         *   2. "Level" header
+         * Inside section, top→bottom (mirrors Attach Quests / Attach Habits headers):
+         *   1. Centered "Level" header ABOVE the top divider
+         *   2. Top divider
          *   3. Level number LEFT | xpProgress / xpNeeded XP RIGHT
          *   4. XP bar
-         *   5. Divider (separates from attached quests)
+         * No bottom divider under the bar (Attach sections have none).
          * No divider above the section (between title/desc and level) — rejected.
          */
         renderSkillLevelBlock(parentEl, skill) {
           const difficulty = this.plugin.settings.skillDifficulty || 10;
           const xpInfo = _QuestLogView2.getSkillXpProgress(skill || { xp: 0, level: 1 }, difficulty);
           const levelSection = parentEl.createEl("div", { cls: "skill-level-section" });
-          levelSection.createEl("div", { cls: "quest-detail-reward-divider skill-level-top-divider" });
           levelSection.createEl("span", { text: "Level", cls: "skill-level-label" });
+          levelSection.createEl("div", { cls: "quest-detail-reward-divider skill-level-top-divider" });
           const levelRow = levelSection.createEl("div", { cls: "skill-level-row" });
           const levelNum = xpInfo.level || 1;
           levelRow.createEl("span", {
@@ -4345,7 +4345,6 @@ var require_render = __commonJS({
           const skillXpBar = levelSection.createEl("div", { cls: "skill-detail-xp-bar" });
           const skillXpFill = skillXpBar.createEl("div", { cls: "skill-detail-xp-fill" });
           skillXpFill.style.width = `${xpInfo.pct}%`;
-          levelSection.createEl("div", { cls: "quest-detail-reward-divider skill-level-bottom-divider" });
           return { levelSection, xpInfo };
         }
         openSkillDetail(skill) {

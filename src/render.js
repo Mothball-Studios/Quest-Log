@@ -3043,21 +3043,21 @@ var _QuestLogView = class _QuestLogView extends obsidianNS.ItemView {
   }
   /**
    * Shared Skills level block for DETAILS + CREATION modals (identical DOM).
-   * Inside section, top→bottom:
-   *   1. Divider
-   *   2. "Level" header
+   * Inside section, top→bottom (mirrors Attach Quests / Attach Habits headers):
+   *   1. Centered "Level" header ABOVE the top divider
+   *   2. Top divider
    *   3. Level number LEFT | xpProgress / xpNeeded XP RIGHT
    *   4. XP bar
-   *   5. Divider (separates from attached quests)
+   * No bottom divider under the bar (Attach sections have none).
    * No divider above the section (between title/desc and level) — rejected.
    */
   renderSkillLevelBlock(parentEl, skill) {
     const difficulty = this.plugin.settings.skillDifficulty || 10;
     const xpInfo = _QuestLogView.getSkillXpProgress(skill || { xp: 0, level: 1 }, difficulty);
     const levelSection = parentEl.createEl("div", { cls: "skill-level-section" });
-    levelSection.createEl("div", { cls: "quest-detail-reward-divider skill-level-top-divider" });
-    // Visible "Level" header ABOVE the level-number / remaining-XP line (0.6.47).
+    // Centered "Level" ABOVE top divider — same treatment as Attach Quests / Attach Habits (0.6.48).
     levelSection.createEl("span", { text: "Level", cls: "skill-level-label" });
+    levelSection.createEl("div", { cls: "quest-detail-reward-divider skill-level-top-divider" });
     const levelRow = levelSection.createEl("div", { cls: "skill-level-row" });
     const levelNum = xpInfo.level || 1;
     levelRow.createEl("span", {
@@ -3071,7 +3071,6 @@ var _QuestLogView = class _QuestLogView extends obsidianNS.ItemView {
     const skillXpBar = levelSection.createEl("div", { cls: "skill-detail-xp-bar" });
     const skillXpFill = skillXpBar.createEl("div", { cls: "skill-detail-xp-fill" });
     skillXpFill.style.width = `${xpInfo.pct}%`;
-    levelSection.createEl("div", { cls: "quest-detail-reward-divider skill-level-bottom-divider" });
     return { levelSection, xpInfo };
   }
   openSkillDetail(skill) {
@@ -3157,8 +3156,8 @@ var _QuestLogView = class _QuestLogView extends obsidianNS.ItemView {
     });
     descBox.style.height = "auto";
     descBox.style.height = descBox.scrollHeight + "px";
-    // Shared level block (identical to skill creation): divider → Level → level|xp → bar → divider.
-    // No divider between title/desc and this section.
+    // Shared level block (identical to skill creation): Level (centered) → divider → level|xp → bar.
+    // No bottom divider; no divider between title/desc and this section.
     this.renderSkillLevelBlock(box, skill);
     const selectedQuestIds = this.attachLinkedPicker(box, {
       kind: "quest",
