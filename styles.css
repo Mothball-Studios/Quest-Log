@@ -8,8 +8,9 @@
   --ql-surface: #1a1a1c;
   --ql-border: #2a2a2a;
   /* Type colors — locked hex (not theme interactive-accent) */
-  --ql-quest: #3b82f6; /* vibrant blue (matches habit/skill sat) */
+  --ql-quest: #3b82f6; /* vibrant blue — quest type chrome only */
   --ql-quest-hover: #2563eb;
+  --ql-xp: #4b6cb7; /* softer blue — XP bar / level badge (independent of --ql-quest) */
   --ql-habit: #a855f7; /* vibrant purple */
   --ql-habit-hover: #9333ea;
   --ql-skill: #22c55e; /* green */
@@ -410,7 +411,7 @@
    ============================================================ */
 
 .level-badge {
-  background: linear-gradient(135deg, var(--ql-quest, #3b82f6) 0%, #182848 100%);
+  background: linear-gradient(135deg, var(--ql-xp, #4b6cb7) 0%, #182848 100%);
   width: 60px;
   height: 60px;
   display: flex;
@@ -499,7 +500,7 @@
 }
 .xp-text {
   margin: 0;
-  color: var(--ql-quest, #3b82f6);
+  color: var(--ql-xp, #4b6cb7);
   font-size: 14px;
   font-weight: bold;
 }
@@ -520,7 +521,7 @@
   margin-bottom: 17px;
 }
 .xp-bar-fill {
-  background-color: var(--ql-quest, #3b82f6);
+  background-color: var(--ql-xp, #4b6cb7);
   height: 100%;
 }
 

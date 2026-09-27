@@ -2,6 +2,14 @@
 
 Vault project notes (design / ship history). Durable code tree: `/workspace/Quest-Log-src`. Ship folder: `.obsidian/plugins/quest-log` (four files only).
 
+## 0.6.5 — 2026-09-26
+
+Split quest chrome from XP chrome (Micah via Atlas/Riku):
+
+- Keep `--ql-quest` `#3b82f6` for quest type chrome only
+- New independent `--ql-xp` `#4b6cb7` for XP bar fill, XP text, and level badge
+- Changing one token no longer affects the other
+
 ## 0.6.4 — 2026-09-26
 
 Quest type blue bumped for vibrancy (Micah via Atlas/Riku):
