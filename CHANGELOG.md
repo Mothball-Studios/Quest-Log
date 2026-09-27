@@ -2,6 +2,14 @@
 
 Vault project notes (design / ship history). Durable code tree: `/workspace/Quest-Log-src`. Ship folder: `.obsidian/plugins/quest-log` (four files only).
 
+## 0.6.8 — 2026-09-26
+
+Micah — habit details Reward XP color fix:
+
+- Habit details modal Reward XP value now uses `--ql-habit` `#a855f7` (was stuck on quest blue `#3b82f6`).
+- Root cause: override used `.habit-context .quest-detail-box …` but both classes are on the same element, so the descendant selector never matched; `.quest-detail-box .quest-detail-reward .quest-xp-preview-value` kept winning.
+- Fix: `.habit-context .quest-detail-reward .quest-xp-preview-value` → `var(--ql-habit)`. Quest details Reward XP stays `--ql-quest`.
+
 ## 0.6.7 — 2026-09-26
 
 Micah via Atlas/Riku — XP color surface split (kill soft-purple bleed):

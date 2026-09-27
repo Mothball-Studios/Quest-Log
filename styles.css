@@ -1158,8 +1158,9 @@
 .habit-context .quest-detail-title-input:focus {
   border-color: var(--ql-habit, #a855f7);
 }
-/* Beat .quest-detail-box .quest-detail-reward .quest-xp-preview-value (same 3-class specificity; later wins) */
-.habit-context .quest-detail-box .quest-xp-preview-value {
+/* Beat .quest-detail-box .quest-detail-reward .quest-xp-preview-value
+   habit-context sits on the same el as quest-detail-box, so use .quest-detail-reward path */
+.habit-context .quest-detail-reward .quest-xp-preview-value {
   color: var(--ql-habit, #a855f7);
 }
 .habit-context .quest-detail-complete-btn {
