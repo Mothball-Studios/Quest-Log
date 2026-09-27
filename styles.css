@@ -2302,35 +2302,41 @@
 
 .skill-block {
   position: relative;
-  gap: 4px; /* tight band → XP bar */
+  gap: 4px; /* tight band → desc → XP bar */
   /* Grid stretch fills row height; flex column + pinned XP keeps bar at bottom */
   align-self: stretch;
   box-sizing: border-box;
 }
-/* Band stays content-sized at the top. Do NOT flex-grow the band — that would
-   sink title/level toward the XP bar (title-row uses align-items:flex-end).
-   Free space becomes margin above the XP bar instead. */
+/* Top band = title | level only (same row / same Y). Content-sized at top;
+   do NOT flex-grow — free space becomes margin above the XP bar. */
 .skill-block > .skill-block-band,
 .skill-block > .detail-skill-attached-title-row.skill-block-band {
   flex: 0 0 auto;
   align-self: stretch;
+  /* Override shared title-row flex-end (selector/details keep bottom-align). */
+  align-items: flex-start !important;
+}
+/* Level pinned to top-right of band — in line with title, never with desc. */
+.skill-block > .skill-block-band > .detail-skill-attached-level,
+.skill-block > .detail-skill-attached-title-row.skill-block-band > .detail-skill-attached-level {
+  align-self: flex-start !important;
 }
 /* Pin XP bar to the bottom edge of every .skill-block (with or without desc).
-   Gap between title/desc band and XP bar is OK when a neighbor has a desc. */
+   Gap between top band/desc and XP bar is OK when a neighbor has a desc. */
 .skill-block > .skill-xp-bar {
   margin-top: auto;
   flex: 0 0 auto;
   width: 100%;
   align-self: stretch;
 }
-/* Main Skills tab: title wraps on its own row(s); desc single-line fade under */
+/* Main Skills tab: title is a flex row child of the band (beside level). */
 .skill-block .detail-skill-attached-title {
   display: block;
   font-size: 14px;
   font-weight: bold;
   color: #fff;
-  flex: 0 0 auto; /* column child: size to content height, not flex-basis 100% height */
-  width: 100%;
+  flex: 1 1 auto;
+  width: auto;
   max-width: 100%;
   min-width: 0;
   box-sizing: border-box;
@@ -2341,16 +2347,8 @@
   word-wrap: break-word;
   line-height: 1.25;
 }
-.skill-block-band-left {
-  flex: 1 1 auto;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  justify-content: flex-end;
-  gap: 2px;
-}
-.skill-block .quest-block-desc-wrap {
+/* Desc flows BELOW the title|level band (direct child of .skill-block). */
+.skill-block > .quest-block-desc-wrap {
   flex: 0 0 auto;
   width: 100%;
   max-width: 100%;

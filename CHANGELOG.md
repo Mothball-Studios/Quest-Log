@@ -2,6 +2,14 @@
 
 Vault project notes (design / ship history). Durable code tree: `/workspace/Quest-Log-src`. Ship folder: `.obsidian/plugins/quest-log` (four files only).
 
+## 0.6.43 — 2026-09-26
+
+Luke via Atlas COO APPROVED — Skills tab level pinned to title row:
+
+1. **Skills** list `.skill-block`: top band = title | level (same row / same Y, `align-items:flex-start`). Description (if any) is a sibling **below** the band — never inside a left column that bottom-aligns level with desc.
+2. Side-by-side with-desc / no-desc: level tops align; XP bar stays `margin-top:auto` flush bottom (0.6.42). Gap between band and XP on no-desc is OK.
+3. Selector / details / creation / Quests / Habits untouched (shared title-row flex-end kept; Skills list overrides scoped).
+
 ## 0.6.42 — 2026-09-26
 
 Luke via Atlas COO APPROVED — Skills tab XP bar flush to block bottom:
