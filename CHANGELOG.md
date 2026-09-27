@@ -2,6 +2,12 @@
 
 Vault project notes (design / ship history). Durable code tree: `/workspace/Quest-Log-src`. Ship folder: `.obsidian/plugins/quest-log` (four files only).
 
+## 0.6.25 — 2026-09-26
+
+Micah via Atlas COO APPROVED — Quest Log UI post 0.6.24:
+
+1. Mobile only: FAB `bottom` **30px → 80px** (~one FAB height / 50px raise). Desktop unchanged at 30px. CSS + manifest only; `main.js` same as 0.6.24.
+
 ## 0.6.24 — 2026-09-26
 
 Micah via Atlas COO APPROVED — Quest Log UI post 0.6.23:

@@ -2536,6 +2536,14 @@
     width: 100%;
     padding: 12px 20px;
   }
+
+  /* FAB: raise by ~one FAB height (50px); horizontal unchanged. Desktop keeps bottom: 30px. */
+  .quest-fab,
+  .quest-fab.fab-quests,
+  .quest-fab.fab-habits,
+  .quest-fab.fab-skills {
+    bottom: 80px; /* 30px + 50px FAB */
+  }
 }
 
 /* ============================================================
