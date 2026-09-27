@@ -2,6 +2,14 @@
 
 Vault project notes (design / ship history). Durable code tree: `/workspace/Quest-Log-src`. Ship folder: `.obsidian/plugins/quest-log` (four files only).
 
+## 0.6.44 — 2026-09-26
+
+Luke via Atlas COO APPROVED — Skills SELECTOR picker level pinned to title row:
+
+1. **Skills selector** `.skills-selector-row` / `.skill-selector-row` (picker list + attached display): top band = title | level (same row / same Y, `align-items:flex-start`). Description (if any) is a sibling **below** the band — never bottom-aligning level with desc.
+2. Side-by-side with-desc / no-desc: level tops align; XP bar `margin-top:auto` flush bottom of picker block. Checkbox / remove chrome unchanged.
+3. Main Skills tab (0.6.43), Quests / Habits / quest-habit linked selectors untouched. Shared title-row flex-end kept for non-band usages.
+
 ## 0.6.43 — 2026-09-26
 
 Luke via Atlas COO APPROVED — Skills tab level pinned to title row:

@@ -1461,11 +1461,12 @@
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr)); /* allow title wrap at half-width */
   gap: 6px;
   margin-bottom: 4px;
   padding-right: 4px;
   align-content: start;
+  align-items: stretch; /* side-by-side rows match height for XP flush */
 }
 /* Quest/habit linked selectors stay single-column */
 .skills-selector-list.linked-selector-list {
@@ -1539,7 +1540,7 @@
   cursor: default;
   width: 100%;
 }
-/* Skill attach + picker: title+level SAME row; level bottom-aligned when title wraps */
+/* Skill attach + picker: title+level SAME row. Shared default flex-end; selector band overrides to top pin (0.6.44). */
 .skill-selector-row .detail-skill-attached-title-row,
 .detail-skill-attached-row .detail-skill-attached-title-row,
 .detail-skill-attached-title-row {
@@ -1586,6 +1587,84 @@
 .skill-selector-row .skills-selector-checkbox {
   accent-color: var(--ql-skill, #22c55e);
 }
+
+/* 0.6.44 — Skills SELECTOR picker blocks: same top-right level pin as Skills tab.
+   Scope: .skill-selector-row / .skills-selector-row (picker + attached display).
+   Shared title-row flex-end kept for non-band usages; band uses flex-start. */
+.skills-selector-row.skill-selector-row,
+.skill-selector-row {
+  align-items: stretch; /* body fills row height so XP margin-top:auto pins flush */
+  align-self: stretch;
+  box-sizing: border-box;
+  min-width: 0;
+}
+.skill-selector-row > .skills-selector-checkbox,
+.skills-selector-row > .skills-selector-checkbox {
+  align-self: center;
+  flex: 0 0 auto;
+}
+.skill-selector-row > .detail-linked-row-remove,
+.skills-selector-row > .detail-linked-row-remove {
+  align-self: center;
+  flex: 0 0 auto;
+}
+.skill-selector-row .linked-selector-row-body,
+.skills-selector-row .linked-selector-row-body,
+.skill-selector-row .detail-skill-attached-body {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px; /* match .skill-block tight band → desc → XP */
+  min-width: 0;
+  align-self: stretch;
+  min-height: 0;
+}
+/* Top band = title | level only (same row / same Y). Content-sized; do NOT flex-grow. */
+.skill-selector-row .detail-skill-attached-title-row.skill-selector-band,
+.skills-selector-row .detail-skill-attached-title-row.skill-selector-band,
+.skill-selector-row .skill-selector-band,
+.skills-selector-row .skill-selector-band {
+  flex: 0 0 auto;
+  align-self: stretch;
+  align-items: flex-start !important; /* override shared flex-end */
+}
+/* Level pinned to top-right of band — in line with title, never with desc. */
+.skill-selector-row .skill-selector-band > .detail-skill-attached-level,
+.skills-selector-row .skill-selector-band > .detail-skill-attached-level {
+  align-self: flex-start !important;
+}
+/* Desc flows BELOW the title|level band (sibling under band inside body). */
+.skill-selector-row .linked-selector-row-body > .quest-block-desc-wrap,
+.skills-selector-row .linked-selector-row-body > .quest-block-desc-wrap,
+.skill-selector-row .detail-skill-attached-body > .quest-block-desc-wrap {
+  flex: 0 0 auto;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  margin-bottom: 0;
+}
+.skill-selector-row .quest-block-desc-wrap::after,
+.skills-selector-row .quest-block-desc-wrap::after {
+  background: linear-gradient(to right, transparent, rgba(21, 21, 21, 0.95) 90%);
+}
+.skill-selector-row:hover .quest-block-desc-wrap::after,
+.skills-selector-row:hover .quest-block-desc-wrap::after {
+  background: linear-gradient(to right, transparent, rgba(28, 28, 28, 0.95) 90%);
+}
+/* Pin XP bar to bottom of picker block body (with or without desc). */
+.skill-selector-row .linked-selector-row-body > .skill-xp-bar,
+.skills-selector-row .linked-selector-row-body > .skill-xp-bar,
+.skill-selector-row .linked-selector-row-body > .detail-skill-attached-xp-bar,
+.skills-selector-row .linked-selector-row-body > .detail-skill-attached-xp-bar,
+.skill-selector-row .detail-skill-attached-body > .skill-xp-bar,
+.skill-selector-row .detail-skill-attached-body > .detail-skill-attached-xp-bar {
+  margin-top: auto;
+  flex: 0 0 auto;
+  width: 100%;
+  align-self: stretch;
+  height: 4px;
+}
+
 .skills-selector-empty {
   grid-column: 1 / -1;
 }

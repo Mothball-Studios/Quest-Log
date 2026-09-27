@@ -952,12 +952,13 @@ var _QuestLogView = class _QuestLogView extends obsidianNS.ItemView {
         const skill = skills.find((s) => s.id === skillId);
         if (!skill) return;
         const xpInfo = _QuestLogView.getSkillXpProgress(skill, difficulty);
-        // Pretty blocks: title+level same row (level bottom-aligned), XP bar under; 2-col grid via CSS
+        // Pretty blocks: title|level band (level top-right pin), desc below if any, XP flush bottom
         const row = selectedSkillsDisplay.createEl("div", {
           cls: "skills-selector-row skill-selector-row detail-skill-attached-row detail-linked-attached-row"
         });
         const body = row.createEl("span", { cls: "linked-selector-row-body detail-skill-attached-body" });
-        const titleRow = body.createEl("span", { cls: "detail-skill-attached-title-row" });
+        // Top band: title | level (same Y). Desc (if any) sibling below — mirror Skills tab.
+        const titleRow = body.createEl("span", { cls: "detail-skill-attached-title-row skill-selector-band" });
         titleRow.createEl("span", {
           text: skill.name || "Untitled",
           cls: "skills-selector-row-label linked-selector-row-title detail-skill-attached-title"
@@ -966,6 +967,14 @@ var _QuestLogView = class _QuestLogView extends obsidianNS.ItemView {
           text: (skill.legendary ? "\u2605 " : "") + "Lvl " + (xpInfo.level || 1),
           cls: "detail-skill-attached-level"
         });
+        const attachedDesc = (skill.description || "").trim();
+        if (attachedDesc) {
+          const descWrap = body.createEl("span", { cls: "quest-block-desc-wrap" });
+          descWrap.createEl("span", {
+            text: attachedDesc,
+            cls: "quest-block-desc-text"
+          });
+        }
         const xpBar = body.createEl("div", { cls: "skill-xp-bar detail-skill-attached-xp-bar" });
         const xpFill = xpBar.createEl("div", { cls: "skill-xp-fill" });
         xpFill.style.width = `${xpInfo.pct}%`;
@@ -1046,7 +1055,7 @@ var _QuestLogView = class _QuestLogView extends obsidianNS.ItemView {
       filtered.forEach((skill) => {
         const id = skill.id;
         const xpInfo = _QuestLogView.getSkillXpProgress(skill, difficulty);
-        // Pretty skill rows: title+level same row (level bottom-aligned), XP bar under; 2-col grid via CSS
+        // Pretty skill rows: title|level band (level top-right pin), desc below if any, XP flush bottom
         const row = listEl.createEl("label", { cls: "skills-selector-row skill-selector-row" });
         const checkbox = row.createEl("input", {
           type: "checkbox",
@@ -1058,7 +1067,8 @@ var _QuestLogView = class _QuestLogView extends obsidianNS.ItemView {
           else draft.delete(id);
         });
         const body = row.createEl("span", { cls: "linked-selector-row-body" });
-        const titleRow = body.createEl("span", { cls: "detail-skill-attached-title-row" });
+        // Top band: title | level (same Y). Desc (if any) sibling below — mirror Skills tab.
+        const titleRow = body.createEl("span", { cls: "detail-skill-attached-title-row skill-selector-band" });
         titleRow.createEl("span", {
           text: skill.name || "Untitled",
           cls: "skills-selector-row-label linked-selector-row-title detail-skill-attached-title"
@@ -1067,6 +1077,14 @@ var _QuestLogView = class _QuestLogView extends obsidianNS.ItemView {
           text: (skill.legendary ? "\u2605 " : "") + "Lvl " + (xpInfo.level || 1),
           cls: "detail-skill-attached-level"
         });
+        const pickerDesc = (skill.description || "").trim();
+        if (pickerDesc) {
+          const descWrap = body.createEl("span", { cls: "quest-block-desc-wrap" });
+          descWrap.createEl("span", {
+            text: pickerDesc,
+            cls: "quest-block-desc-text"
+          });
+        }
         const xpBar = body.createEl("div", { cls: "skill-xp-bar detail-skill-attached-xp-bar" });
         const xpFill = xpBar.createEl("div", { cls: "skill-xp-fill" });
         xpFill.style.width = `${xpInfo.pct}%`;
