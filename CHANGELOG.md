@@ -2,6 +2,13 @@
 
 Vault project notes (design / ship history). Durable code tree: `/workspace/Quest-Log-src`. Ship folder: `.obsidian/plugins/quest-log` (four files only).
 
+## 0.6.20 — 2026-09-26
+
+Micah via Atlas COO APPROVED — Quest Log UI post 0.6.19. Skill details + creation:
+
+1. Detach X completely bare in all states (rest / hover / focus / active): no background, border, or box-shadow; plain 28×28 hit area.
+2. Hover (and focus-visible) may recolor ink only (`#c4c9d0` → danger red). `main.js` unchanged from 0.6.19.
+
 ## 0.6.19 — 2026-09-26
 
 Micah via Atlas COO APPROVED — Quest Log UI post 0.6.18. Skill details + creation, attach quests + attach habits:

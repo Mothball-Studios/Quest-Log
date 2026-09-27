@@ -1444,7 +1444,11 @@
 }
 /* Detach on attached quest/habit rows (skill details + creation):
    28×28 hit area, bare X only — no border or background block */
-.detail-linked-row-remove {
+.detail-linked-row-remove,
+.detail-linked-row-remove:hover,
+.detail-linked-row-remove:focus,
+.detail-linked-row-remove:focus-visible,
+.detail-linked-row-remove:active {
   flex: 0 0 auto;
   margin-left: 8px;
   display: inline-flex;
@@ -1453,22 +1457,21 @@
   width: 28px;
   height: 28px;
   padding: 0;
-  border: none;
+  border: none !important;
   border-radius: 0;
-  background: transparent;
-  background-color: transparent;
-  color: #c4c9d0;
+  background: transparent !important;
+  background-color: transparent !important;
   cursor: pointer;
   box-sizing: border-box;
   line-height: 1;
-  box-shadow: none;
+  box-shadow: none !important;
 }
-.detail-linked-row-remove:hover {
-  border: none;
-  background: transparent;
-  background-color: transparent;
+.detail-linked-row-remove {
+  color: #c4c9d0;
+}
+.detail-linked-row-remove:hover,
+.detail-linked-row-remove:focus-visible {
   color: var(--ql-danger, #ef4444);
-  box-shadow: none;
 }
 .detail-linked-row-remove-icon {
   display: inline-flex;
