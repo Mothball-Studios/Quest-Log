@@ -1212,17 +1212,13 @@
 }
 
 .detail-skills-header {
+  position: relative;
   display: flex;
   justify-content: center;
   align-items: center;
   width: 100%;
   margin: 0 0 6px;
-}
-
-.detail-skills-header-inner {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
+  min-height: 22px;
 }
 
 .detail-skills-section .detail-skills-label,
@@ -1234,11 +1230,15 @@
   text-transform: uppercase;
   text-align: center;
   margin: 0;
-  display: inline;
-  width: auto;
+  display: block;
+  width: 100%;
 }
 
 .detail-skills-plus-btn {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
   flex: 0 0 auto;
   background: transparent !important;
   border: none !important;
@@ -1252,6 +1252,7 @@
   justify-content: center;
   border-radius: 4px;
   line-height: 1;
+  z-index: 1;
 }
 .detail-skills-plus-btn:hover {
   color: var(--ql-skill, #22c55e);
@@ -1326,6 +1327,8 @@
   max-height: min(80vh, 560px);
   width: min(420px, 92%);
   padding-bottom: 14px;
+  overflow: hidden; /* list scrolls inside; modal itself does not */
+  gap: 10px;
 }
 .skills-selector-header {
   display: flex;
@@ -1350,13 +1353,14 @@
 }
 .skills-selector-list {
   flex: 1 1 auto;
+  min-height: 0; /* allow flex child to shrink so overflow-y scrolls */
+  max-height: min(280px, 45vh);
   overflow-y: auto;
-  min-height: 120px;
-  max-height: 280px;
+  -webkit-overflow-scrolling: touch;
   display: flex;
   flex-direction: column;
   gap: 4px;
-  margin-bottom: 12px;
+  margin-bottom: 4px;
   padding-right: 4px;
 }
 .skills-selector-empty {

@@ -2,6 +2,17 @@
 
 Vault project notes (design / ship history). Durable code tree: `/workspace/Quest-Log-src`. Ship folder: `.obsidian/plugins/quest-log` (four files only).
 
+## 0.6.14 — 2026-09-26
+
+Micah via Atlas/Riku — skills attach polish (follow-on on 0.6.13; details + creation identical):
+
+1. Plus on far right of attach-skills header; **attach skills** truly centered across full header width (absolute-positioned plus).
+2. Selector title capitalized: **Skills Selector** (was lowercase "skills selector").
+3. Exactly one divider between search bar and scrollable skill list (removed duplicate second divider).
+4. Skill list scrolls when count exceeds visible area (`min-height: 0` + `overflow-y: auto` inside modal; modal `overflow: hidden`).
+
+Preserves 0.6.13: no skills attached empty, chips under divider, X close, search, select, multi-select.
+
 ## 0.6.13 — 2026-09-26
 
 Micah via Atlas/Riku — skills attach redesign (details + creation):

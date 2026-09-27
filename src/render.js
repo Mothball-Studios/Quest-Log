@@ -932,12 +932,11 @@ var _QuestLogView = class _QuestLogView extends obsidianNS.ItemView {
   }
   attachSkillPicker(parentEl, initialIds) {
     const selectedSkillIds = [...initialIds || []];
-    // Mirror reward-section layout: centered header + plus, divider, chips/empty
+    // Mirror reward-section layout: centered header label + plus on far right, divider, chips/empty
     const skillsSection = parentEl.createEl("div", { cls: "detail-skills-section quest-detail-reward" });
     const header = skillsSection.createEl("div", { cls: "detail-skills-header" });
-    const headerInner = header.createEl("div", { cls: "detail-skills-header-inner" });
-    headerInner.createEl("span", { text: "attach skills", cls: "quest-xp-preview-label detail-skills-label" });
-    const plusBtn = headerInner.createEl("button", {
+    header.createEl("span", { text: "attach skills", cls: "quest-xp-preview-label detail-skills-label" });
+    const plusBtn = header.createEl("button", {
       cls: "detail-skills-plus-btn",
       attr: { "aria-label": "plus", type: "button" }
     });
@@ -990,7 +989,7 @@ var _QuestLogView = class _QuestLogView extends obsidianNS.ItemView {
       cls: "quest-modal skills-selector-modal ql-modal"
     });
     const header = box.createEl("div", { cls: "quest-modal-header skills-selector-header" });
-    header.createEl("span", { text: "skills selector", cls: "skills-selector-title" });
+    header.createEl("span", { text: "Skills Selector", cls: "skills-selector-title" });
     const closeBtn = header.createEl("button", {
       cls: "quest-detail-close-btn quest-modal-close-btn",
       attr: { "aria-label": "Close", type: "button" }
@@ -1003,7 +1002,6 @@ var _QuestLogView = class _QuestLogView extends obsidianNS.ItemView {
       cls: "skills-selector-search ql-input",
       attr: { "aria-label": "search bar" }
     });
-    box.createEl("div", { cls: "quest-detail-reward-divider skills-selector-divider" });
     box.createEl("div", { cls: "quest-detail-reward-divider skills-selector-divider" });
     const listEl = box.createEl("div", { cls: "skills-selector-list" });
     const draft = new Set(selectedSkillIds);
