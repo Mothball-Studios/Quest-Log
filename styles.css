@@ -949,6 +949,25 @@
   border-bottom: 1px solid var(--ql-border, #2a2a2a);
 }
 
+/* Skill details ONLY: trash / open-note / close flush at top edge, above header */
+.quest-detail-box.skill-context {
+  padding-top: 10px;
+}
+.skill-detail-top-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  margin: -2px 0 0;
+  padding: 0;
+  flex: 0 0 auto;
+  width: 100%;
+  box-sizing: border-box;
+}
+.skill-detail-top-actions + .quest-detail-header-row {
+  margin-top: 0;
+}
+
 .quest-detail-modal-title {
   color: #ffffff;
   font-size: 18px;
@@ -1426,6 +1445,25 @@
 }
 .detail-habit-plus-btn:hover {
   color: var(--ql-habit, #a855f7);
+}
+/* Attached quest/habit list under skill sections — same row chrome as selector */
+.detail-selected-linked {
+  display: flex;
+  flex-direction: column;
+  flex-wrap: nowrap;
+  gap: 6px;
+  justify-content: flex-start;
+  align-items: stretch;
+  min-height: 28px;
+}
+.detail-linked-attached-row {
+  cursor: default;
+  width: 100%;
+  box-sizing: border-box;
+}
+.detail-linked-row-remove {
+  flex: 0 0 auto;
+  margin-left: 4px;
 }
 .detail-quest-tag {
   background-color: rgba(59, 130, 246, 0.2);

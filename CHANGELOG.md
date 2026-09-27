@@ -2,6 +2,15 @@
 
 Vault project notes (design / ship history). Durable code tree: `/workspace/Quest-Log-src`. Ship folder: `.obsidian/plugins/quest-log` (four files only).
 
+## 0.6.17 — 2026-09-26
+
+Micah via Atlas COO APPROVED — UI fix post 0.6.16:
+
+1. Skill details + skill creation: attached quests/habits no longer render as chip/tag jumble.
+2. Attached items reuse selector row chrome exactly: colored left edge + tinted background (`--ql-quest` `#3b82f6` / `--ql-habit` `#a855f7`), title, XP, and coin amount when rewardsMode is on.
+3. Detach (X) control kept on each row. Identical on skill details and skill creation.
+4. Skill details ONLY: trash → open-note → close icons moved to very top of modal (flush with top edge, above header); divider between header ("Skill Details") and skill title field. Creation modal unchanged.
+
 ## 0.6.16 — 2026-09-26
 
 Micah via Atlas COO — skill details + skill creation: separate quest / habit attach:

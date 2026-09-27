@@ -1117,14 +1117,38 @@ var _QuestLogView = class _QuestLogView extends obsidianNS.ItemView {
     const refresh = /* @__PURE__ */ __name(() => {
       selectedDisplay.empty();
       const list = kind === "habit" ? this.plugin.settings.habits || [] : this.plugin.settings.quests || [];
+      const rewardsOn = Boolean(this.plugin.settings.rewardsMode);
       selectedIds.forEach((id) => {
         const item = list.find((x) => x && String(x.id) === String(id));
         if (!item) return;
-        const tag = selectedDisplay.createEl("span", {
-          cls: `detail-skill-tag detail-linked-tag detail-${typeCls}-tag`
+        // Match quest/habit selector rows: left edge + tint, title, XP, coins when rewardsMode
+        const row = selectedDisplay.createEl("div", {
+          cls: `skills-selector-row linked-selector-row ${typeCls}-selector-row detail-linked-attached-row`
         });
-        tag.createEl("span", { text: item.title || "Untitled" });
-        const removeBtn = tag.createEl("span", { cls: "detail-skill-tag-remove" });
+        const body = row.createEl("span", { cls: "linked-selector-row-body" });
+        body.createEl("span", {
+          text: item.title || "Untitled",
+          cls: "skills-selector-row-label linked-selector-row-title"
+        });
+        const meta = body.createEl("span", { cls: "linked-selector-row-meta" });
+        const xp = Number(item.xp) || 0;
+        meta.createEl("span", {
+          text: `${xp.toLocaleString()} XP`,
+          cls: "linked-selector-row-xp"
+        });
+        if (rewardsOn) {
+          const coinWrap = meta.createEl("span", { cls: "linked-selector-row-coins" });
+          const coinIcon = coinWrap.createEl("span", { cls: "linked-selector-row-coin-icon" });
+          setIcon(coinIcon, "coins");
+          coinWrap.createEl("span", {
+            text: `+${this.coinRewardForXp(xp)}`,
+            cls: "linked-selector-row-coin-text"
+          });
+        }
+        const removeBtn = row.createEl("span", {
+          cls: "detail-skill-tag-remove detail-linked-row-remove",
+          attr: { "aria-label": "Detach", role: "button" }
+        });
         setIcon(removeBtn, "x");
         removeBtn.addEventListener("click", (e) => {
           e.stopPropagation();
@@ -2870,27 +2894,13 @@ var _QuestLogView = class _QuestLogView extends obsidianNS.ItemView {
     box.addClass("skill-context");
     overlay.addClass("open");
     const difficulty = this.plugin.settings.skillDifficulty || 10;
-    const headerRow = box.createEl("div", { cls: "quest-detail-header-row" });
-    headerRow.createEl("span", {
-      text: "Skill Details",
-      cls: "quest-detail-modal-title"
+    // Top icon bar (skill details only): trash → open note → close, flush above header
+    const topActions = box.createEl("div", {
+      cls: "skill-detail-top-actions quest-detail-btn-group"
     });
-    const btnGroup = headerRow.createEl("div", { cls: "quest-detail-btn-group" });
-    const openNoteBtn = btnGroup.createEl("button", {
-      cls: "quest-detail-open-btn"
-    });
-    const openNoteIcon = openNoteBtn.createEl("span", {
-      cls: "quest-detail-open-icon"
-    });
-    setIcon(openNoteIcon, "file-text");
-    openNoteBtn.addEventListener("click", () => {
-      const folderPath = this.plugin.settings.skillsFolderPath || "Quest Log/Skills";
-      const stem = uniqueStem(this.plugin.settings.skills, skill.name, skill.id, "name");
-      const fullPath = `${folderPath}/${stem}.md`;
-      this.app.workspace.openLinkText(fullPath, "", false);
-    });
-    const deleteBtn = btnGroup.createEl("button", {
-      cls: "quest-detail-delete-btn"
+    const deleteBtn = topActions.createEl("button", {
+      cls: "quest-detail-delete-btn",
+      attr: { "aria-label": "Delete", type: "button" }
     });
     const deleteIcon = deleteBtn.createEl("span", {
       cls: "quest-detail-delete-icon"
@@ -2907,6 +2917,33 @@ var _QuestLogView = class _QuestLogView extends obsidianNS.ItemView {
         this.renderSkillList(this._skillListContainer);
         new obsidianNS.Notice("Skill deleted.");
       });
+    });
+    const openNoteBtn = topActions.createEl("button", {
+      cls: "quest-detail-open-btn",
+      attr: { "aria-label": "Open note", type: "button" }
+    });
+    const openNoteIcon = openNoteBtn.createEl("span", {
+      cls: "quest-detail-open-icon"
+    });
+    setIcon(openNoteIcon, "file-text");
+    openNoteBtn.addEventListener("click", () => {
+      const folderPath = this.plugin.settings.skillsFolderPath || "Quest Log/Skills";
+      const stem = uniqueStem(this.plugin.settings.skills, skill.name, skill.id, "name");
+      const fullPath = `${folderPath}/${stem}.md`;
+      this.app.workspace.openLinkText(fullPath, "", false);
+    });
+    const closeBtn = topActions.createEl("button", {
+      cls: "quest-detail-close-btn",
+      attr: { "aria-label": "Close", type: "button" }
+    });
+    const closeIcon = closeBtn.createEl("span", {
+      cls: "quest-detail-close-icon"
+    });
+    setIcon(closeIcon, "x");
+    const headerRow = box.createEl("div", { cls: "quest-detail-header-row has-divider" });
+    headerRow.createEl("span", {
+      text: "Skill Details",
+      cls: "quest-detail-modal-title"
     });
     const nameInput = box.createEl("input", {
       type: "text",
@@ -2957,13 +2994,6 @@ var _QuestLogView = class _QuestLogView extends obsidianNS.ItemView {
       if (this._questListContainer) this.renderQuestList(this._questListContainer);
       if (this._habitListContainer) this.renderHabitList(this._habitListContainer);
     }, "saveSkill");
-    box.createEl("div", { cls: "quest-detail-reward-divider detail-actions-divider" });
-    const btnRow = box.createEl("div", { cls: "quest-detail-buttons" });
-    const closeBtn = btnRow.createEl("button", {
-      text: "Close",
-      cls: "quest-detail-close-btn"
-    });
-    closeBtn.style.flex = "1";
     closeBtn.addEventListener("click", async () => {
       await saveSkill();
       overlay.removeClass("open");
