@@ -1121,9 +1121,9 @@
   min-height: 1.4em;
 }
 .quest-detail-reward-body.has-extra {
-  /* coins two-fifths + XP three-fifths of a 5-unit row (coherent reading of "two-fifths / rest") */
+  /* coins two-fifths + XP four-fifths (true 2:4 / 1:2 under Reward header) */
   display: grid;
-  grid-template-columns: 2fr 3fr;
+  grid-template-columns: 2fr 4fr;
   align-items: center;
   justify-content: stretch;
   gap: 0;
@@ -1473,16 +1473,14 @@
   width: 100%;
 }
 .detail-skill-attached-title-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 6px;
+  display: block;
   min-width: 0;
   width: 100%;
 }
 .detail-skill-attached-title {
-  flex: 1 1 auto;
+  display: block;
   min-width: 0;
+  width: 100%;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1490,13 +1488,14 @@
   color: #eee;
 }
 .detail-skill-attached-level {
-  flex: 0 0 auto;
+  display: block;
   font-size: 11px;
   font-weight: 700;
   color: var(--ql-skill, #22c55e);
   text-transform: uppercase;
   letter-spacing: 0.5px;
   white-space: nowrap;
+  line-height: 1.2;
 }
 .detail-skill-attached-xp-bar,
 .skill-selector-row .skill-xp-bar {

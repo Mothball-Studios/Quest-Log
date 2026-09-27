@@ -2268,7 +2268,7 @@ var require_render = __commonJS({
                 text: skill.name || "Untitled",
                 cls: "skills-selector-row-label linked-selector-row-title detail-skill-attached-title"
               });
-              titleRow.createEl("span", {
+              body.createEl("span", {
                 text: (skill.legendary ? "\u2605 " : "") + "Lvl " + (xpInfo.level || 1),
                 cls: "detail-skill-attached-level"
               });
@@ -2366,7 +2366,7 @@ var require_render = __commonJS({
                 text: skill.name || "Untitled",
                 cls: "skills-selector-row-label linked-selector-row-title detail-skill-attached-title"
               });
-              titleRow.createEl("span", {
+              body.createEl("span", {
                 text: (skill.legendary ? "\u2605 " : "") + "Lvl " + (xpInfo.level || 1),
                 cls: "detail-skill-attached-level"
               });
