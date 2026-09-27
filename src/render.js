@@ -952,12 +952,12 @@ var _QuestLogView = class _QuestLogView extends obsidianNS.ItemView {
         const skill = skills.find((s) => s.id === skillId);
         if (!skill) return;
         const xpInfo = _QuestLogView.getSkillXpProgress(skill, difficulty);
-        // Pretty blocks: title|level band (level top-right pin), desc below if any, XP flush bottom
+        // Pretty blocks: title|level band (level top-right pin) + XP flush bottom — NO desc (Skills tab only)
         const row = selectedSkillsDisplay.createEl("div", {
           cls: "skills-selector-row skill-selector-row detail-skill-attached-row detail-linked-attached-row"
         });
         const body = row.createEl("span", { cls: "linked-selector-row-body detail-skill-attached-body" });
-        // Top band: title | level (same Y). Desc (if any) sibling below — mirror Skills tab.
+        // Top band: title | level (same Y). No description here — desc is Skills tab only.
         const titleRow = body.createEl("span", { cls: "detail-skill-attached-title-row skill-selector-band" });
         titleRow.createEl("span", {
           text: skill.name || "Untitled",
@@ -967,14 +967,6 @@ var _QuestLogView = class _QuestLogView extends obsidianNS.ItemView {
           text: (skill.legendary ? "\u2605 " : "") + "Lvl " + (xpInfo.level || 1),
           cls: "detail-skill-attached-level"
         });
-        const attachedDesc = (skill.description || "").trim();
-        if (attachedDesc) {
-          const descWrap = body.createEl("span", { cls: "quest-block-desc-wrap" });
-          descWrap.createEl("span", {
-            text: attachedDesc,
-            cls: "quest-block-desc-text"
-          });
-        }
         const xpBar = body.createEl("div", { cls: "skill-xp-bar detail-skill-attached-xp-bar" });
         const xpFill = xpBar.createEl("div", { cls: "skill-xp-fill" });
         xpFill.style.width = `${xpInfo.pct}%`;
@@ -1055,7 +1047,7 @@ var _QuestLogView = class _QuestLogView extends obsidianNS.ItemView {
       filtered.forEach((skill) => {
         const id = skill.id;
         const xpInfo = _QuestLogView.getSkillXpProgress(skill, difficulty);
-        // Pretty skill rows: title|level band (level top-right pin), desc below if any, XP flush bottom
+        // Pretty skill rows: title|level band (level top-right pin) + XP flush bottom — NO desc (Skills tab only)
         const row = listEl.createEl("label", { cls: "skills-selector-row skill-selector-row" });
         const checkbox = row.createEl("input", {
           type: "checkbox",
@@ -1067,7 +1059,7 @@ var _QuestLogView = class _QuestLogView extends obsidianNS.ItemView {
           else draft.delete(id);
         });
         const body = row.createEl("span", { cls: "linked-selector-row-body" });
-        // Top band: title | level (same Y). Desc (if any) sibling below — mirror Skills tab.
+        // Top band: title | level (same Y). No description here — desc is Skills tab only.
         const titleRow = body.createEl("span", { cls: "detail-skill-attached-title-row skill-selector-band" });
         titleRow.createEl("span", {
           text: skill.name || "Untitled",
@@ -1077,14 +1069,6 @@ var _QuestLogView = class _QuestLogView extends obsidianNS.ItemView {
           text: (skill.legendary ? "\u2605 " : "") + "Lvl " + (xpInfo.level || 1),
           cls: "detail-skill-attached-level"
         });
-        const pickerDesc = (skill.description || "").trim();
-        if (pickerDesc) {
-          const descWrap = body.createEl("span", { cls: "quest-block-desc-wrap" });
-          descWrap.createEl("span", {
-            text: pickerDesc,
-            cls: "quest-block-desc-text"
-          });
-        }
         const xpBar = body.createEl("div", { cls: "skill-xp-bar detail-skill-attached-xp-bar" });
         const xpFill = xpBar.createEl("div", { cls: "skill-xp-fill" });
         xpFill.style.width = `${xpInfo.pct}%`;

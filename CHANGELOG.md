@@ -2,6 +2,14 @@
 
 Vault project notes (design / ship history). Durable code tree: `/workspace/Quest-Log-src`. Ship folder: `.obsidian/plugins/quest-log` (four files only).
 
+## 0.6.45 — 2026-09-26
+
+Luke via Atlas COO REPLACE — Skills selector/attached: NO description (Skills tab only):
+
+1. **Skills selector** picker + quest/habit **attached-skills** grids: title | level (top-right pin) + XP bar flush bottom only. Kill `quest-block-desc-wrap` from those DOM paths.
+2. Main **Skills** tab `.skill-block` still shows description below the title|level band (0.6.43). Quests / Habits list untouched.
+3. Supersedes 0.6.44 selector-desc work (desc stays Skills-tab-only).
+
 ## 0.6.44 — 2026-09-26
 
 Luke via Atlas COO APPROVED — Skills SELECTOR picker level pinned to title row:

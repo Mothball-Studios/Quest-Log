@@ -1540,7 +1540,7 @@
   cursor: default;
   width: 100%;
 }
-/* Skill attach + picker: title+level SAME row. Shared default flex-end; selector band overrides to top pin (0.6.44). */
+/* Skill attach + picker: title+level SAME row. Shared default flex-end; selector band overrides to top pin (0.6.45). */
 .skill-selector-row .detail-skill-attached-title-row,
 .detail-skill-attached-row .detail-skill-attached-title-row,
 .detail-skill-attached-title-row {
@@ -1588,7 +1588,8 @@
   accent-color: var(--ql-skill, #22c55e);
 }
 
-/* 0.6.44 — Skills SELECTOR picker blocks: same top-right level pin as Skills tab.
+/* 0.6.45 — Skills SELECTOR / attached blocks: title|level band + XP flush bottom.
+   NO description text (desc is Skills tab .skill-block only).
    Scope: .skill-selector-row / .skills-selector-row (picker + attached display).
    Shared title-row flex-end kept for non-band usages; band uses flex-start. */
 .skills-selector-row.skill-selector-row,
@@ -1614,7 +1615,7 @@
   flex: 1 1 auto;
   display: flex;
   flex-direction: column;
-  gap: 4px; /* match .skill-block tight band → desc → XP */
+  gap: 4px; /* tight band → XP (no desc in selector/attached) */
   min-width: 0;
   align-self: stretch;
   min-height: 0;
@@ -1633,25 +1634,7 @@
 .skills-selector-row .skill-selector-band > .detail-skill-attached-level {
   align-self: flex-start !important;
 }
-/* Desc flows BELOW the title|level band (sibling under band inside body). */
-.skill-selector-row .linked-selector-row-body > .quest-block-desc-wrap,
-.skills-selector-row .linked-selector-row-body > .quest-block-desc-wrap,
-.skill-selector-row .detail-skill-attached-body > .quest-block-desc-wrap {
-  flex: 0 0 auto;
-  width: 100%;
-  max-width: 100%;
-  min-width: 0;
-  margin-bottom: 0;
-}
-.skill-selector-row .quest-block-desc-wrap::after,
-.skills-selector-row .quest-block-desc-wrap::after {
-  background: linear-gradient(to right, transparent, rgba(21, 21, 21, 0.95) 90%);
-}
-.skill-selector-row:hover .quest-block-desc-wrap::after,
-.skills-selector-row:hover .quest-block-desc-wrap::after {
-  background: linear-gradient(to right, transparent, rgba(28, 28, 28, 0.95) 90%);
-}
-/* Pin XP bar to bottom of picker block body (with or without desc). */
+/* Pin XP bar to bottom of picker/attached block body (title|level + XP only). */
 .skill-selector-row .linked-selector-row-body > .skill-xp-bar,
 .skills-selector-row .linked-selector-row-body > .skill-xp-bar,
 .skill-selector-row .linked-selector-row-body > .detail-skill-attached-xp-bar,

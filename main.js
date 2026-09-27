@@ -2272,14 +2272,6 @@ var require_render = __commonJS({
                 text: (skill.legendary ? "\u2605 " : "") + "Lvl " + (xpInfo.level || 1),
                 cls: "detail-skill-attached-level"
               });
-              const attachedDesc = (skill.description || "").trim();
-              if (attachedDesc) {
-                const descWrap = body.createEl("span", { cls: "quest-block-desc-wrap" });
-                descWrap.createEl("span", {
-                  text: attachedDesc,
-                  cls: "quest-block-desc-text"
-                });
-              }
               const xpBar = body.createEl("div", { cls: "skill-xp-bar detail-skill-attached-xp-bar" });
               const xpFill = xpBar.createEl("div", { cls: "skill-xp-fill" });
               xpFill.style.width = `${xpInfo.pct}%`;
@@ -2380,14 +2372,6 @@ var require_render = __commonJS({
                 text: (skill.legendary ? "\u2605 " : "") + "Lvl " + (xpInfo.level || 1),
                 cls: "detail-skill-attached-level"
               });
-              const pickerDesc = (skill.description || "").trim();
-              if (pickerDesc) {
-                const descWrap = body.createEl("span", { cls: "quest-block-desc-wrap" });
-                descWrap.createEl("span", {
-                  text: pickerDesc,
-                  cls: "quest-block-desc-text"
-                });
-              }
               const xpBar = body.createEl("div", { cls: "skill-xp-bar detail-skill-attached-xp-bar" });
               const xpFill = xpBar.createEl("div", { cls: "skill-xp-fill" });
               xpFill.style.width = `${xpInfo.pct}%`;
