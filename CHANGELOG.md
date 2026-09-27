@@ -2,6 +2,14 @@
 
 Vault project notes (design / ship history). Durable code tree: `/workspace/Quest-Log-src`. Ship folder: `.obsidian/plugins/quest-log` (four files only).
 
+## 0.6.18 — 2026-09-26
+
+Micah via Atlas COO APPROVED — Quest Log UI post 0.6.17:
+
+1. Unify detail-modal header across skill / habit / quest: one line with title, created meta, and trash → open-note → close (undo skill-only flush-top actions row from 0.6.17).
+2. Skill details only: readable **Created on …** date blurb near header (e.g. `Created on Sep 27, 2026`); habit/quest keep existing `Created …` wording.
+3. Skill details + creation: detach (X) on each attached quest/habit row is a slightly bigger bordered button-style control (not a bare icon), clearly tappable and distinct from the row.
+
 ## 0.6.17 — 2026-09-26
 
 Micah via Atlas COO APPROVED — UI fix post 0.6.16:

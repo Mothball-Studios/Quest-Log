@@ -949,25 +949,6 @@
   border-bottom: 1px solid var(--ql-border, #2a2a2a);
 }
 
-/* Skill details ONLY: trash / open-note / close flush at top edge, above header */
-.quest-detail-box.skill-context {
-  padding-top: 10px;
-}
-.skill-detail-top-actions {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 10px;
-  margin: -2px 0 0;
-  padding: 0;
-  flex: 0 0 auto;
-  width: 100%;
-  box-sizing: border-box;
-}
-.skill-detail-top-actions + .quest-detail-header-row {
-  margin-top: 0;
-}
-
 .quest-detail-modal-title {
   color: #ffffff;
   font-size: 18px;
@@ -1461,9 +1442,42 @@
   width: 100%;
   box-sizing: border-box;
 }
+/* Detach on attached quest/habit rows (skill details + creation):
+   bordered button chrome — larger tap target, distinct from bare row icon */
 .detail-linked-row-remove {
   flex: 0 0 auto;
-  margin-left: 4px;
+  margin-left: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border-radius: 6px;
+  border: 1px solid var(--ql-border, #2a2a2a);
+  background-color: #1a1a1a;
+  color: #c4c9d0;
+  cursor: pointer;
+  box-sizing: border-box;
+  line-height: 1;
+}
+.detail-linked-row-remove:hover {
+  border-color: var(--ql-danger, #ef4444);
+  background-color: rgba(239, 68, 68, 0.12);
+  color: var(--ql-danger, #ef4444);
+  box-shadow: 0 0 10px rgba(239, 68, 68, 0.35);
+}
+.detail-linked-row-remove-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  /* Lucide x ink underfills viewBox; scale so ink ~16px like header close */
+  --icon-size: calc(20px * 16 / 14);
+}
+.detail-linked-row-remove-icon svg {
+  width: var(--icon-size);
+  height: var(--icon-size);
 }
 .detail-quest-tag {
   background-color: rgba(59, 130, 246, 0.2);
@@ -1697,7 +1711,7 @@
   height: 16px;
 }
 
-/* --- Created date meta (header row, horizontally centered; shared quest/habit) --- */
+/* --- Created date meta (header row, horizontally centered; quest/habit/skill) --- */
 .quest-detail-header-row .quest-detail-meta-text {
   position: absolute;
   left: 50%;

@@ -2451,11 +2451,14 @@ var require_render = __commonJS({
                   cls: "linked-selector-row-coin-text"
                 });
               }
-              const removeBtn = row.createEl("span", {
-                cls: "detail-skill-tag-remove detail-linked-row-remove",
-                attr: { "aria-label": "Detach", role: "button" }
+              const removeBtn = row.createEl("button", {
+                cls: "detail-linked-row-remove",
+                attr: { "aria-label": "Detach", type: "button" }
               });
-              setIcon(removeBtn, "x");
+              const removeIcon = removeBtn.createEl("span", {
+                cls: "detail-linked-row-remove-icon"
+              });
+              setIcon(removeIcon, "x");
               removeBtn.addEventListener("click", (e) => {
                 e.stopPropagation();
                 const i = selectedIds.findIndex((x) => String(x) === String(id));
@@ -4188,10 +4191,18 @@ var require_render = __commonJS({
           box.addClass("skill-context");
           overlay.addClass("open");
           const difficulty = this.plugin.settings.skillDifficulty || 10;
-          const topActions = box.createEl("div", {
-            cls: "skill-detail-top-actions quest-detail-btn-group"
+          const headerRow = box.createEl("div", { cls: "quest-detail-header-row has-divider" });
+          headerRow.createEl("span", {
+            text: "Skill Details",
+            cls: "quest-detail-modal-title"
           });
-          const deleteBtn = topActions.createEl("button", {
+          const createdDate = _QuestLogView2.formatDate(skill.created);
+          headerRow.createEl("span", {
+            text: `Created on ${createdDate}`,
+            cls: "quest-detail-meta-text"
+          });
+          const btnGroup = headerRow.createEl("div", { cls: "quest-detail-btn-group" });
+          const deleteBtn = btnGroup.createEl("button", {
             cls: "quest-detail-delete-btn",
             attr: { "aria-label": "Delete", type: "button" }
           });
@@ -4211,7 +4222,7 @@ var require_render = __commonJS({
               new obsidianNS.Notice("Skill deleted.");
             });
           });
-          const openNoteBtn = topActions.createEl("button", {
+          const openNoteBtn = btnGroup.createEl("button", {
             cls: "quest-detail-open-btn",
             attr: { "aria-label": "Open note", type: "button" }
           });
@@ -4225,7 +4236,7 @@ var require_render = __commonJS({
             const fullPath = `${folderPath}/${stem}.md`;
             this.app.workspace.openLinkText(fullPath, "", false);
           });
-          const closeBtn = topActions.createEl("button", {
+          const closeBtn = btnGroup.createEl("button", {
             cls: "quest-detail-close-btn",
             attr: { "aria-label": "Close", type: "button" }
           });
@@ -4233,11 +4244,6 @@ var require_render = __commonJS({
             cls: "quest-detail-close-icon"
           });
           setIcon(closeIcon, "x");
-          const headerRow = box.createEl("div", { cls: "quest-detail-header-row has-divider" });
-          headerRow.createEl("span", {
-            text: "Skill Details",
-            cls: "quest-detail-modal-title"
-          });
           const nameInput = box.createEl("input", {
             type: "text",
             value: skill.name,

@@ -1145,11 +1145,14 @@ var _QuestLogView = class _QuestLogView extends obsidianNS.ItemView {
             cls: "linked-selector-row-coin-text"
           });
         }
-        const removeBtn = row.createEl("span", {
-          cls: "detail-skill-tag-remove detail-linked-row-remove",
-          attr: { "aria-label": "Detach", role: "button" }
+        const removeBtn = row.createEl("button", {
+          cls: "detail-linked-row-remove",
+          attr: { "aria-label": "Detach", type: "button" }
         });
-        setIcon(removeBtn, "x");
+        const removeIcon = removeBtn.createEl("span", {
+          cls: "detail-linked-row-remove-icon"
+        });
+        setIcon(removeIcon, "x");
         removeBtn.addEventListener("click", (e) => {
           e.stopPropagation();
           const i = selectedIds.findIndex((x) => String(x) === String(id));
@@ -2894,11 +2897,20 @@ var _QuestLogView = class _QuestLogView extends obsidianNS.ItemView {
     box.addClass("skill-context");
     overlay.addClass("open");
     const difficulty = this.plugin.settings.skillDifficulty || 10;
-    // Top icon bar (skill details only): trash → open note → close, flush above header
-    const topActions = box.createEl("div", {
-      cls: "skill-detail-top-actions quest-detail-btn-group"
+    // One-line header matching quest/habit: title | Created on … | trash → open note → close
+    const headerRow = box.createEl("div", { cls: "quest-detail-header-row has-divider" });
+    headerRow.createEl("span", {
+      text: "Skill Details",
+      cls: "quest-detail-modal-title"
     });
-    const deleteBtn = topActions.createEl("button", {
+    const createdDate = _QuestLogView.formatDate(skill.created);
+    headerRow.createEl("span", {
+      text: `Created on ${createdDate}`,
+      cls: "quest-detail-meta-text"
+    });
+    const btnGroup = headerRow.createEl("div", { cls: "quest-detail-btn-group" });
+    // Micah order: trash → open note → close
+    const deleteBtn = btnGroup.createEl("button", {
       cls: "quest-detail-delete-btn",
       attr: { "aria-label": "Delete", type: "button" }
     });
@@ -2918,7 +2930,7 @@ var _QuestLogView = class _QuestLogView extends obsidianNS.ItemView {
         new obsidianNS.Notice("Skill deleted.");
       });
     });
-    const openNoteBtn = topActions.createEl("button", {
+    const openNoteBtn = btnGroup.createEl("button", {
       cls: "quest-detail-open-btn",
       attr: { "aria-label": "Open note", type: "button" }
     });
@@ -2932,7 +2944,7 @@ var _QuestLogView = class _QuestLogView extends obsidianNS.ItemView {
       const fullPath = `${folderPath}/${stem}.md`;
       this.app.workspace.openLinkText(fullPath, "", false);
     });
-    const closeBtn = topActions.createEl("button", {
+    const closeBtn = btnGroup.createEl("button", {
       cls: "quest-detail-close-btn",
       attr: { "aria-label": "Close", type: "button" }
     });
@@ -2940,11 +2952,6 @@ var _QuestLogView = class _QuestLogView extends obsidianNS.ItemView {
       cls: "quest-detail-close-icon"
     });
     setIcon(closeIcon, "x");
-    const headerRow = box.createEl("div", { cls: "quest-detail-header-row has-divider" });
-    headerRow.createEl("span", {
-      text: "Skill Details",
-      cls: "quest-detail-modal-title"
-    });
     const nameInput = box.createEl("input", {
       type: "text",
       value: skill.name,
