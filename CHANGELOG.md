@@ -2,6 +2,14 @@
 
 Vault project notes (design / ship history). Durable code tree: `/workspace/Quest-Log-src`. Ship folder: `.obsidian/plugins/quest-log` (four files only).
 
+## 0.6.42 — 2026-09-26
+
+Luke via Atlas COO APPROVED — Skills tab XP bar flush to block bottom:
+
+1. **Skills** list `.skill-block`: flex column already; `.skill-xp-bar { margin-top: auto }` (band stays content-sized) so the XP bar locks to the bottom edge with or without a description.
+2. Side-by-side mixed desc/no-desc: blocks may stretch to match row height; gap between band and XP bar is OK — bar must never float mid-block.
+3. Quests / Habits / selector / details / creation untouched.
+
 ## 0.6.41 — 2026-09-26
 
 Micah via Atlas COO APPROVED — Quests complete size parity + Habits list icon parity:

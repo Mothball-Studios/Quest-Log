@@ -2303,6 +2303,25 @@
 .skill-block {
   position: relative;
   gap: 4px; /* tight band → XP bar */
+  /* Grid stretch fills row height; flex column + pinned XP keeps bar at bottom */
+  align-self: stretch;
+  box-sizing: border-box;
+}
+/* Band stays content-sized at the top. Do NOT flex-grow the band — that would
+   sink title/level toward the XP bar (title-row uses align-items:flex-end).
+   Free space becomes margin above the XP bar instead. */
+.skill-block > .skill-block-band,
+.skill-block > .detail-skill-attached-title-row.skill-block-band {
+  flex: 0 0 auto;
+  align-self: stretch;
+}
+/* Pin XP bar to the bottom edge of every .skill-block (with or without desc).
+   Gap between title/desc band and XP bar is OK when a neighbor has a desc. */
+.skill-block > .skill-xp-bar {
+  margin-top: auto;
+  flex: 0 0 auto;
+  width: 100%;
+  align-self: stretch;
 }
 /* Main Skills tab: title wraps on its own row(s); desc single-line fade under */
 .skill-block .detail-skill-attached-title {
