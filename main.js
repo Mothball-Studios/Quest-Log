@@ -1695,7 +1695,7 @@ var require_render = __commonJS({
           this.center = this.size / 2;
           this.maxRadius = this.size / 2 - 50;
           this.numCircles = 5;
-          this.polygonColor = "#5e87ff";
+          this.polygonColor = "#22c55e";
           this.polygonFill = "rgba(94, 135, 255, 0.4)";
           this.lineColor = "#3a3a3a";
           this.radialLineColor = "#444";
@@ -2501,7 +2501,7 @@ var require_render = __commonJS({
               overlay.removeClass("open");
             }
           });
-          const modalBox = overlay.createEl("div", { cls: "quest-modal ql-modal" });
+          const modalBox = overlay.createEl("div", { cls: "quest-modal quest-context ql-modal" });
           const modalHeader = modalBox.createEl("div", { cls: "quest-modal-header" });
           const headerIcon = modalHeader.createEl("span", {
             cls: "quest-modal-header-icon"
@@ -2536,7 +2536,7 @@ var require_render = __commonJS({
             slidersSection,
             "Difficulty",
             _QuestLogView2.DIFFICULTY_LABELS,
-            "#5e87ff",
+            "#4b6cb7",
             3,
             updateXpPreview
           );
@@ -2673,7 +2673,7 @@ var require_render = __commonJS({
             habitSlidersSection,
             "Difficulty",
             _QuestLogView2.DIFFICULTY_LABELS,
-            "#5e87ff",
+            "#4b6cb7",
             3,
             updateHabitXpPreview
           );
@@ -2859,8 +2859,10 @@ var require_render = __commonJS({
               }
               fabBtn.removeClass("fab-habits");
               fabBtn.removeClass("fab-skills");
+              fabBtn.removeClass("fab-quests");
               if (colorClass === "tab-habits") fabBtn.addClass("fab-habits");
-              if (colorClass === "tab-skills") fabBtn.addClass("fab-skills");
+              else if (colorClass === "tab-skills") fabBtn.addClass("fab-skills");
+              else fabBtn.addClass("fab-quests");
               questListContainer.style.display = text === "QUESTS" ? "flex" : "none";
               habitsContent.style.display = text === "HABITS" ? "flex" : "none";
               skillsContent.style.display = text === "SKILLS" ? "flex" : "none";
@@ -2868,7 +2870,7 @@ var require_render = __commonJS({
             });
             return btn;
           }, "createTab");
-          const questTab = createTab("scroll-text", "QUESTS");
+          const questTab = createTab("scroll-text", "QUESTS", "tab-quests");
           const habitsTab = createTab("list-todo", "HABITS", "tab-habits");
           const skillsTab = createTab("book-open", "SKILLS", "tab-skills");
           questTab.addClass("active-tab");
@@ -2957,8 +2959,10 @@ var require_render = __commonJS({
                 if (tabMap[targetTab]) tabMap[targetTab].addClass("active-tab");
                 fabBtn.removeClass("fab-habits");
                 fabBtn.removeClass("fab-skills");
+                fabBtn.removeClass("fab-quests");
                 if (targetTab === "HABITS") fabBtn.addClass("fab-habits");
-                if (targetTab === "SKILLS") fabBtn.addClass("fab-skills");
+                else if (targetTab === "SKILLS") fabBtn.addClass("fab-skills");
+                else fabBtn.addClass("fab-quests");
               }
               questListContainer.style.display = activeTab === "QUESTS" ? "flex" : "none";
               habitsContent.style.display = activeTab === "HABITS" ? "flex" : "none";
@@ -3195,8 +3199,13 @@ var require_render = __commonJS({
           const box = this._detailBox;
           this.drainSliders(box);
           box.empty();
-          if (isHabit) box.addClass("habit-context");
-          else box.removeClass("habit-context");
+          if (isHabit) {
+            box.addClass("habit-context");
+            box.removeClass("quest-context");
+          } else {
+            box.addClass("quest-context");
+            box.removeClass("habit-context");
+          }
           overlay.addClass("open");
           const headerRow = box.createEl("div", { cls: "quest-detail-header-row" });
           headerRow.createEl("span", {
@@ -3322,7 +3331,7 @@ var require_render = __commonJS({
             slidersSection,
             "Difficulty",
             _QuestLogView2.DIFFICULTY_LABELS,
-            "#5e87ff",
+            "#4b6cb7",
             item.difficulty || 3,
             updateXpPreview
           );

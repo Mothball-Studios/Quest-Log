@@ -7,10 +7,18 @@
   --ql-bg: var(--background-primary, #1a1a1c);
   --ql-surface: #1a1a1c;
   --ql-border: #2a2a2a;
-  --ql-accent: var(--interactive-accent, #5e87ff);
-  --ql-accent-hover: #4a73e6;
-  --ql-success: #22c55e;
-  --ql-success-hover: #16a34a;
+  /* Type colors — locked hex (not theme interactive-accent) */
+  --ql-quest: #4b6cb7; /* live XP-bar / level-badge blue */
+  --ql-quest-hover: #3d5a9a;
+  --ql-habit: #a855f7; /* vibrant purple */
+  --ql-habit-hover: #9333ea;
+  --ql-skill: #22c55e; /* green */
+  --ql-skill-hover: #16a34a;
+  /* Default chrome follows quest blue */
+  --ql-accent: var(--ql-quest);
+  --ql-accent-hover: var(--ql-quest-hover);
+  --ql-success: var(--ql-skill);
+  --ql-success-hover: var(--ql-skill-hover);
   --ql-danger: var(--text-error, #ef4444);
   --ql-danger-hover: #dc2626;
   --ql-text: #fff;
@@ -79,7 +87,7 @@
   box-sizing: border-box;
 }
 .ql-input:focus {
-  border-color: var(--ql-accent, #5e87ff);
+  border-color: var(--ql-accent, #4b6cb7);
 }
 .ql-input::placeholder {
   color: var(--ql-faint, #555);
@@ -101,7 +109,7 @@
   box-sizing: border-box;
 }
 .ql-textarea:focus {
-  border-color: var(--ql-accent, #5e87ff);
+  border-color: var(--ql-accent, #4b6cb7);
 }
 .ql-textarea::placeholder {
   color: var(--ql-faint, #555);
@@ -132,7 +140,7 @@
   background-color: #333;
 }
 .ql-btn-primary {
-  background-color: var(--ql-accent, #5e87ff);
+  background-color: var(--ql-accent, #4b6cb7);
   color: var(--ql-text, #fff);
 }
 .ql-btn-primary:hover {
@@ -374,7 +382,7 @@
   background-color: #252525;
 }
 .quest-menu-item.active-menu {
-  color: var(--ql-accent, #5e87ff);
+  color: var(--ql-accent, #4b6cb7);
   background-color: rgba(94, 135, 255, 0.1);
 }
 .quest-menu-item svg {
@@ -402,7 +410,7 @@
    ============================================================ */
 
 .level-badge {
-  background: linear-gradient(135deg, #4b6cb7 0%, #182848 100%);
+  background: linear-gradient(135deg, var(--ql-quest, #4b6cb7) 0%, #182848 100%);
   width: 60px;
   height: 60px;
   display: flex;
@@ -450,7 +458,7 @@
   opacity: 1;
 }
 .hero-name-container:hover .hero-name-input {
-  color: var(--ql-accent, #5e87ff);
+  color: var(--ql-accent, #4b6cb7);
   text-decoration: underline;
   text-decoration-color: #333;
 }
@@ -491,7 +499,7 @@
 }
 .xp-text {
   margin: 0;
-  color: var(--ql-accent, #5e87ff);
+  color: var(--ql-quest, #4b6cb7);
   font-size: 14px;
   font-weight: bold;
 }
@@ -512,7 +520,7 @@
   margin-bottom: 17px;
 }
 .xp-bar-fill {
-  background-color: #4b6cb7;
+  background-color: var(--ql-quest, #4b6cb7);
   height: 100%;
 }
 
@@ -545,40 +553,42 @@
   gap: 8px;
   font-size: 14px;
 }
-.quest-log-tabs button.active-tab {
-  color: var(--ql-accent, #5e87ff) !important;
-  border-bottom: 2px solid var(--ql-accent, #5e87ff);
+.quest-log-tabs button.active-tab,
+.quest-log-tabs button.active-tab.tab-quests {
+  color: var(--ql-quest, #4b6cb7) !important;
+  border-bottom: 2px solid var(--ql-quest, #4b6cb7);
   border-radius: 0px;
 }
 .quest-log-tabs button.active-tab.tab-habits {
-  color: #a855f7 !important;
-  border-bottom-color: #a855f7;
+  color: var(--ql-habit, #a855f7) !important;
+  border-bottom-color: var(--ql-habit, #a855f7);
 }
 .quest-log-tabs button.active-tab.tab-skills {
-  color: var(--ql-success, #22c55e) !important;
-  border-bottom-color: var(--ql-success, #22c55e);
+  color: var(--ql-skill, #22c55e) !important;
+  border-bottom-color: var(--ql-skill, #22c55e);
 }
 
 /* ============================================================
    FAB BUTTON
    ============================================================ */
 
-.quest-fab {
+.quest-fab,
+.quest-fab.fab-quests {
   position: absolute;
   bottom: 30px;
   right: 30px;
   width: 50px;
   height: 50px;
   border-radius: 50%;
-  background-color: var(--ql-accent, #5e87ff) !important;
+  background-color: var(--ql-quest, #4b6cb7) !important;
   border: none;
   transition: background-color 0.2s ease;
 }
 .quest-fab.fab-habits {
-  background-color: #a855f7 !important;
+  background-color: var(--ql-habit, #a855f7) !important;
 }
 .quest-fab.fab-skills {
-  background-color: var(--ql-success, #22c55e) !important;
+  background-color: var(--ql-skill, #22c55e) !important;
 }
 .quest-fab span.fab-icon {
   padding-top: 4px;
@@ -627,7 +637,7 @@
   box-sizing: border-box;
 }
 .quest-modal-title:focus {
-  border-color: var(--ql-accent, #5e87ff);
+  border-color: var(--ql-accent, #4b6cb7);
 }
 .quest-modal-title::placeholder {
   color: #555;
@@ -648,7 +658,7 @@
   box-sizing: border-box;
 }
 .quest-modal-desc:focus {
-  border-color: var(--ql-accent, #5e87ff);
+  border-color: var(--ql-accent, #4b6cb7);
 }
 .quest-modal-desc::placeholder {
   color: #555;
@@ -743,7 +753,7 @@
   letter-spacing: 0.5px;
 }
 .quest-xp-preview-value {
-  color: var(--ql-accent, #5e87ff);
+  color: var(--ql-accent, #4b6cb7);
   font-size: 20px;
   font-weight: bold;
 }
@@ -768,7 +778,7 @@
   background-color: #333;
 }
 .quest-modal-create-btn {
-  background-color: var(--ql-accent, #5e87ff) !important;
+  background-color: var(--ql-accent, #4b6cb7) !important;
   color: #fff !important;
   border: none !important;
   padding: 10px 20px;
@@ -818,7 +828,7 @@
 .quest-block {
   background-color: #191919;
   border: 1px solid var(--ql-border, #2a2a2a);
-  border-left: 3px solid var(--ql-accent, #5e87ff);
+  border-left: 3px solid var(--ql-quest, #4b6cb7);
   border-radius: 10px;
   padding: 12px 14px;
   cursor: pointer;
@@ -828,7 +838,7 @@
   position: relative;
 }
 .quest-block:hover {
-  border-color: var(--ql-accent, #5e87ff);
+  border-color: var(--ql-quest, #4b6cb7);
   background-color: #1f1f1f;
 }
 
@@ -871,7 +881,7 @@
 }
 
 .quest-block-xp {
-  color: var(--ql-accent, #5e87ff);
+  color: var(--ql-quest, #4b6cb7);
   font-size: 11px;
   font-weight: bold;
   text-transform: uppercase;
@@ -940,11 +950,11 @@
   box-sizing: border-box;
 }
 .quest-detail-title-input:focus {
-  border-color: var(--ql-accent, #5e87ff);
+  border-color: var(--ql-accent, #4b6cb7);
 }
 
 .quest-detail-xp {
-  color: var(--ql-accent, #5e87ff);
+  color: var(--ql-accent, #4b6cb7);
   font-size: 14px;
   font-weight: bold;
   white-space: nowrap;
@@ -970,7 +980,7 @@
   box-sizing: border-box;
 }
 .quest-detail-desc:focus {
-  border-color: var(--ql-accent, #5e87ff);
+  border-color: var(--ql-accent, #4b6cb7);
   color: #e5e5e5;
 }
 .quest-detail-desc-plain {
@@ -1094,32 +1104,54 @@
 }
 .quest-detail-box .quest-detail-reward .quest-xp-preview-value {
   /* Keep XP value styling exactly as before */
-  color: var(--ql-accent, #5e87ff);
+  color: var(--ql-accent, #4b6cb7);
   font-size: 20px;
   font-weight: 700;
+}
+
+/* Quest context — XP-bar blue accent */
+.quest-context .quest-modal-title:focus,
+.quest-context .quest-modal-desc:focus {
+  border-color: var(--ql-quest, #4b6cb7);
+}
+.quest-context .quest-xp-preview-value {
+  color: var(--ql-quest, #4b6cb7);
+}
+.quest-context .quest-modal-create-btn {
+  background-color: var(--ql-quest, #4b6cb7) !important;
+}
+.quest-context .quest-modal-create-btn:hover {
+  background-color: var(--ql-quest-hover, #3d5a9a);
+  box-shadow: 0 0 12px rgba(75, 108, 183, 0.5);
+}
+.quest-context .quest-detail-title-input:focus {
+  border-color: var(--ql-quest, #4b6cb7);
+}
+.quest-context .quest-detail-box .quest-xp-preview-value {
+  color: var(--ql-quest, #4b6cb7);
 }
 
 /* Habit context — purple accent */
 .habit-context .quest-modal-title:focus,
 .habit-context .quest-modal-desc:focus {
-  border-color: #a855f7;
+  border-color: var(--ql-habit, #a855f7);
 }
 .habit-context .quest-xp-preview-value {
-  color: #a855f7;
+  color: var(--ql-habit, #a855f7);
 }
 .habit-context .quest-modal-create-btn {
-  background-color: #a855f7 !important;
+  background-color: var(--ql-habit, #a855f7) !important;
 }
 .habit-context .quest-modal-create-btn:hover {
-  background-color: #9333ea;
+  background-color: var(--ql-habit-hover, #9333ea);
   box-shadow: 0 0 12px rgba(168, 85, 247, 0.5);
 }
 .habit-context .quest-detail-title-input:focus {
-  border-color: #a855f7;
+  border-color: var(--ql-habit, #a855f7);
 }
 /* Beat .quest-detail-box .quest-detail-reward .quest-xp-preview-value (same 3-class specificity; later wins) */
 .habit-context .quest-detail-box .quest-xp-preview-value {
-  color: #a855f7;
+  color: var(--ql-habit, #a855f7);
 }
 .habit-context .quest-detail-complete-btn {
   background-color: var(--ql-success, #22c55e) !important;
@@ -1307,7 +1339,7 @@
   justify-content: center;
 }
 .quest-detail-open-btn:hover {
-  color: var(--ql-accent, #5e87ff);
+  color: var(--ql-accent, #4b6cb7);
   box-shadow: 0 0 12px rgba(94, 135, 255, 0.5);
 }
 .quest-detail-open-icon svg {
@@ -1379,7 +1411,7 @@
   background: none !important;
   border: none !important;
   box-shadow: none !important;
-  color: var(--ql-accent, #5e87ff);
+  color: var(--ql-accent, #4b6cb7);
   cursor: pointer;
   font-size: 13px;
   font-weight: bold;
@@ -1484,7 +1516,7 @@
 
 /* Habit-specific styles */
 .habit-block {
-  border-left: 3px solid #a855f7;
+  border-left: 3px solid var(--ql-habit, #a855f7);
 }
 
 .habit-action-row {
@@ -1615,7 +1647,7 @@
 }
 
 .completed-block-type {
-  color: #a855f7;
+  color: var(--ql-habit, #a855f7);
   font-size: 11px;
   font-weight: bold;
   text-transform: uppercase;
@@ -1679,7 +1711,7 @@
 }
 
 .skill-block {
-  border-left: 3px solid var(--ql-success, #22c55e);
+  border-left: 3px solid var(--ql-skill, #22c55e);
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -1740,26 +1772,26 @@
   margin-top: 4px;
 }
 
-/* Skill context - green accent */
+/* Skill context — green accent */
 .skill-context .quest-modal-title:focus,
 .skill-context .quest-modal-desc:focus {
-  border-color: var(--ql-success, #22c55e);
+  border-color: var(--ql-skill, #22c55e);
 }
 .skill-context .quest-xp-preview-value {
-  color: var(--ql-success, #22c55e);
+  color: var(--ql-skill, #22c55e);
 }
 .skill-context .quest-modal-create-btn {
-  background-color: var(--ql-success, #22c55e);
+  background-color: var(--ql-skill, #22c55e) !important;
 }
 .skill-context .quest-modal-create-btn:hover {
-  background-color: #16a34a;
+  background-color: var(--ql-skill-hover, #16a34a);
   box-shadow: 0 0 12px rgba(34, 197, 94, 0.5);
 }
 .skill-context .quest-detail-title-input:focus {
-  border-color: var(--ql-success, #22c55e);
+  border-color: var(--ql-skill, #22c55e);
 }
 .skill-context .quest-detail-box .quest-xp-preview-value {
-  color: var(--ql-success, #22c55e);
+  color: var(--ql-skill, #22c55e);
 }
 
 /* Skill detail level section */
@@ -2242,7 +2274,7 @@
 
 .skill-graph-back-btn {
   background-color: transparent;
-  color: var(--ql-accent, #5e87ff);
+  color: var(--ql-skill, #22c55e);
   border: none;
   padding: 6px 12px;
   border-radius: 6px;
@@ -2298,7 +2330,7 @@
 
 /* Sword icon styling */
 .skill-graph-header-icon {
-  color: var(--ql-accent, #5e87ff);
+  color: var(--ql-skill, #22c55e);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2359,7 +2391,7 @@
   transition: color 0.15s ease;
 }
 .skill-graph-picker-icon-btn:hover {
-  color: var(--ql-accent, #5e87ff);
+  color: var(--ql-skill, #22c55e);
   box-shadow: 0 0 12px rgba(94, 135, 255, 0.5);
 }
 .skill-graph-picker-icon-btn svg {
@@ -2411,7 +2443,7 @@
   box-sizing: border-box;
 }
 .skill-graph-picker-search:focus {
-  border-color: var(--ql-accent, #5e87ff);
+  border-color: var(--ql-skill, #22c55e);
 }
 
 /* Action icons wrapper */
@@ -2456,7 +2488,7 @@
 
 /* Checkbox */
 .skill-graph-picker-checkbox {
-  accent-color: var(--ql-accent, #5e87ff);
+  accent-color: var(--ql-skill, #22c55e);
   cursor: pointer;
 }
 
@@ -2497,7 +2529,7 @@
 
 /* Reset button */
 .skill-graph-picker-reset-btn {
-  background: var(--ql-accent, #5e87ff);
+  background: var(--ql-skill, #22c55e);
   color: #fff;
   border: none;
   padding: 6px 12px;

@@ -2,6 +2,14 @@
 
 Vault project notes (design / ship history). Durable code tree: `/workspace/Quest-Log-src`. Ship folder: `.obsidian/plugins/quest-log` (four files only).
 
+## 0.6.1 — 2026-09-26
+
+Type color coding restored and locked (not theme `interactive-accent`):
+
+- **Quest:** XP-bar blue `#4b6cb7` (`--ql-quest`) — tabs, FAB, list accents, create/detail context
+- **Habit:** purple `#a855f7` (`--ql-habit`)
+- **Skill:** green `#22c55e` (`--ql-skill`) — including skill graph chrome
+
 ## 0.6.0 — 2026-09-26
 
 Version bump for the session that landed as `4a82388` (detail modal polish, skill XP fix, slider/star/icon polish, reward block reorg, modular `src/` + ship rail).
