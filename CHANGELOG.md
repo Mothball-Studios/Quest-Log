@@ -2,6 +2,13 @@
 
 Vault project notes (design / ship history). Durable code tree: `/workspace/Quest-Log-src`. Ship folder: `.obsidian/plugins/quest-log` (four files only).
 
+## 0.6.31 — 2026-09-26
+
+Micah via Atlas COO APPROVED — leftover CSS after 0.6.30:
+
+- Skill title|level same-row CSS specificity tighten (`!important` + scoped `.skill-selector-row` / `.detail-skill-attached-row` selectors) so title and level stay on one row when other rules fight.
+- `main.js` unchanged from 0.6.30.
+
 ## 0.6.30 — 2026-09-26
 
 Micah via Atlas COO APPROVED — Quest Log UI post 0.6.29:

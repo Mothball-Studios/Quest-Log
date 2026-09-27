@@ -1482,29 +1482,37 @@
   cursor: default;
   width: 100%;
 }
+/* Skill attach + picker: title+level SAME row; level bottom-aligned when title wraps */
+.skill-selector-row .detail-skill-attached-title-row,
+.detail-skill-attached-row .detail-skill-attached-title-row,
 .detail-skill-attached-title-row {
-  display: flex;
-  align-items: flex-end;
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: flex-end !important;
   justify-content: space-between;
   gap: 6px;
   min-width: 0;
   width: 100%;
 }
+.skill-selector-row .detail-skill-attached-title,
+.detail-skill-attached-row .detail-skill-attached-title,
 .detail-skill-attached-title {
   flex: 1 1 auto;
   min-width: 0;
-  white-space: normal;
-  overflow: visible;
-  text-overflow: unset;
+  white-space: normal !important;
+  overflow: visible !important;
+  text-overflow: unset !important;
   word-wrap: break-word;
   overflow-wrap: anywhere;
   font-weight: 600;
   color: #eee;
   line-height: 1.25;
 }
+.skill-selector-row .detail-skill-attached-level,
+.detail-skill-attached-row .detail-skill-attached-level,
 .detail-skill-attached-level {
   flex: 0 0 auto;
-  align-self: flex-end;
+  align-self: flex-end !important;
   font-size: 11px;
   font-weight: 700;
   color: var(--ql-skill, #22c55e);
