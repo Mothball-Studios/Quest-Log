@@ -2,6 +2,14 @@
 
 Vault project notes (design / ship history). Durable code tree: `/workspace/Quest-Log-src`. Ship folder: `.obsidian/plugins/quest-log` (four files only).
 
+## 0.6.39 — 2026-09-26
+
+Micah via Atlas COO APPROVED — Main Quests + Habits tab list redesigns:
+
+1. **Quests** (`renderQuestList` / `.quest-block`): title | XP band (coins left of XP when `rewardsMode` ON; hide coins when OFF) above complete; description truncates + gradient-fades into the complete control (Skills desc→level pattern).
+2. **Habits** (`renderHabitList` / `.habit-block`): title | XP band (never coins); Fail + Complete stretch full bottom width 50/50 (`flex:1`, match detail `.quest-detail-buttons`).
+3. Details/creation unchanged. No habit coins.
+
 ## 0.6.38 — 2026-09-26
 
 Micah via Atlas COO APPROVED — Skills tab title-wrap + long-name pack:

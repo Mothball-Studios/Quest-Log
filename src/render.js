@@ -1965,26 +1965,43 @@ var _QuestLogView = class _QuestLogView extends obsidianNS.ItemView {
       });
       return;
     }
+    const rewardsOn = Boolean(this.plugin.settings.rewardsMode);
     quests.forEach((quest) => {
       const block = container.createEl("div", { cls: "quest-block" });
-      block.createEl("div", {
+      // Title | coins? + XP band above complete; desc fades into complete (Skills-style).
+      const band = block.createEl("div", { cls: "quest-block-band" });
+      band.createEl("div", {
         text: quest.title,
         cls: "quest-block-title"
       });
+      const meta = band.createEl("div", { cls: "quest-block-meta" });
+      const xp = Number(quest.xp) || 0;
+      if (rewardsOn) {
+        const coinWrap = meta.createEl("span", { cls: "quest-block-coins" });
+        const coinIcon = coinWrap.createEl("span", { cls: "quest-block-coin-icon" });
+        setIcon(coinIcon, "coins");
+        coinWrap.createEl("span", {
+          text: `+${this.coinRewardForXp(xp)}`,
+          cls: "quest-block-coin-text"
+        });
+      }
+      meta.createEl("span", {
+        text: `${xp.toLocaleString()} XP`,
+        cls: "quest-block-xp"
+      });
+      const body = block.createEl("div", { cls: "quest-block-body" });
       if (quest.description) {
-        const descWrap = block.createEl("div", {
+        const descWrap = body.createEl("div", {
           cls: "quest-block-desc-wrap"
         });
         descWrap.createEl("span", {
           text: quest.description,
           cls: "quest-block-desc-text"
         });
+      } else {
+        body.createEl("div", { cls: "quest-block-desc-spacer" });
       }
-      block.createEl("div", {
-        text: `${quest.xp.toLocaleString()} XP`,
-        cls: "quest-block-xp"
-      });
-      const completeBtn = block.createEl("button", { cls: "quest-complete-btn" });
+      const completeBtn = body.createEl("button", { cls: "quest-complete-btn" });
       const completeIcon = completeBtn.createEl("span", { cls: "quest-btn-icon" });
       setIcon(completeIcon, "check");
       completeBtn.addEventListener("click", async (e) => {
@@ -2517,9 +2534,16 @@ var _QuestLogView = class _QuestLogView extends obsidianNS.ItemView {
     habits.forEach((habit) => {
       const block = container.createEl("div", { cls: "quest-block" });
       block.addClass("habit-block");
-      block.createEl("div", {
+      // Title | XP band (habits never show coins); Fail|Complete full-width 50/50.
+      const band = block.createEl("div", { cls: "quest-block-band" });
+      band.createEl("div", {
         text: habit.title,
         cls: "quest-block-title"
+      });
+      const meta = band.createEl("div", { cls: "quest-block-meta" });
+      meta.createEl("span", {
+        text: `${(Number(habit.xp) || 0).toLocaleString()} XP`,
+        cls: "quest-block-xp"
       });
       if (habit.description) {
         const descWrap = block.createEl("div", {
@@ -2530,10 +2554,6 @@ var _QuestLogView = class _QuestLogView extends obsidianNS.ItemView {
           cls: "quest-block-desc-text"
         });
       }
-      block.createEl("div", {
-        text: `${habit.xp.toLocaleString()} XP`,
-        cls: "quest-block-xp"
-      });
       const actionRow = block.createEl("div", { cls: "habit-action-row" });
       const failBtn = actionRow.createEl("button", { cls: "habit-fail-btn-mini" });
       const failIcon = failBtn.createEl("span", { cls: "habit-btn-icon" });
