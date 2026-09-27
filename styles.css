@@ -2216,29 +2216,35 @@
   transition: width 0.3s ease;
 }
 
-/* Skill note icon */
-.skill-note-icon {
-  color: #888;
-  position: absolute;
-  top: 10px;
-  right: 10px;
-}
-.skill-note-icon svg {
-  width: 14px;
-  height: 14px;
-}
-
 .skill-block {
   position: relative;
+  gap: 4px; /* tight band → XP bar */
 }
-/* Main Skills tab cards: reuse selector/details title|level row treatment */
+/* Main Skills tab: title (+ inline desc fold) | level band */
 .skill-block .detail-skill-attached-title {
   font-size: 14px;
   font-weight: bold;
   color: #fff;
 }
-.skill-block.has-note .detail-skill-attached-title-row {
-  padding-right: 22px; /* clear absolute .skill-note-icon */
+.skill-block-band-left {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 6px;
+}
+.skill-block .quest-block-desc-wrap {
+  flex: 1 1 5em;
+  min-width: 0;
+  margin-bottom: 0;
+  width: auto;
+}
+.skill-block .quest-block-desc-wrap::after {
+  background: linear-gradient(to right, transparent, #191919 90%);
+}
+.skill-block:hover .quest-block-desc-wrap::after {
+  background: linear-gradient(to right, transparent, #1f1f1f 90%);
 }
 
 /* Skill section label */

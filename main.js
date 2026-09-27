@@ -4094,17 +4094,21 @@ var require_render = __commonJS({
             const block = grid.createEl("div", { cls: "quest-block skill-block" });
             const difficulty = this.plugin.settings.skillDifficulty || 10;
             const xpInfo = _QuestLogView2.getSkillXpProgress(skill, difficulty);
-            if (skill.description) {
-              block.addClass("has-note");
-              const noteIcon = block.createEl("span", { cls: "skill-note-icon" });
-              setIcon(noteIcon, "file-text");
-            }
-            const titleRow = block.createEl("div", { cls: "detail-skill-attached-title-row" });
-            titleRow.createEl("span", {
+            const band = block.createEl("div", { cls: "detail-skill-attached-title-row skill-block-band" });
+            const left = band.createEl("span", { cls: "skill-block-band-left" });
+            left.createEl("span", {
               text: skill.name || "Untitled",
               cls: "detail-skill-attached-title"
             });
-            titleRow.createEl("span", {
+            const desc = (skill.description || "").trim();
+            if (desc) {
+              const descWrap = left.createEl("span", { cls: "quest-block-desc-wrap" });
+              descWrap.createEl("span", {
+                text: desc,
+                cls: "quest-block-desc-text"
+              });
+            }
+            band.createEl("span", {
               text: (skill.legendary ? "\u2605 " : "") + "Lvl " + (xpInfo.level || skill.level || 1),
               cls: "detail-skill-attached-level"
             });

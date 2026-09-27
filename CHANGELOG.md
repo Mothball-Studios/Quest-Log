@@ -2,6 +2,13 @@
 
 Vault project notes (design / ship history). Durable code tree: `/workspace/Quest-Log-src`. Ship folder: `.obsidian/plugins/quest-log` (four files only).
 
+## 0.6.36 — 2026-09-26
+
+Micah via Atlas COO APPROVED — Skills tab skill cards:
+
+- Band layout: title + inline desc | level; XP bar under.
+- Drop note icon (and has-note pad).
+
 ## 0.6.35 — 2026-09-26
 
 Micah via Atlas COO APPROVED — skill grid pack:

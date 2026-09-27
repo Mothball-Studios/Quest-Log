@@ -1,6 +1,6 @@
 {
   "name": "quest-log",
-  "version": "0.6.35",
+  "version": "0.6.36",
   "private": true,
   "description": "Obsidian Quest Log plugin (modular source). Durable git tree: /workspace/Quest-Log-src. Ship copies only main.js/styles.css/manifest.json into vault plugin; never touches data.json.",
   "scripts": {

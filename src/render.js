@@ -2811,18 +2811,22 @@ var _QuestLogView = class _QuestLogView extends obsidianNS.ItemView {
       const block = grid.createEl("div", { cls: "quest-block skill-block" });
       const difficulty = this.plugin.settings.skillDifficulty || 10;
       const xpInfo = _QuestLogView.getSkillXpProgress(skill, difficulty);
-      if (skill.description) {
-        block.addClass("has-note");
-        const noteIcon = block.createEl("span", { cls: "skill-note-icon" });
-        setIcon(noteIcon, "file-text");
-      }
-      // Match selector/details: title|level same row (wrap + level flex-end), XP bar under
-      const titleRow = block.createEl("div", { cls: "detail-skill-attached-title-row" });
-      titleRow.createEl("span", {
+      // Band: title (+ inline desc preview) | level; XP bar under. No note icon.
+      const band = block.createEl("div", { cls: "detail-skill-attached-title-row skill-block-band" });
+      const left = band.createEl("span", { cls: "skill-block-band-left" });
+      left.createEl("span", {
         text: skill.name || "Untitled",
         cls: "detail-skill-attached-title"
       });
-      titleRow.createEl("span", {
+      const desc = (skill.description || "").trim();
+      if (desc) {
+        const descWrap = left.createEl("span", { cls: "quest-block-desc-wrap" });
+        descWrap.createEl("span", {
+          text: desc,
+          cls: "quest-block-desc-text"
+        });
+      }
+      band.createEl("span", {
         text: (skill.legendary ? "\u2605 " : "") + "Lvl " + (xpInfo.level || skill.level || 1),
         cls: "detail-skill-attached-level"
       });
