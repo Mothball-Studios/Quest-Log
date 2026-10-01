@@ -2,6 +2,15 @@
 
 Vault project notes (design / ship history). Durable code tree: `/workspace/Quest-Log-src`. Ship folder: `.obsidian/plugins/quest-log` (four files only).
 
+## 0.6.50 — 2026-10-01
+
+COO APPROVED — attach-block title wrap threshold (Skill DETAILS + CREATION, uniform for attached Quests / Habits / Skills):
+
+1. An attached item wraps its title inside its own column for up to **two** lines. Only a title needing a **third** line goes `skill-span-full` (both columns) and is packed to the top.
+2. Implemented as a per-grid threshold: `bindSkillGridWrapSpans(gridEl, minLines = 2)` stores `gridEl._qlWrapMinLines`; `applySkillGridWrapSpans` passes it to `skillTitleWraps(titleEl, minLines = 2)`. `attachSkillPicker` and `attachLinkedPicker` bind with 3.
+3. Main Skills tab (`renderSkillList`) and the skill/quest/habit selector pickers keep the default 2 (0.6.34 rule, unchanged code path for minLines 2). Everything else about skill layout unchanged.
+4. E2E: `/workspace/ql-0.6.50-e2e/` (`node run.js`) — 1/2/3-line + unbroken-token titles across attached quests/habits/skills, details + creation, rewardsMode on/off, plus Skills-tab before/after (HEAD) identity.
+
 ## 0.6.49 — 2026-10-01
 
 COO APPROVED — Skill DETAILS + CREATION: attached Quests / Habits use the same grid + block presentation as attached Skills:

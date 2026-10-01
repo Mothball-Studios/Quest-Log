@@ -989,7 +989,7 @@ var _QuestLogView = class _QuestLogView extends obsidianNS.ItemView {
           cls: "detail-skills-placeholder"
         });
       } else {
-        this.bindSkillGridWrapSpans(selectedSkillsDisplay);
+        this.bindSkillGridWrapSpans(selectedSkillsDisplay, 3);
       }
     }, "refreshSkillPicker");
     refresh();
@@ -1205,7 +1205,7 @@ var _QuestLogView = class _QuestLogView extends obsidianNS.ItemView {
           cls: "detail-skills-placeholder"
         });
       } else {
-        this.bindSkillGridWrapSpans(selectedDisplay);
+        this.bindSkillGridWrapSpans(selectedDisplay, 3);
       }
     }, kind === "habit" ? "refreshHabitLinkedPicker" : "refreshQuestLinkedPicker");
     refresh();
@@ -2751,8 +2751,28 @@ var _QuestLogView = class _QuestLogView extends obsidianNS.ItemView {
   // ----------------------------------------
   // Skill 2-col grids: wrap → full-row + pack longs top (shared)
   // ----------------------------------------
-  skillTitleWraps(titleEl) {
+  /**
+   * True when the title needs at least `minLines` lines in its current (2-col) column.
+   * minLines 2 (default, Skills tab / selector pickers) = original 0.6.34 rule, byte-for-byte behavior.
+   * minLines 3 (0.6.50, attach blocks in details/creation) = up to two lines stay in-column.
+   */
+  skillTitleWraps(titleEl, minLines = 2) {
     if (!titleEl) return false;
+    if (minLines > 2) {
+      let lh3 = parseFloat(getComputedStyle(titleEl).lineHeight);
+      if (!lh3 || Number.isNaN(lh3)) lh3 = (parseFloat(getComputedStyle(titleEl).fontSize) || 14) * 1.25;
+      let lines = 0;
+      try {
+        const range = document.createRange();
+        range.selectNodeContents(titleEl);
+        const tops = new Set(Array.from(range.getClientRects()).filter((r) => r.width > 0).map((r) => Math.round(r.top / (lh3 / 2))));
+        lines = tops.size;
+      } catch (_) {
+        /* ignore */
+      }
+      if (!lines) lines = Math.round(titleEl.scrollHeight / lh3);
+      return lines >= minLines;
+    }
     try {
       const range = document.createRange();
       range.selectNodeContents(titleEl);
@@ -2788,7 +2808,7 @@ var _QuestLogView = class _QuestLogView extends obsidianNS.ItemView {
       const shorts = [];
       for (const el of items) {
         const title = el.querySelector(".detail-skill-attached-title");
-        if (title && this.skillTitleWraps(title)) longs.push(el);
+        if (title && this.skillTitleWraps(title, gridEl._qlWrapMinLines || 2)) longs.push(el);
         else shorts.push(el);
       }
       // Pack: longs (full-row) first, then shorts 2-across — stable within each partition
@@ -2812,8 +2832,11 @@ var _QuestLogView = class _QuestLogView extends obsidianNS.ItemView {
       if (ro) ro.observe(gridEl);
     }
   }
-  bindSkillGridWrapSpans(gridEl) {
+  // minLines: lines a title needs before the item goes full-row. Default 2 (Skills tab, selector pickers).
+  // Attach blocks in details/creation pass 3 (0.6.50). Stored per grid so the ResizeObserver re-run keeps it.
+  bindSkillGridWrapSpans(gridEl, minLines = 2) {
     if (!gridEl) return;
+    gridEl._qlWrapMinLines = minLines;
     // Selector-modal linked list stays single-column; attached quest/habit grids (.detail-selected-linked) wrap like skills (0.6.49).
     if (gridEl.classList.contains("linked-selector-list")) {
       return;
