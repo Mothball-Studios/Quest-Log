@@ -1661,13 +1661,30 @@
 }
 /* Attached quest/habit list under skill sections — same row chrome as selector */
 .detail-selected-linked {
-  display: flex;
-  flex-direction: column;
-  flex-wrap: nowrap;
+  /* 0.6.49: same 2-col grid as attached Skills (.detail-selected-skills); wrapping titles span full row via .skill-span-full */
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 6px;
-  justify-content: flex-start;
+  justify-content: stretch;
   align-items: stretch;
   min-height: 28px;
+}
+/* 0.6.49: attached quest/habit blocks reuse the skill block structure (title band + bottom row pinned flush,
+   exactly where Skills put their XP bar). Bottom row = XP left, coins right (quests + rewardsMode only). */
+.detail-linked-attached-row .detail-linked-attached-meta {
+  margin-top: auto;
+  flex: 0 0 auto;
+  width: 100%;
+  align-self: stretch;
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.2;
+  white-space: nowrap;
 }
 .detail-linked-attached-row {
   cursor: default;

@@ -2,6 +2,15 @@
 
 Vault project notes (design / ship history). Durable code tree: `/workspace/Quest-Log-src`. Ship folder: `.obsidian/plugins/quest-log` (four files only).
 
+## 0.6.49 — 2026-10-01
+
+COO APPROVED — Skill DETAILS + CREATION: attached Quests / Habits use the same grid + block presentation as attached Skills:
+
+1. `attachLinkedPicker` rows now share the skill block structure (`.detail-skill-attached-row` > body > title band with wrapping `.detail-skill-attached-title`); `.detail-selected-linked` is the same 2-col `minmax(0,1fr)` grid; `bindSkillGridWrapSpans` now also binds these grids so wrapping titles take the full row (`skill-span-full`) and are packed first, like Skills.
+2. Bottom row of each block (where Skills show the XP bar): XP left; coins right — quests only, only when rewardsMode is on. Habits NEVER show coins.
+3. Attached Skills untouched. Quest/Habit selector modals (single column) untouched.
+4. E2E render artifact: `/workspace/ql-0.6.49-e2e/` (`node run.js`).
+
 ## 0.6.48 — 2026-09-26
 
 Luke via Atlas COO APPROVED (assign) — Skills DETAILS + CREATION Level header reposition (follow-up on 0.6.47):

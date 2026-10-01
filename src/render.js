@@ -1156,16 +1156,19 @@ var _QuestLogView = class _QuestLogView extends obsidianNS.ItemView {
       selectedIds.forEach((id) => {
         const item = list.find((x) => x && String(x.id) === String(id));
         if (!item) return;
-        // Match quest/habit selector rows: left edge + tint, title, XP; coins when rewardsMode (quests only)
+        // 0.6.49 — same block structure as attached Skills (attachSkillPicker rows / .skill-block):
+        // body = title band (wrapping title, same word-wrap + full-row span rule) + bottom meta row
+        // (where Skills show the XP bar): XP left, coins right (quests + rewardsMode only; habits NEVER).
         const row = selectedDisplay.createEl("div", {
-          cls: `skills-selector-row linked-selector-row ${typeCls}-selector-row detail-linked-attached-row`
+          cls: `skills-selector-row skill-selector-row linked-selector-row ${typeCls}-selector-row detail-skill-attached-row detail-linked-attached-row`
         });
-        const body = row.createEl("span", { cls: "linked-selector-row-body" });
-        body.createEl("span", {
+        const body = row.createEl("span", { cls: "linked-selector-row-body detail-skill-attached-body" });
+        const titleRow = body.createEl("span", { cls: "detail-skill-attached-title-row skill-selector-band" });
+        titleRow.createEl("span", {
           text: item.title || "Untitled",
-          cls: "skills-selector-row-label linked-selector-row-title"
+          cls: "skills-selector-row-label linked-selector-row-title detail-skill-attached-title"
         });
-        const meta = body.createEl("span", { cls: "linked-selector-row-meta" });
+        const meta = body.createEl("span", { cls: "linked-selector-row-meta detail-linked-attached-meta" });
         const xp = Number(item.xp) || 0;
         meta.createEl("span", {
           text: `${xp.toLocaleString()} XP`,
@@ -1201,6 +1204,8 @@ var _QuestLogView = class _QuestLogView extends obsidianNS.ItemView {
           text: opts.emptyText,
           cls: "detail-skills-placeholder"
         });
+      } else {
+        this.bindSkillGridWrapSpans(selectedDisplay);
       }
     }, kind === "habit" ? "refreshHabitLinkedPicker" : "refreshQuestLinkedPicker");
     refresh();
@@ -2764,7 +2769,8 @@ var _QuestLogView = class _QuestLogView extends obsidianNS.ItemView {
   }
   applySkillGridWrapSpans(gridEl) {
     if (!gridEl) return;
-    if (gridEl.classList.contains("linked-selector-list") || gridEl.classList.contains("detail-selected-linked")) {
+    // Selector-modal linked list stays single-column; attached quest/habit grids (.detail-selected-linked) wrap like skills (0.6.49).
+    if (gridEl.classList.contains("linked-selector-list")) {
       return;
     }
     const items = Array.from(gridEl.children).filter((el) => {
@@ -2808,7 +2814,8 @@ var _QuestLogView = class _QuestLogView extends obsidianNS.ItemView {
   }
   bindSkillGridWrapSpans(gridEl) {
     if (!gridEl) return;
-    if (gridEl.classList.contains("linked-selector-list") || gridEl.classList.contains("detail-selected-linked")) {
+    // Selector-modal linked list stays single-column; attached quest/habit grids (.detail-selected-linked) wrap like skills (0.6.49).
+    if (gridEl.classList.contains("linked-selector-list")) {
       return;
     }
     const run = () => {
