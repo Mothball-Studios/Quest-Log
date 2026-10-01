@@ -790,6 +790,56 @@ var _QuestLogView = class _QuestLogView extends obsidianNS.ItemView {
     if (this._completedListContainer) this.renderCompletedList(this._completedListContainer);
     this.updateHeader();
   }
+  /**
+   * 0.6.52 live-sync: true while the user is mid-edit (any modal/popup/overlay open, a text field focused, skill-graph
+   * picker open). The plugin then DEFERS adopting external data.json changes until this returns false.
+   */
+  isSyncBusy() {
+    const c = this.overlayHost();
+    if (!c || !c.querySelector) return false;
+    if (c.querySelector(".ql-overlay.open, .shop-purchase-overlay, .ql-levelup-overlay, .delete-confirm-overlay, .skill-graph-picker-dropdown:not(.hidden)")) return true;
+    const ae = (c.ownerDocument || document).activeElement;
+    if (ae && c.contains(ae)) {
+      // a field left focused inside a modal that has since closed (.ql-overlay without .open) is not an edit in progress
+      if (ae.closest && ae.closest(".ql-overlay:not(.open)")) return false;
+      const tag = (ae.tagName || "").toUpperCase();
+      if (tag === "INPUT" || tag === "TEXTAREA" || ae.isContentEditable || ae.getAttribute && ae.getAttribute("contenteditable") === "true") return true;
+    }
+    return false;
+  }
+  /**
+   * 0.6.52 live-sync: re-render the open view from plugin.settings after an external data.json change.
+   * Reuses the existing renderers only (no markup changes). Shell stays open: shop list/coins refreshed in place,
+   * skill graph rebuilt silently (no fade) only when skills actually changed.
+   */
+  refreshExternal() {
+    const c = this.overlayHost();
+    if (!c || !this._questListContainer) return;
+    const st = this.plugin.settings;
+    this.refreshListsAndHeader();
+    if (this._heroNameEl && this._heroNameEl.innerText !== st.heroName && (c.ownerDocument || document).activeElement !== this._heroNameEl) {
+      this._heroNameEl.setText(st.heroName);
+    }
+    if (this._shopListEl) {
+      this.renderShopList(this._shopListEl);
+      if (this._shopCoinText) this._shopCoinText.setText(`${st.coins}`);
+      const nm = c.querySelector(".shop-user-name");
+      if (nm) nm.setText(st.heroName || "Hero");
+      const lv = c.querySelector(".shop-level-badge");
+      if (lv) lv.setText(`Lv.${this.plugin.getLevel()}`);
+    }
+    if (this._overlayShell && this._overlayShell.current() === "skill-graph") {
+      const sig = JSON.stringify([st.heroName, st.currentXp, (st.skills || []).map((s) => [s.id, s.name, s.xp, s.level])]);
+      if (sig !== this._graphSig) {
+        this._silentGraph = true;
+        try {
+          this.showSkillGraphModal();
+        } finally {
+          this._silentGraph = false;
+        }
+      }
+    }
+  }
   updateHeader() {
     const currentXp = this.plugin.settings.currentXp;
     const difficulty = this.plugin.settings.userDifficulty || 10;
@@ -1367,6 +1417,14 @@ var _QuestLogView = class _QuestLogView extends obsidianNS.ItemView {
       return;
     }
     const container = this.containerEl.children[1];
+    // 0.6.52 live-sync: a freshly opened view re-verifies the file (fire-and-forget; never awaited here).
+    if (this.plugin && this.plugin._qlSync && !this._qlOpenCheck) {
+      this._qlOpenCheck = true;
+      activeWindow.setTimeout(() => {
+        this._qlOpenCheck = false;
+        if (this.plugin._qlSync) void this.plugin._qlSync.checkNow("view-open");
+      }, 0);
+    }
     const overlayClasses = [
       "quest-menu-overlay",
       "quest-creation-overlay",
@@ -1480,6 +1538,7 @@ var _QuestLogView = class _QuestLogView extends obsidianNS.ItemView {
     });
     const editIcon = nameContainer.createEl("span", { cls: "edit-icon" });
     setIcon(editIcon, "pencil");
+    this._heroNameEl = heroNameEl;
     editIcon.addEventListener("click", () => {
       heroNameEl.focus();
       const range = document.createRange();
@@ -1802,12 +1861,47 @@ var _QuestLogView = class _QuestLogView extends obsidianNS.ItemView {
     });
     this._skillGraphOverlay = skillGraphOverlay;
     this._skillGraphContent = skillGraphContent;
+    // 0.6.52 — with the FAB now reachable while the list is scrolled, the absolute-positioned .ql-overlay modals it opens
+    // (menu, create, detail) must appear in the visible area, not at the scroll origin. When a direct-child overlay gets
+    // `.open` on a scrolled view, offset its top by scrollTop (cleared when it closes). No-op at scrollTop 0 and on mobile
+    // (<=600px overlays are position:fixed). Purely positional; no markup/behaviour change.
+    if (this._overlayAnchorObs) this._overlayAnchorObs.disconnect();
+    if (this._overlayScrollFn) container.removeEventListener("scroll", this._overlayScrollFn);
+    this._lastListScroll = container.scrollTop;
+    this._overlayScrollFn = () => {
+      this._lastListScroll = container.scrollTop;
+    };
+    container.addEventListener("scroll", this._overlayScrollFn, { passive: true });
+    if (typeof MutationObserver !== "undefined") {
+      this._overlayAnchorObs = new MutationObserver((muts) => {
+        for (const m of muts) {
+          const el = m.target;
+          if (!el.classList || !el.classList.contains("ql-overlay") || el.parentNode !== container) continue;
+          if (el.classList.contains("open")) {
+            if (getComputedStyle(el).position !== "absolute") continue;
+            // opening code may have focused an input inside the overlay (still at the scroll origin) → the browser jumped
+            // the list to the top; put the list back where the user was, then anchor the overlay to the visible area.
+            if (container.scrollTop !== this._lastListScroll) container.scrollTop = this._lastListScroll;
+            if (container.scrollTop > 0) el.style.top = `${container.scrollTop}px`;
+          } else if (el.style.top) {
+            el.style.top = "";
+          }
+        }
+      });
+      this._overlayAnchorObs.observe(container, { attributes: true, attributeFilter: ["class"], subtree: true });
+    }
     // 0.6.51 — unified whole-view overlay shell. Hosts the existing Rewards Shop and Skill Graph panels as
     // states (panel elements moved into the shell stage; their render/show functions are reused verbatim).
     if (this._overlayShell) this._overlayShell.destroy();
     const overlayShell = createOverlayShell(container, {
       // Esc closes the shell only when nothing sits above it (purchase popup, menu, detail/creation/reward modals)
-      canEscClose: /* @__PURE__ */ __name(() => !container.querySelector(".shop-purchase-overlay, .ql-overlay.open"), "canEscClose")
+      canEscClose: /* @__PURE__ */ __name(() => !container.querySelector(".shop-purchase-overlay, .ql-overlay.open"), "canEscClose"),
+      onClose: /* @__PURE__ */ __name(() => {
+        if (this._preShellScroll != null) {
+          container.scrollTop = this._preShellScroll;
+          this._preShellScroll = null;
+        }
+      }, "onShellClose")
     });
     this._overlayShell = overlayShell;
     if (shopOverlay) {
@@ -2943,12 +3037,18 @@ var _QuestLogView = class _QuestLogView extends obsidianNS.ItemView {
     if (!overlay || !content) return;
     content.empty();
     overlay.style.display = "flex";
-    overlay.style.opacity = "0";
-    overlay.style.transition = "opacity 0.25s ease-out";
-    requestAnimationFrame(() => {
-      overlay.style.opacity = "1";
-    });
+    if (!this._silentGraph) {
+      overlay.style.opacity = "0";
+      overlay.style.transition = "opacity 0.25s ease-out";
+      requestAnimationFrame(() => {
+        overlay.style.opacity = "1";
+      });
+    }
     const skills = this.plugin.settings.skills || [];
+    {
+      const gs = this.plugin.settings;
+      this._graphSig = JSON.stringify([gs.heroName, gs.currentXp, (gs.skills || []).map((s) => [s.id, s.name, s.xp, s.level])]);
+    }
     const level = this.plugin.getLevel();
     const title = _QuestLogView.getLevelTitle(level);
     const heroName = this.plugin.settings.heroName || "Hero";
@@ -2975,9 +3075,20 @@ var _QuestLogView = class _QuestLogView extends obsidianNS.ItemView {
     const allSkillsSorted = [...skills].sort((a, b) => (b.level || 1) - (a.level || 1));
     const defaultSelected = new Set(allSkillsSorted.slice(0, 12).map((s) => s.id || s.name));
     let selectedSkillIds = new Set(defaultSelected);
+    // live-sync rebuild keeps a user-customised selection; an untouched (default top-12) selection follows the new data
+    const sameSet = (a, b) => a && b && a.size === b.size && Array.from(a).every((x) => b.has(x));
+    const userCustomised = this._graphKeepSel && this._graphPrevDefault && !sameSet(this._graphKeepSel, this._graphPrevDefault);
+    this._graphPrevDefault = new Set(defaultSelected);
+    if (this._silentGraph && userCustomised) {
+      // live-sync rebuild: keep the user's skill selection (drop ids that no longer exist)
+      const valid = new Set(allSkillsSorted.map((s) => s.id || s.name));
+      const kept = Array.from(this._graphKeepSel).filter((id) => valid.has(id));
+      if (kept.length) selectedSkillIds = new Set(kept);
+    }
     const chartSection = content.createEl("div", { cls: "skill-graph-chart-section" });
     const chartContainer = chartSection.createEl("div", { cls: "skill-graph-chart-container" });
     const updateChart = /* @__PURE__ */ __name(() => {
+      this._graphKeepSel = new Set(selectedSkillIds);
       const selectedSkills = allSkillsSorted.filter(
         (s) => selectedSkillIds.has(s.id || s.name)
       ).slice(0, 12);
@@ -3461,12 +3572,28 @@ var _QuestLogView = class _QuestLogView extends obsidianNS.ItemView {
       new obsidianNS.Notice(why);
       return false;
     }
+    // 0.6.52: .ql-shell is absolute inset-0 inside the scrolling Quest Log container, so with the list scrolled it would
+    // sit off-screen (reachable via the command palette; the menu button is only at the top). Pin the view to the top
+    // while the shell is open and restore the list scroll on close.
+    const host = this.overlayHost();
+    if (host && !shell.isOpen()) {
+      this._preShellScroll = host.scrollTop;
+      host.scrollTop = 0;
+    }
     return shell.open(stateId);
   }
   closeOverlay() {
     return this._overlayShell ? this._overlayShell.close() : false;
   }
   async onClose() {
+    if (this._overlayScrollFn && this.overlayHost()) {
+      this.overlayHost().removeEventListener("scroll", this._overlayScrollFn);
+      this._overlayScrollFn = null;
+    }
+    if (this._overlayAnchorObs) {
+      this._overlayAnchorObs.disconnect();
+      this._overlayAnchorObs = null;
+    }
     if (this._overlayShell) {
       this._overlayShell.destroy();
       this._overlayShell = null;

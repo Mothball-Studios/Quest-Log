@@ -5,6 +5,7 @@
 
 const { Plugin } = require("obsidian");
 const { migrateIfNeeded, beginSaveBatch, endSaveBatch } = require("./storage");
+const { createLiveSync, canonD } = require("./sync");
 const {
   loadSettings,
   saveSettings,
@@ -38,7 +39,21 @@ async function hydrateSettingsMirror(plugin) {
     completedHabits,
     skills: skillList,
   };
+  plugin._qlMirrorSig = mirrorSig(plugin);
   return plugin.settings;
+}
+
+/**
+ * 0.6.52 — signature of the data-bearing part of the settings mirror. Recorded after every hydrate/persist;
+ * if it differs at adoption time the mirror holds a mutation that has not been saved yet → live-sync defers
+ * (never replaces the mirror under an in-flight edit).
+ * @param {import('obsidian').Plugin} plugin
+ */
+function mirrorSig(plugin) {
+  const s = plugin.settings || {};
+  const out = {};
+  for (const k of Object.keys(s)) out[k] = s[k];
+  return canonD(out);
 }
 
 /**
@@ -77,12 +92,25 @@ async function persistSettingsMirror(plugin) {
   } finally {
     await endSaveBatch(plugin);
   }
+  plugin._qlMirrorSig = mirrorSig(plugin);
 }
 
 class QuestLogPlugin extends Plugin {
   async onload() {
     this._levelCache = null;
     await migrateIfNeeded(this);
+    // 0.6.52 live-sync: baseline = what disk holds now; guards saves against clobbering newer disk data and
+    // adopts external data.json changes (vault modify/raw + stat poll + Obsidian's onExternalSettingsChange).
+    this._qlSync = createLiveSync(this, {
+      hydrate: async () => {
+        await hydrateSettingsMirror(this);
+        this.invalidateLevelCache();
+      },
+      refresh: () => this.refreshOpenViews(),
+      isBusy: () => this.isSyncBusy(),
+      hasOpenViews: () => this.app.workspace.getLeavesOfType(QUESTLOG_VIEW_TYPE).length > 0,
+    });
+    await this._qlSync.baseline();
     await hydrateSettingsMirror(this);
 
     this.loadQuestSettings = () => loadSettings(this);
@@ -123,10 +151,32 @@ class QuestLogPlugin extends Plugin {
         void this.activateView();
       },
     });
+    this._qlSync.start();
   }
 
   onunload() {
     this._levelCache = null;
+    if (this._qlSync) {
+      this._qlSync.stop();
+      this._qlSync = null;
+    }
+  }
+
+  /** True while a Quest Log view is mid-edit (modal / popup / focused field) or the mirror has an unsaved mutation. */
+  isSyncBusy() {
+    if (this._qlMirrorSig !== mirrorSig(this)) return true;
+    const leaves = this.app.workspace.getLeavesOfType(QUESTLOG_VIEW_TYPE);
+    return leaves.some((l) => l.view && typeof l.view.isSyncBusy === "function" && l.view.isSyncBusy());
+  }
+
+  markMirrorClean() {
+    this._qlMirrorSig = mirrorSig(this);
+  }
+
+  refreshOpenViews() {
+    for (const leaf of this.app.workspace.getLeavesOfType(QUESTLOG_VIEW_TYPE)) {
+      if (leaf.view && typeof leaf.view.refreshExternal === "function") leaf.view.refreshExternal();
+    }
   }
 
   async loadSettings() {
@@ -155,6 +205,7 @@ class QuestLogPlugin extends Plugin {
 
   async activateView() {
     const { workspace } = this.app;
+    if (this._qlSync) await this._qlSync.checkNow("activate");
     let leaf = workspace.getLeavesOfType(QUESTLOG_VIEW_TYPE)[0];
     if (!leaf) {
       const newLeaf = workspace.getLeaf(true);
@@ -184,15 +235,9 @@ class QuestLogPlugin extends Plugin {
     return false;
   }
 
+  /** Obsidian calls this when it detects data.json changed on disk (Sync etc.). Same debounce-free content check. */
   async onExternalSettingsChange() {
-    await hydrateSettingsMirror(this);
-    this.invalidateLevelCache();
-    const leaves = this.app.workspace.getLeavesOfType(QUESTLOG_VIEW_TYPE);
-    for (const leaf of leaves) {
-      if (leaf.view && typeof leaf.view.refreshListsAndHeader === "function") {
-        leaf.view.refreshListsAndHeader();
-      }
-    }
+    if (this._qlSync) await this._qlSync.checkNow("external-hook");
   }
 }
 
@@ -200,5 +245,6 @@ module.exports = QuestLogPlugin;
 module.exports.default = QuestLogPlugin;
 module.exports.hydrateSettingsMirror = hydrateSettingsMirror;
 module.exports.persistSettingsMirror = persistSettingsMirror;
+module.exports.mirrorSig = mirrorSig;
 module.exports.QuestLogPlugin = QuestLogPlugin;
 module.exports.QUESTLOG_VIEW_TYPE = QUESTLOG_VIEW_TYPE;

@@ -187,6 +187,25 @@ var require_storage = __commonJS({
         skills: []
       };
     }
+    function normalizeLoadedBlob(loaded) {
+      const blob = loaded && typeof loaded === "object" && !Array.isArray(loaded) ? { ...emptyGodBlob(), ...loaded, store: STORE_MARKER } : emptyGodBlob();
+      for (const key of Object.keys(ARRAY_BLOB_TO_DOMAIN)) {
+        if (!Array.isArray(blob[key])) blob[key] = [];
+      }
+      return blob;
+    }
+    function adoptBlob(plugin, parsed) {
+      const blob = normalizeLoadedBlob(parsed);
+      blobCache.set(plugin, blob);
+      return blob;
+    }
+    function runExclusive(plugin, fn) {
+      const prev = plugin._qlChain || Promise.resolve();
+      const next = prev.then(fn);
+      plugin._qlChain = next.catch(() => {
+      });
+      return next;
+    }
     async function getBlob(plugin) {
       if (blobCache.has(plugin)) return blobCache.get(plugin);
       let loaded = null;
@@ -197,10 +216,7 @@ var require_storage = __commonJS({
           loaded = null;
         }
       }
-      const blob = loaded && typeof loaded === "object" && !Array.isArray(loaded) ? { ...emptyGodBlob(), ...loaded, store: STORE_MARKER } : emptyGodBlob();
-      for (const key of Object.keys(ARRAY_BLOB_TO_DOMAIN)) {
-        if (!Array.isArray(blob[key])) blob[key] = [];
-      }
+      const blob = normalizeLoadedBlob(loaded);
       blobCache.set(plugin, blob);
       return blob;
     }
@@ -215,8 +231,28 @@ var require_storage = __commonJS({
       if (typeof plugin.saveData !== "function") {
         throw new Error("Quest Log: plugin.saveData unavailable");
       }
-      await plugin.saveData(next);
-      plugin._qlDirty = false;
+      plugin._qlPendingFlush = (plugin._qlPendingFlush || 0) + 1;
+      try {
+        await runExclusive(plugin, async () => {
+          const mem = blobCache.get(plugin) || next;
+          let toWrite = mem;
+          const sync = plugin._qlSync;
+          let skip = false;
+          if (sync && typeof sync.beforeSave === "function") {
+            const r = await sync.beforeSave(mem);
+            if (r && r.blob) {
+              toWrite = r.blob;
+              skip = Boolean(r.skipWrite);
+            }
+          }
+          toWrite.store = STORE_MARKER;
+          if (!skip) await plugin.saveData(toWrite);
+          plugin._qlDirty = false;
+          if (sync && typeof sync.afterSave === "function") await sync.afterSave(toWrite, { skipped: skip });
+        });
+      } finally {
+        plugin._qlPendingFlush -= 1;
+      }
     }
     function beginSaveBatch2(plugin) {
       plugin._qlDeferSave = true;
@@ -406,11 +442,387 @@ var require_storage = __commonJS({
       endSaveBatch: endSaveBatch2,
       flushBlob,
       getBlob,
+      adoptBlob,
+      peekBlob: (plugin) => blobCache.get(plugin) || null,
+      normalizeLoadedBlob,
+      runExclusive,
       // Deprecated adapter helpers — do not use for live state.
       writeAtomic,
       writeJsonAtomic,
       readJson
     };
+  }
+});
+
+// src/sync.js
+var require_sync = __commonJS({
+  "src/sync.js"(exports2, module2) {
+    "use strict";
+    var { dataJsonPath, adoptBlob, peekBlob, normalizeLoadedBlob, runExclusive, ARRAY_BLOB_TO_DOMAIN } = require_storage();
+    var POLL_MS = 1500;
+    var DEBOUNCE_MS = 250;
+    var ADDITIVE_KEYS = Object.freeze(["currentXp", "coins", "questsCompleted"]);
+    var ID_ARRAY_KEYS = Object.freeze([...Object.keys(ARRAY_BLOB_TO_DOMAIN), "rewards"]);
+    function canon(v) {
+      return JSON.stringify(sortKeys(v));
+    }
+    function sortKeys(v) {
+      if (Array.isArray(v)) return v.map(sortKeys);
+      if (v && typeof v === "object") {
+        const out = {};
+        for (const k of Object.keys(v).sort()) {
+          if (v[k] !== void 0) out[k] = sortKeys(v[k]);
+        }
+        return out;
+      }
+      return v;
+    }
+    function canonD2(v) {
+      if (v && typeof v === "object" && !Array.isArray(v) && Array.isArray(v.skills)) {
+        const c = Object.assign({}, v);
+        c.skills = v.skills.map(stripLevel);
+        return canon(c);
+      }
+      return canon(v);
+    }
+    function stripLevel(it) {
+      if (it && typeof it === "object" && !Array.isArray(it)) {
+        const c = Object.assign({}, it);
+        delete c.level;
+        return c;
+      }
+      return it;
+    }
+    var clone = (v) => v === void 0 ? v : JSON.parse(JSON.stringify(v));
+    function mergeBlobs(base, mem, disk) {
+      const out = clone(disk);
+      const b = base || {};
+      for (const key of /* @__PURE__ */ new Set([...Object.keys(b), ...Object.keys(mem), ...Object.keys(disk)])) {
+        if (ID_ARRAY_KEYS.includes(key)) {
+          out[key] = mergeIdArray(b[key], mem[key], disk[key], key === "skills");
+        } else if (ADDITIVE_KEYS.includes(key)) {
+          const bv = Number(b[key]) || 0;
+          const mv = Number(mem[key]) || 0;
+          const dv = Number(disk[key]) || 0;
+          if (mem[key] === void 0 && disk[key] === void 0) continue;
+          out[key] = Math.max(0, dv + (mv - bv));
+        } else if (canon(mem[key]) !== canon(b[key])) {
+          if (mem[key] === void 0) delete out[key];
+          else out[key] = clone(mem[key]);
+        }
+      }
+      out.store = disk.store || mem.store || out.store;
+      return out;
+    }
+    function mergeIdArray(baseArr, memArr, diskArr, derivedLevel) {
+      const cmp = derivedLevel ? (x) => canon(stripLevel(x)) : canon;
+      const base = Array.isArray(baseArr) ? baseArr : [];
+      const mem = Array.isArray(memArr) ? memArr : [];
+      const disk = Array.isArray(diskArr) ? diskArr : [];
+      const idOf = (it) => it && typeof it === "object" && it.id != null ? String(it.id) : "~" + canon(it);
+      const map = (arr) => {
+        const m = /* @__PURE__ */ new Map();
+        for (const it of arr) m.set(idOf(it), it);
+        return m;
+      };
+      const bm = map(base), mm = map(mem), dm = map(disk);
+      const out = [];
+      const seen = /* @__PURE__ */ new Set();
+      for (const it of disk) {
+        const id = idOf(it);
+        if (seen.has(id)) continue;
+        seen.add(id);
+        const inBase = bm.has(id), inMem = mm.has(id);
+        if (inBase && !inMem) continue;
+        if (inBase && inMem && cmp(mm.get(id)) !== cmp(bm.get(id))) out.push(clone(mm.get(id)));
+        else out.push(clone(it));
+      }
+      for (const it of mem) {
+        const id = idOf(it);
+        if (seen.has(id)) continue;
+        if (!bm.has(id) && !dm.has(id)) {
+          seen.add(id);
+          out.push(clone(it));
+        }
+      }
+      return out;
+    }
+    function createLiveSync2(plugin, hooks, opts) {
+      const o = opts || {};
+      const pollMs = o.pollMs || POLL_MS;
+      const debounceMs = o.debounceMs || DEBOUNCE_MS;
+      const path = dataJsonPath(plugin);
+      const g = globalThis;
+      let synced = null;
+      let lastSig = null;
+      let pending = null;
+      let running = null;
+      let rerun = false;
+      let stopped = true;
+      let timer = null;
+      let interval = null;
+      let mergeInfo = null;
+      const refs = [];
+      const domHandlers = [];
+      const stats = { events: 0, polls: 0, statCalls: 0, reads: 0, reloads: 0, noops: 0, deferred: 0, ignoredInvalid: 0, mergedSaves: 0, mergeWrites: 0, ownWrites: 0 };
+      const adapter = () => plugin.app && plugin.app.vault && plugin.app.vault.adapter;
+      const flushing = () => (plugin._qlPendingFlush || 0) > 0 || Boolean(plugin._qlDeferSave);
+      async function statSig() {
+        stats.statCalls++;
+        try {
+          const st = await adapter().stat(path);
+          return st ? `${st.mtime}:${st.size}` : null;
+        } catch (_e) {
+          return null;
+        }
+      }
+      async function readDisk() {
+        stats.reads++;
+        let text;
+        try {
+          text = await adapter().read(path);
+        } catch (_e) {
+          return { state: "missing" };
+        }
+        if (typeof text !== "string" || text.trim() === "") return { state: "invalid" };
+        let parsed;
+        try {
+          parsed = JSON.parse(text);
+        } catch (_e) {
+          return { state: "invalid" };
+        }
+        if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return { state: "invalid" };
+        const looksRight = parsed.store === "data.json" || ID_ARRAY_KEYS.some((k) => Array.isArray(parsed[k]));
+        if (!looksRight) return { state: "invalid" };
+        return { state: "ok", text, parsed: normalizeLoadedBlob(parsed) };
+      }
+      function setSynced(text, parsed) {
+        synced = { text, parsed: clone(parsed) };
+      }
+      async function baseline() {
+        const d = await readDisk();
+        if (d.state !== "ok") return false;
+        adoptBlob(plugin, clone(d.parsed));
+        setSynced(d.text, d.parsed);
+        lastSig = await statSig();
+        return true;
+      }
+      function schedule(ms, reason) {
+        if (stopped) return;
+        if (timer) g.clearTimeout(timer);
+        timer = g.setTimeout(() => {
+          timer = null;
+          void check(reason || "event");
+        }, ms == null ? debounceMs : ms);
+      }
+      function check(reason) {
+        if (stopped) return Promise.resolve();
+        if (running) {
+          rerun = true;
+          return running;
+        }
+        running = (async () => {
+          try {
+            do {
+              rerun = false;
+              await checkOnce(reason);
+            } while (rerun && !stopped);
+          } catch (_e) {
+          } finally {
+            running = null;
+          }
+        })();
+        return running;
+      }
+      async function checkOnce(reason) {
+        if (flushing()) {
+          schedule(debounceMs, reason);
+          return;
+        }
+        let sig = null;
+        if (reason === "poll") {
+          stats.polls++;
+          sig = await statSig();
+          if (sig == null) return;
+          if (sig === lastSig) {
+            if (pending) await applyPending();
+            return;
+          }
+          lastSig = sig;
+          schedule(debounceMs, "poll-changed");
+          return;
+        }
+        const d = await readDisk();
+        if (stopped) return;
+        if (d.state !== "ok") {
+          stats.ignoredInvalid++;
+          lastSig = null;
+          return;
+        }
+        if (sig == null) sig = await statSig();
+        lastSig = sig;
+        if (synced && (d.text === synced.text || canonD2(d.parsed) === canonD2(synced.parsed))) {
+          if (synced) synced.text = d.text;
+          pending = null;
+          stats.noops++;
+          return;
+        }
+        pending = { text: d.text, parsed: d.parsed };
+        await applyPending();
+      }
+      async function applyPending() {
+        if (!pending || stopped) return;
+        if (flushing() || hooks.isBusy()) {
+          stats.deferred++;
+          return;
+        }
+        const p = pending;
+        pending = null;
+        let applied = false;
+        await runExclusive(plugin, async () => {
+          if (stopped) return;
+          const mem = peekBlob(plugin);
+          let target = p.parsed;
+          let text = p.text;
+          if (synced && mem && canonD2(mem) !== canonD2(synced.parsed)) {
+            const merged = mergeBlobs(synced.parsed, mem, p.parsed);
+            if (canonD2(merged) !== canonD2(p.parsed)) {
+              await plugin.saveData(merged);
+              stats.mergeWrites++;
+              const rb = await readDisk();
+              if (rb.state === "ok" && canonD2(rb.parsed) === canonD2(merged)) {
+                target = rb.parsed;
+                text = rb.text;
+              } else {
+                return;
+              }
+            }
+          }
+          adoptBlob(plugin, clone(target));
+          setSynced(text, target);
+          lastSig = await statSig();
+          await hooks.hydrate();
+          applied = true;
+        });
+        if (applied) {
+          stats.reloads++;
+          hooks.refresh();
+        }
+      }
+      async function beforeSave(mem) {
+        mergeInfo = null;
+        if (!synced || stopped) return {};
+        let d = await readDisk();
+        for (let i = 0; i < 3 && d.state === "invalid"; i++) {
+          await new Promise((r) => g.setTimeout(r, 200));
+          d = await readDisk();
+        }
+        if (d.state !== "ok") return {};
+        if (d.text === synced.text || canonD2(d.parsed) === canonD2(synced.parsed)) return {};
+        const merged = mergeBlobs(synced.parsed, mem, d.parsed);
+        stats.mergedSaves++;
+        const nums = {};
+        for (const k of ADDITIVE_KEYS) nums[k] = mem[k];
+        mergeInfo = { nums };
+        return { blob: merged, skipWrite: canonD2(merged) === canonD2(d.parsed) };
+      }
+      async function afterSave(out, info) {
+        if (stopped) return;
+        if (mergeInfo) {
+          for (const k of ADDITIVE_KEYS) if (mergeInfo.nums[k] !== void 0 && synced) synced.parsed[k] = mergeInfo.nums[k];
+          mergeInfo = null;
+          lastSig = null;
+          schedule(50, "merge");
+          return;
+        }
+        const d = await readDisk();
+        if (d.state === "ok" && canon(d.parsed) === canon(out)) {
+          setSynced(d.text, d.parsed);
+          lastSig = await statSig();
+          stats.ownWrites++;
+        } else {
+          lastSig = null;
+          schedule(debounceMs, "own-write-race");
+        }
+      }
+      function onVaultEvent(fileOrPath) {
+        const p = typeof fileOrPath === "string" ? fileOrPath : fileOrPath && fileOrPath.path;
+        if (p !== path) return;
+        stats.events++;
+        schedule(debounceMs, "event");
+      }
+      function start() {
+        if (!stopped) return;
+        stopped = false;
+        const vault = plugin.app && plugin.app.vault;
+        if (vault && typeof vault.on === "function") {
+          for (const name of ["modify", "create", "raw"]) {
+            try {
+              const ref = vault.on(name, onVaultEvent);
+              if (ref) {
+                refs.push(ref);
+                if (typeof plugin.registerEvent === "function") plugin.registerEvent(ref);
+              }
+            } catch (_e) {
+            }
+          }
+        }
+        interval = g.setInterval(() => {
+          if (stopped) return;
+          if (g.document && g.document.hidden) return;
+          if (!hooks.hasOpenViews()) return;
+          void check("poll");
+        }, pollMs);
+        if (typeof plugin.registerInterval === "function") plugin.registerInterval(interval);
+        const doc = g.document;
+        if (doc && doc.addEventListener) {
+          const onVis = () => {
+            if (!doc.hidden) void check("visible");
+          };
+          const onFocus = () => void check("focus");
+          doc.addEventListener("visibilitychange", onVis);
+          g.addEventListener && g.addEventListener("focus", onFocus);
+          domHandlers.push(["doc", "visibilitychange", onVis], ["win", "focus", onFocus]);
+        }
+      }
+      function stop() {
+        stopped = true;
+        const vault = plugin.app && plugin.app.vault;
+        for (const ref of refs.splice(0)) {
+          try {
+            vault.offref(ref);
+          } catch (_e) {
+          }
+        }
+        if (interval) g.clearInterval(interval);
+        interval = null;
+        if (timer) g.clearTimeout(timer);
+        timer = null;
+        for (const [w, ev, fn] of domHandlers.splice(0)) {
+          try {
+            (w === "doc" ? g.document : g).removeEventListener(ev, fn);
+          } catch (_e) {
+          }
+        }
+        pending = null;
+      }
+      return {
+        start,
+        stop,
+        baseline,
+        /** Force an immediate content check (view open / activateView). Resolves after the check (and adoption). */
+        checkNow: (reason) => check(reason || "manual"),
+        beforeSave,
+        afterSave,
+        stats,
+        pollMs,
+        debounceMs,
+        isStopped: () => stopped,
+        hasPending: () => Boolean(pending),
+        _state: () => ({ synced, lastSig, pending })
+      };
+    }
+    module2.exports = { createLiveSync: createLiveSync2, mergeBlobs, canon, canonD: canonD2, POLL_MS, DEBOUNCE_MS };
   }
 });
 
@@ -829,6 +1241,7 @@ var require_settings = __commonJS({
         _mirror(settings) {
           if (this.plugin.settings && typeof this.plugin.settings === "object") {
             Object.assign(this.plugin.settings, settings);
+            if (typeof this.plugin.markMirrorClean === "function") this.plugin.markMirrorClean();
           }
         }
         display() {
@@ -2208,6 +2621,55 @@ var require_render = __commonJS({
           if (this._completedListContainer) this.renderCompletedList(this._completedListContainer);
           this.updateHeader();
         }
+        /**
+         * 0.6.52 live-sync: true while the user is mid-edit (any modal/popup/overlay open, a text field focused, skill-graph
+         * picker open). The plugin then DEFERS adopting external data.json changes until this returns false.
+         */
+        isSyncBusy() {
+          const c = this.overlayHost();
+          if (!c || !c.querySelector) return false;
+          if (c.querySelector(".ql-overlay.open, .shop-purchase-overlay, .ql-levelup-overlay, .delete-confirm-overlay, .skill-graph-picker-dropdown:not(.hidden)")) return true;
+          const ae = (c.ownerDocument || document).activeElement;
+          if (ae && c.contains(ae)) {
+            if (ae.closest && ae.closest(".ql-overlay:not(.open)")) return false;
+            const tag = (ae.tagName || "").toUpperCase();
+            if (tag === "INPUT" || tag === "TEXTAREA" || ae.isContentEditable || ae.getAttribute && ae.getAttribute("contenteditable") === "true") return true;
+          }
+          return false;
+        }
+        /**
+         * 0.6.52 live-sync: re-render the open view from plugin.settings after an external data.json change.
+         * Reuses the existing renderers only (no markup changes). Shell stays open: shop list/coins refreshed in place,
+         * skill graph rebuilt silently (no fade) only when skills actually changed.
+         */
+        refreshExternal() {
+          const c = this.overlayHost();
+          if (!c || !this._questListContainer) return;
+          const st = this.plugin.settings;
+          this.refreshListsAndHeader();
+          if (this._heroNameEl && this._heroNameEl.innerText !== st.heroName && (c.ownerDocument || document).activeElement !== this._heroNameEl) {
+            this._heroNameEl.setText(st.heroName);
+          }
+          if (this._shopListEl) {
+            this.renderShopList(this._shopListEl);
+            if (this._shopCoinText) this._shopCoinText.setText(`${st.coins}`);
+            const nm = c.querySelector(".shop-user-name");
+            if (nm) nm.setText(st.heroName || "Hero");
+            const lv = c.querySelector(".shop-level-badge");
+            if (lv) lv.setText(`Lv.${this.plugin.getLevel()}`);
+          }
+          if (this._overlayShell && this._overlayShell.current() === "skill-graph") {
+            const sig = JSON.stringify([st.heroName, st.currentXp, (st.skills || []).map((s) => [s.id, s.name, s.xp, s.level])]);
+            if (sig !== this._graphSig) {
+              this._silentGraph = true;
+              try {
+                this.showSkillGraphModal();
+              } finally {
+                this._silentGraph = false;
+              }
+            }
+          }
+        }
         updateHeader() {
           const currentXp = this.plugin.settings.currentXp;
           const difficulty = this.plugin.settings.userDifficulty || 10;
@@ -2773,6 +3235,13 @@ var require_render = __commonJS({
             return;
           }
           const container = this.containerEl.children[1];
+          if (this.plugin && this.plugin._qlSync && !this._qlOpenCheck) {
+            this._qlOpenCheck = true;
+            activeWindow.setTimeout(() => {
+              this._qlOpenCheck = false;
+              if (this.plugin._qlSync) void this.plugin._qlSync.checkNow("view-open");
+            }, 0);
+          }
           const overlayClasses = [
             "quest-menu-overlay",
             "quest-creation-overlay",
@@ -2883,6 +3352,7 @@ var require_render = __commonJS({
           });
           const editIcon = nameContainer.createEl("span", { cls: "edit-icon" });
           setIcon(editIcon, "pencil");
+          this._heroNameEl = heroNameEl;
           editIcon.addEventListener("click", () => {
             heroNameEl.focus();
             const range = document.createRange();
@@ -3204,10 +3674,39 @@ var require_render = __commonJS({
           });
           this._skillGraphOverlay = skillGraphOverlay;
           this._skillGraphContent = skillGraphContent;
+          if (this._overlayAnchorObs) this._overlayAnchorObs.disconnect();
+          if (this._overlayScrollFn) container.removeEventListener("scroll", this._overlayScrollFn);
+          this._lastListScroll = container.scrollTop;
+          this._overlayScrollFn = () => {
+            this._lastListScroll = container.scrollTop;
+          };
+          container.addEventListener("scroll", this._overlayScrollFn, { passive: true });
+          if (typeof MutationObserver !== "undefined") {
+            this._overlayAnchorObs = new MutationObserver((muts) => {
+              for (const m of muts) {
+                const el = m.target;
+                if (!el.classList || !el.classList.contains("ql-overlay") || el.parentNode !== container) continue;
+                if (el.classList.contains("open")) {
+                  if (getComputedStyle(el).position !== "absolute") continue;
+                  if (container.scrollTop !== this._lastListScroll) container.scrollTop = this._lastListScroll;
+                  if (container.scrollTop > 0) el.style.top = `${container.scrollTop}px`;
+                } else if (el.style.top) {
+                  el.style.top = "";
+                }
+              }
+            });
+            this._overlayAnchorObs.observe(container, { attributes: true, attributeFilter: ["class"], subtree: true });
+          }
           if (this._overlayShell) this._overlayShell.destroy();
           const overlayShell = createOverlayShell(container, {
             // Esc closes the shell only when nothing sits above it (purchase popup, menu, detail/creation/reward modals)
-            canEscClose: /* @__PURE__ */ __name(() => !container.querySelector(".shop-purchase-overlay, .ql-overlay.open"), "canEscClose")
+            canEscClose: /* @__PURE__ */ __name(() => !container.querySelector(".shop-purchase-overlay, .ql-overlay.open"), "canEscClose"),
+            onClose: /* @__PURE__ */ __name(() => {
+              if (this._preShellScroll != null) {
+                container.scrollTop = this._preShellScroll;
+                this._preShellScroll = null;
+              }
+            }, "onShellClose")
           });
           this._overlayShell = overlayShell;
           if (shopOverlay) {
@@ -4316,12 +4815,18 @@ var require_render = __commonJS({
           if (!overlay || !content) return;
           content.empty();
           overlay.style.display = "flex";
-          overlay.style.opacity = "0";
-          overlay.style.transition = "opacity 0.25s ease-out";
-          requestAnimationFrame(() => {
-            overlay.style.opacity = "1";
-          });
+          if (!this._silentGraph) {
+            overlay.style.opacity = "0";
+            overlay.style.transition = "opacity 0.25s ease-out";
+            requestAnimationFrame(() => {
+              overlay.style.opacity = "1";
+            });
+          }
           const skills2 = this.plugin.settings.skills || [];
+          {
+            const gs = this.plugin.settings;
+            this._graphSig = JSON.stringify([gs.heroName, gs.currentXp, (gs.skills || []).map((s) => [s.id, s.name, s.xp, s.level])]);
+          }
           const level = this.plugin.getLevel();
           const title = _QuestLogView2.getLevelTitle(level);
           const heroName = this.plugin.settings.heroName || "Hero";
@@ -4348,9 +4853,18 @@ var require_render = __commonJS({
           const allSkillsSorted = [...skills2].sort((a, b) => (b.level || 1) - (a.level || 1));
           const defaultSelected = new Set(allSkillsSorted.slice(0, 12).map((s) => s.id || s.name));
           let selectedSkillIds = new Set(defaultSelected);
+          const sameSet = (a, b) => a && b && a.size === b.size && Array.from(a).every((x) => b.has(x));
+          const userCustomised = this._graphKeepSel && this._graphPrevDefault && !sameSet(this._graphKeepSel, this._graphPrevDefault);
+          this._graphPrevDefault = new Set(defaultSelected);
+          if (this._silentGraph && userCustomised) {
+            const valid = new Set(allSkillsSorted.map((s) => s.id || s.name));
+            const kept = Array.from(this._graphKeepSel).filter((id) => valid.has(id));
+            if (kept.length) selectedSkillIds = new Set(kept);
+          }
           const chartSection = content.createEl("div", { cls: "skill-graph-chart-section" });
           const chartContainer = chartSection.createEl("div", { cls: "skill-graph-chart-container" });
           const updateChart = /* @__PURE__ */ __name(() => {
+            this._graphKeepSel = new Set(selectedSkillIds);
             const selectedSkills = allSkillsSorted.filter(
               (s) => selectedSkillIds.has(s.id || s.name)
             ).slice(0, 12);
@@ -4829,12 +5343,25 @@ var require_render = __commonJS({
             new obsidianNS.Notice(why);
             return false;
           }
+          const host = this.overlayHost();
+          if (host && !shell.isOpen()) {
+            this._preShellScroll = host.scrollTop;
+            host.scrollTop = 0;
+          }
           return shell.open(stateId);
         }
         closeOverlay() {
           return this._overlayShell ? this._overlayShell.close() : false;
         }
         async onClose() {
+          if (this._overlayScrollFn && this.overlayHost()) {
+            this.overlayHost().removeEventListener("scroll", this._overlayScrollFn);
+            this._overlayScrollFn = null;
+          }
+          if (this._overlayAnchorObs) {
+            this._overlayAnchorObs.disconnect();
+            this._overlayAnchorObs = null;
+          }
           if (this._overlayShell) {
             this._overlayShell.destroy();
             this._overlayShell = null;
@@ -4877,6 +5404,7 @@ var require_render = __commonJS({
 // src/main.js
 var { Plugin } = require("obsidian");
 var { migrateIfNeeded, beginSaveBatch, endSaveBatch } = require_storage();
+var { createLiveSync, canonD } = require_sync();
 var {
   loadSettings,
   saveSettings,
@@ -4904,7 +5432,14 @@ async function hydrateSettingsMirror(plugin) {
     completedHabits,
     skills: skillList
   };
+  plugin._qlMirrorSig = mirrorSig(plugin);
   return plugin.settings;
+}
+function mirrorSig(plugin) {
+  const s = plugin.settings || {};
+  const out = {};
+  for (const k of Object.keys(s)) out[k] = s[k];
+  return canonD(out);
 }
 async function persistSettingsMirror(plugin) {
   const s = plugin.settings || {};
@@ -4937,11 +5472,22 @@ async function persistSettingsMirror(plugin) {
   } finally {
     await endSaveBatch(plugin);
   }
+  plugin._qlMirrorSig = mirrorSig(plugin);
 }
 var QuestLogPlugin = class extends Plugin {
   async onload() {
     this._levelCache = null;
     await migrateIfNeeded(this);
+    this._qlSync = createLiveSync(this, {
+      hydrate: async () => {
+        await hydrateSettingsMirror(this);
+        this.invalidateLevelCache();
+      },
+      refresh: () => this.refreshOpenViews(),
+      isBusy: () => this.isSyncBusy(),
+      hasOpenViews: () => this.app.workspace.getLeavesOfType(QUESTLOG_VIEW_TYPE).length > 0
+    });
+    await this._qlSync.baseline();
     await hydrateSettingsMirror(this);
     this.loadQuestSettings = () => loadSettings(this);
     this.saveQuestSettings = (settings) => saveSettings(this, settings);
@@ -4977,9 +5523,28 @@ var QuestLogPlugin = class extends Plugin {
         void this.activateView();
       }
     });
+    this._qlSync.start();
   }
   onunload() {
     this._levelCache = null;
+    if (this._qlSync) {
+      this._qlSync.stop();
+      this._qlSync = null;
+    }
+  }
+  /** True while a Quest Log view is mid-edit (modal / popup / focused field) or the mirror has an unsaved mutation. */
+  isSyncBusy() {
+    if (this._qlMirrorSig !== mirrorSig(this)) return true;
+    const leaves = this.app.workspace.getLeavesOfType(QUESTLOG_VIEW_TYPE);
+    return leaves.some((l) => l.view && typeof l.view.isSyncBusy === "function" && l.view.isSyncBusy());
+  }
+  markMirrorClean() {
+    this._qlMirrorSig = mirrorSig(this);
+  }
+  refreshOpenViews() {
+    for (const leaf of this.app.workspace.getLeavesOfType(QUESTLOG_VIEW_TYPE)) {
+      if (leaf.view && typeof leaf.view.refreshExternal === "function") leaf.view.refreshExternal();
+    }
   }
   async loadSettings() {
     return hydrateSettingsMirror(this);
@@ -5003,6 +5568,7 @@ var QuestLogPlugin = class extends Plugin {
   }
   async activateView() {
     const { workspace } = this.app;
+    if (this._qlSync) await this._qlSync.checkNow("activate");
     let leaf = workspace.getLeavesOfType(QUESTLOG_VIEW_TYPE)[0];
     if (!leaf) {
       const newLeaf = workspace.getLeaf(true);
@@ -5029,20 +5595,15 @@ var QuestLogPlugin = class extends Plugin {
     new (require("obsidian")).Notice("Quest Log view is not ready yet; try again.");
     return false;
   }
+  /** Obsidian calls this when it detects data.json changed on disk (Sync etc.). Same debounce-free content check. */
   async onExternalSettingsChange() {
-    await hydrateSettingsMirror(this);
-    this.invalidateLevelCache();
-    const leaves = this.app.workspace.getLeavesOfType(QUESTLOG_VIEW_TYPE);
-    for (const leaf of leaves) {
-      if (leaf.view && typeof leaf.view.refreshListsAndHeader === "function") {
-        leaf.view.refreshListsAndHeader();
-      }
-    }
+    if (this._qlSync) await this._qlSync.checkNow("external-hook");
   }
 };
 module.exports = QuestLogPlugin;
 module.exports.default = QuestLogPlugin;
 module.exports.hydrateSettingsMirror = hydrateSettingsMirror;
 module.exports.persistSettingsMirror = persistSettingsMirror;
+module.exports.mirrorSig = mirrorSig;
 module.exports.QuestLogPlugin = QuestLogPlugin;
 module.exports.QUESTLOG_VIEW_TYPE = QUESTLOG_VIEW_TYPE;

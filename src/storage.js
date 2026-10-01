@@ -276,6 +276,45 @@ function emptyGodBlob() {
 }
 
 /**
+ * Normalize a parsed data.json value into a god blob (marker + array keys guaranteed).
+ * @param {*} loaded
+ */
+function normalizeLoadedBlob(loaded) {
+  const blob =
+    loaded && typeof loaded === "object" && !Array.isArray(loaded)
+      ? { ...emptyGodBlob(), ...loaded, store: STORE_MARKER }
+      : emptyGodBlob();
+  for (const key of Object.keys(ARRAY_BLOB_TO_DOMAIN)) {
+    if (!Array.isArray(blob[key])) blob[key] = [];
+  }
+  return blob;
+}
+
+/**
+ * 0.6.52 live-sync — replace the in-memory god blob with a freshly parsed disk blob
+ * (same normalization as the load path). Caller owns re-hydrating the settings mirror.
+ * @param {import('obsidian').Plugin} plugin
+ * @param {object} parsed  JSON.parse result of data.json (must not be shared with other holders)
+ */
+function adoptBlob(plugin, parsed) {
+  const blob = normalizeLoadedBlob(parsed);
+  blobCache.set(plugin, blob);
+  return blob;
+}
+
+/**
+ * 0.6.52 — serialize storage-affecting work (flushes + adoptions) per plugin.
+ * @param {import('obsidian').Plugin} plugin
+ * @param {() => Promise<*>} fn
+ */
+function runExclusive(plugin, fn) {
+  const prev = plugin._qlChain || Promise.resolve();
+  const next = prev.then(fn);
+  plugin._qlChain = next.catch(() => {});
+  return next;
+}
+
+/**
  * Load god blob via Plugin.loadData into cache.
  * @param {import('obsidian').Plugin} plugin
  */
@@ -289,14 +328,7 @@ async function getBlob(plugin) {
       loaded = null;
     }
   }
-  const blob =
-    loaded && typeof loaded === "object" && !Array.isArray(loaded)
-      ? { ...emptyGodBlob(), ...loaded, store: STORE_MARKER }
-      : emptyGodBlob();
-  // Ensure array keys exist.
-  for (const key of Object.keys(ARRAY_BLOB_TO_DOMAIN)) {
-    if (!Array.isArray(blob[key])) blob[key] = [];
-  }
+  const blob = normalizeLoadedBlob(loaded);
   blobCache.set(plugin, blob);
   return blob;
 }
@@ -317,8 +349,31 @@ async function flushBlob(plugin, blob) {
   if (typeof plugin.saveData !== "function") {
     throw new Error("Quest Log: plugin.saveData unavailable");
   }
-  await plugin.saveData(next);
-  plugin._qlDirty = false;
+  // 0.6.52 — serialized flush with clobber guard (see src/sync.js beforeSave/afterSave):
+  // if data.json changed on disk since we last loaded/saved it, we MERGE (disk + our changes) instead of
+  // overwriting; own writes are recorded so the watcher never reloads them.
+  plugin._qlPendingFlush = (plugin._qlPendingFlush || 0) + 1;
+  try {
+    await runExclusive(plugin, async () => {
+      const mem = blobCache.get(plugin) || next;
+      let toWrite = mem;
+      const sync = plugin._qlSync;
+      let skip = false;
+      if (sync && typeof sync.beforeSave === "function") {
+        const r = await sync.beforeSave(mem);
+        if (r && r.blob) {
+          toWrite = r.blob; // merged (disk + my changes); memory (blobCache) stays as-is until the watcher adopts
+          skip = Boolean(r.skipWrite);
+        }
+      }
+      toWrite.store = STORE_MARKER;
+      if (!skip) await plugin.saveData(toWrite);
+      plugin._qlDirty = false;
+      if (sync && typeof sync.afterSave === "function") await sync.afterSave(toWrite, { skipped: skip });
+    });
+  } finally {
+    plugin._qlPendingFlush -= 1;
+  }
 }
 
 /**
@@ -587,6 +642,10 @@ module.exports = {
   endSaveBatch,
   flushBlob,
   getBlob,
+  adoptBlob,
+  peekBlob: (plugin) => blobCache.get(plugin) || null,
+  normalizeLoadedBlob,
+  runExclusive,
   // Deprecated adapter helpers — do not use for live state.
   writeAtomic,
   writeJsonAtomic,

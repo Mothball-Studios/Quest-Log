@@ -139,6 +139,8 @@ function createSettingTabModule(obsidian) {
     _mirror(settings) {
       if (this.plugin.settings && typeof this.plugin.settings === "object") {
         Object.assign(this.plugin.settings, settings);
+        // 0.6.52 live-sync: these values were just saved → mirror is clean again (otherwise sync would defer forever)
+        if (typeof this.plugin.markMirrorClean === "function") this.plugin.markMirrorClean();
       }
     }
 

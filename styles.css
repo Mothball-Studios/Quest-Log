@@ -3965,3 +3965,43 @@
   right: 0;
   bottom: 0;
 }
+
+/* ============================================================
+   MAIN CREATE FAB — PINNED + ABOVE THE LIST (0.6.52)
+   Bug: .quest-fab was position:absolute with z-index:auto and sits BEFORE the lists in the DOM, so every
+   (position:relative) quest/habit/skill row painted OVER it, and with many rows it was anchored to the
+   container's scroll origin / full content height instead of the visible area.
+   Fix: sticky pin + explicit stacking.
+     - position:sticky; top:calc(100% - 60px): % resolves against the scroll container's CONTENT box (container has
+       12px top / 20px bottom padding), so the 50px circle's bottom edge stays 30px above the visible bottom edge
+       (the same spot HEAD used when scrolled to the top: 50px circle, 30px from the bottom/right) at every scroll
+       position.
+     - margin-bottom:-50px: zero flow height, so list layout is byte-for-byte unchanged.
+     - margin-left:auto; margin-right:18px: right edge 30px from the container's edge (12px container padding + 18px).
+     - z-index:40: above every row (rows are z auto) but BELOW completed/shop overlays (50), the overlay shell (100),
+       and all menus/modals (200+) — so none of those regress. (z-index is local to .quest-log-container.)
+   Mobile (<=600px): the old rule lifted FABs to bottom:80px (above the mobile nav bar) → top: 100% - 110px.
+   Shop FAB (.quest-log-fab inside the shop overlay) is deliberately untouched.
+   ============================================================ */
+.quest-fab,
+.quest-fab.fab-quests,
+.quest-fab.fab-habits,
+.quest-fab.fab-skills {
+  position: sticky;
+  top: calc(100% - 60px);
+  bottom: auto;
+  left: auto;
+  right: auto;
+  margin: 0 18px -50px auto;
+  flex: 0 0 auto;
+  z-index: 40;
+}
+@media screen and (max-width: 600px) {
+  .quest-fab,
+  .quest-fab.fab-quests,
+  .quest-fab.fab-habits,
+  .quest-fab.fab-skills {
+    top: calc(100% - 110px);
+    bottom: auto;
+  }
+}

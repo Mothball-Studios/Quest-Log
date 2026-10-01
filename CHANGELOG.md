@@ -2,6 +2,23 @@
 
 Vault project notes (design / ship history). Durable code tree: `/workspace/Quest-Log-src`. Ship folder: `.obsidian/plugins/quest-log` (four files only).
 
+## 0.6.52 — 2026-10-01
+
+COO APPROVED — (1) LIVE-UPDATE when data.json changes on disk (phone / other computer / external write), no plugin reload; (2) main FAB z-order/pinning fix.
+
+**Live-sync** (new `src/sync.js`; hooks in `storage.js`, `main.js`, `render.js`; mobile-safe — Obsidian vault/adapter API only, no fs/chokidar):
+1. Detection: `vault.on('modify'|'create')` + guarded `vault.on('raw')` (the adapter-level event that does fire for `.obsidian` dotfolder paths) for the exact `<plugin dir>/data.json` path, PLUS an `adapter.stat` mtime+size poll fallback every 1500 ms (only while a Quest Log view is open and the document is visible; reads the file only when the signature changed), PLUS forced content checks on window focus / visibility regained / view open / `activateView`. All feed one debounced (250 ms) single-flight check; truth is file CONTENT (never mtime), so duplicate events / rewound mtimes are harmless.
+2. Apply: reload through the existing storage path (`adoptBlob` → `hydrateSettingsMirror`) and re-render the open view via the existing renderers (`QuestLogView.refreshExternal`): quests, habits, skills, completed, header/XP/level, hero name, rewards shop list + coins. Overlay shell stays open: shop refreshed in place; skill graph rebuilt silently (no fade, user's skill selection kept).
+3. Own writes are tracked (read-back + content baseline after every save): no re-render, no loop, no reload-on-own-write.
+4. Clobber guard: before every save, if disk changed since last load/save, the save does a 3-way merge (baseline, memory, disk) by item id instead of overwriting (disk-only changes survive, my pending mutation is re-applied; xp/coins/questsCompleted merge additively; items completed/removed elsewhere are not resurrected). Saves are serialized.
+5. Deferral: while any modal/popup/overlay is open, a text field is focused, the skill-graph picker is open, or the mirror holds an unsaved mutation, adoption is deferred and applied right after (≤~2 s).
+6. Invalid/empty/partial/wrong-shape JSON, deleted or mid-rename file → ignored, current state kept, retried on the next event/tick. `onunload` removes all listeners/intervals/timers.
+7. Skill `level` is derived at render time (in-place), so it is excluded from "unsaved change" / equality checks.
+
+**FAB** (`styles.css`, `render.js`): `.quest-fab` (main Create button) was `position:absolute; z-index:auto` and earlier in the DOM than the `position:relative` rows, so quest/habit/skill rows painted over it and with many rows it stayed at the list origin. Now PINNED: `position:sticky` to the visible bottom-right (30px / 30px; mobile ≤600px keeps its 80px lift), zero layout height (list geometry unchanged), `z-index:40` — above rows, below Completed/Shop overlays (50), the overlay shell (100) and menus/modals (200+). Small companions: opening an absolute `.ql-overlay` modal while the list is scrolled anchors it to the visible area; opening the overlay shell scrolls the view to top (restored on close) so the shell is on screen.
+
+E2E: `/workspace/ql-0.6.52-e2e/` (`node run.js`; `FAILURE_MODES.md`) — fake adapter/vault with modify/raw/stat on a scratch data.json copy; screenshots + `assertions.txt` + `metrics.json` in `shots/`.
+
 ## 0.6.51 — 2026-10-01
 
 COO APPROVED — unified whole-view overlay SHELL (first pass, shell only; no panel fixes/refactors):
