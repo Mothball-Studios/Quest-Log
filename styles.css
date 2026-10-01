@@ -3939,3 +3939,29 @@
 .quest-modal.reward-context .quest-modal-header {
   color: #ffd700;
 }
+
+/* ============================================================
+   UNIFIED OVERLAY SHELL (0.6.51) — one whole-view layer hosting Rewards Shop + Skill Graph states.
+   z-index 100 = the Skill Graph's old stacking level: above lists/completed (50) and main FAB (60),
+   below menu (250), creation (200), detail (300+) modals and the purchase popup (10000).
+   Stage is a positioned box so hosted absolute panels lay out exactly as in the container.
+   ============================================================ */
+.ql-shell {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 100;
+  display: none;
+}
+.ql-shell.open {
+  display: block;
+}
+.ql-shell-stage {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+}

@@ -1318,11 +1318,120 @@ var require_habits = __commonJS({
   }
 });
 
+// src/overlay.js
+var require_overlay = __commonJS({
+  "src/overlay.js"(exports2, module2) {
+    "use strict";
+    function createOverlayShell(hostEl, opts) {
+      const options = opts || {};
+      const doc = hostEl.ownerDocument || document;
+      const el = doc.createElement("div");
+      el.className = "ql-shell";
+      const stage = doc.createElement("div");
+      stage.className = "ql-shell-stage";
+      el.appendChild(stage);
+      hostEl.appendChild(el);
+      const registry = /* @__PURE__ */ new Map();
+      let currentId = null;
+      let open = false;
+      let observer = null;
+      function stopObserver() {
+        if (observer) {
+          observer.disconnect();
+          observer = null;
+        }
+      }
+      function watchPanel(id, panelEl) {
+        stopObserver();
+        if (!panelEl || typeof MutationObserver === "undefined") return;
+        observer = new MutationObserver(() => {
+          if (open && currentId === id && panelEl.style.display === "none") shell.close();
+        });
+        observer.observe(panelEl, { attributes: true, attributeFilter: ["style"] });
+      }
+      function onKeyDown(e) {
+        if (open && e.key === "Escape") {
+          if (typeof options.canEscClose === "function" && !options.canEscClose()) return;
+          e.stopPropagation();
+          shell.close();
+        }
+      }
+      function leave() {
+        stopObserver();
+        const st = registry.get(currentId);
+        if (st && typeof st.hide === "function") st.hide({ shell });
+      }
+      const shell = {
+        el,
+        stage,
+        registerState(id, def) {
+          const d = def || {};
+          registry.set(id, { id, label: d.label || id, el: d.el || null, show: d.show, hide: d.hide });
+          if (d.el && d.el.parentNode !== stage) stage.appendChild(d.el);
+          return shell;
+        },
+        has(id) {
+          return registry.has(id);
+        },
+        states() {
+          return Array.from(registry.keys());
+        },
+        open(id) {
+          const st = registry.get(id);
+          if (!st) return false;
+          const prev = open ? currentId : null;
+          if (open && currentId !== id) leave();
+          currentId = id;
+          el.setAttribute("data-ql-state", id);
+          el.classList.add("open");
+          if (!open) doc.addEventListener("keydown", onKeyDown, true);
+          open = true;
+          if (typeof st.show === "function") st.show({ shell });
+          watchPanel(id, st.el);
+          if (typeof options.onOpen === "function") options.onOpen(id, prev);
+          return true;
+        },
+        switchTo(id) {
+          return shell.open(id);
+        },
+        close() {
+          if (!open) return false;
+          const prev = currentId;
+          leave();
+          open = false;
+          currentId = null;
+          el.classList.remove("open");
+          el.removeAttribute("data-ql-state");
+          doc.removeEventListener("keydown", onKeyDown, true);
+          if (typeof options.onClose === "function") options.onClose(prev);
+          return true;
+        },
+        isOpen() {
+          return open;
+        },
+        current() {
+          return open ? currentId : null;
+        },
+        destroy() {
+          if (open) shell.close();
+          stopObserver();
+          doc.removeEventListener("keydown", onKeyDown, true);
+          registry.clear();
+          if (el.parentNode) el.parentNode.removeChild(el);
+        }
+      };
+      return shell;
+    }
+    module2.exports = { createOverlayShell };
+  }
+});
+
 // src/render.js
 var require_render = __commonJS({
   "src/render.js"(exports2, module2) {
     "use strict";
     var { loadDomain } = require_storage();
+    var { createOverlayShell } = require_overlay();
     var QUESTLOG_VIEW_TYPE2 = "quest-log-view";
     async function loadSnapshot(plugin) {
       return {
@@ -2704,15 +2813,13 @@ var require_render = __commonJS({
             if (this.plugin.settings.rewardsMode && shopOverlay) {
               items.push(
                 { icon: "shopping-cart", label: "Rewards Shop", action: /* @__PURE__ */ __name(() => {
-                  shopOverlay.style.display = "flex";
-                  this.renderShopList(this._shopListEl);
-                  if (this._shopCoinText) this._shopCoinText.setText(`${this.plugin.settings.coins}`);
+                  this.openOverlay("shop");
                   menuOverlay.removeClass("open");
                 }, "action") }
               );
             }
             items.push(
-              { icon: "radar", label: "Skill Graph", action: /* @__PURE__ */ __name(() => this.showSkillGraphModal(), "action") },
+              { icon: "radar", label: "Skill Graph", action: /* @__PURE__ */ __name(() => this.openOverlay("skill-graph"), "action") },
               { icon: "user", label: "User Profile", action: /* @__PURE__ */ __name(() => {
                 const folder = this.plugin.settings.userProfileFolder || "Quest Log";
                 const fileName = this.plugin.settings.userProfileFileName || "User Profile";
@@ -2736,6 +2843,7 @@ var require_render = __commonJS({
               row.createEl("span", { text: item.label });
               row.addEventListener("click", () => {
                 menuOverlay.removeClass("open");
+                if (this._overlayShell) this._overlayShell.close();
                 item.action();
               });
             });
@@ -3096,6 +3204,35 @@ var require_render = __commonJS({
           });
           this._skillGraphOverlay = skillGraphOverlay;
           this._skillGraphContent = skillGraphContent;
+          if (this._overlayShell) this._overlayShell.destroy();
+          const overlayShell = createOverlayShell(container, {
+            // Esc closes the shell only when nothing sits above it (purchase popup, menu, detail/creation/reward modals)
+            canEscClose: /* @__PURE__ */ __name(() => !container.querySelector(".shop-purchase-overlay, .ql-overlay.open"), "canEscClose")
+          });
+          this._overlayShell = overlayShell;
+          if (shopOverlay) {
+            overlayShell.registerState("shop", {
+              label: "Rewards Shop",
+              el: shopOverlay,
+              // same three steps the menu's "Rewards Shop" action ran before 0.6.51
+              show: /* @__PURE__ */ __name(() => {
+                shopOverlay.style.display = "flex";
+                this.renderShopList(this._shopListEl);
+                if (this._shopCoinText) this._shopCoinText.setText(`${this.plugin.settings.coins}`);
+              }, "showShopState"),
+              hide: /* @__PURE__ */ __name(() => {
+                shopOverlay.style.display = "none";
+              }, "hideShopState")
+            });
+          }
+          overlayShell.registerState("skill-graph", {
+            label: "Skill Graph",
+            el: skillGraphOverlay,
+            show: /* @__PURE__ */ __name(() => this.showSkillGraphModal(), "showSkillGraphState"),
+            hide: /* @__PURE__ */ __name(() => {
+              skillGraphOverlay.style.display = "none";
+            }, "hideSkillGraphState")
+          });
           const detailOverlay = container.createEl("div", {
             cls: "quest-detail-overlay ql-overlay"
           });
@@ -4680,7 +4817,28 @@ var require_render = __commonJS({
             new obsidianNS.Notice(`Habit completion undone: ${habit.title}. -${habit.xp.toLocaleString()} XP`);
           });
         }
+        /**
+         * 0.6.51 — open a state in the unified overlay shell: "shop" (Rewards Shop) | "skill-graph" (Skill Graph).
+         * Returns true when opened; false (with a Notice) when the state is unavailable (e.g. shop needs rewardsMode).
+         */
+        openOverlay(stateId) {
+          const shell = this._overlayShell;
+          if (!shell) return false;
+          if (!shell.has(stateId)) {
+            const why = stateId === "shop" ? "Rewards Shop is only available when Rewards mode is on (reopen Quest Log after enabling)." : "Unknown overlay state.";
+            new obsidianNS.Notice(why);
+            return false;
+          }
+          return shell.open(stateId);
+        }
+        closeOverlay() {
+          return this._overlayShell ? this._overlayShell.close() : false;
+        }
         async onClose() {
+          if (this._overlayShell) {
+            this._overlayShell.destroy();
+            this._overlayShell = null;
+          }
           this.drainSliders();
           this._sliders = null;
         }
@@ -4799,6 +4957,20 @@ var QuestLogPlugin = class extends Plugin {
       void this.activateView();
     });
     this.addCommand({
+      id: "open-reward-shop-overlay",
+      name: "Open reward shop (overlay)",
+      callback: () => {
+        void this.openOverlayState("shop");
+      }
+    });
+    this.addCommand({
+      id: "open-skill-graph-overlay",
+      name: "Open skill graph (overlay)",
+      callback: () => {
+        void this.openOverlayState("skill-graph");
+      }
+    });
+    this.addCommand({
       id: "open-quest-log",
       name: "Open Quest Log",
       callback: () => {
@@ -4838,6 +5010,24 @@ var QuestLogPlugin = class extends Plugin {
       leaf = newLeaf;
     }
     workspace.revealLeaf(leaf);
+  }
+  /**
+   * Activate the Quest Log view, then open a unified-overlay state on it ("shop" | "skill-graph").
+   * @param {"shop"|"skill-graph"} stateId
+   */
+  async openOverlayState(stateId) {
+    await this.activateView();
+    const { workspace } = this.app;
+    for (let i = 0; i < 40; i++) {
+      const leaf = workspace.getLeavesOfType(QUESTLOG_VIEW_TYPE)[0];
+      const view = leaf && leaf.view;
+      if (view && view._overlayShell && typeof view.openOverlay === "function") {
+        return view.openOverlay(stateId);
+      }
+      await new Promise((r) => setTimeout(r, 50));
+    }
+    new (require("obsidian")).Notice("Quest Log view is not ready yet; try again.");
+    return false;
   }
   async onExternalSettingsChange() {
     await hydrateSettingsMirror(this);

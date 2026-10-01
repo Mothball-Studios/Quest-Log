@@ -101,6 +101,21 @@ class QuestLogPlugin extends Plugin {
     this.addRibbonIcon("gamepad", "Quest Log", () => {
       void this.activateView();
     });
+    // 0.6.51 — one command per unified-overlay state (shows as "Quest Log: <name>" in the palette)
+    this.addCommand({
+      id: "open-reward-shop-overlay",
+      name: "Open reward shop (overlay)",
+      callback: () => {
+        void this.openOverlayState("shop");
+      },
+    });
+    this.addCommand({
+      id: "open-skill-graph-overlay",
+      name: "Open skill graph (overlay)",
+      callback: () => {
+        void this.openOverlayState("skill-graph");
+      },
+    });
     this.addCommand({
       id: "open-quest-log",
       name: "Open Quest Log",
@@ -147,6 +162,26 @@ class QuestLogPlugin extends Plugin {
       leaf = newLeaf;
     }
     workspace.revealLeaf(leaf);
+  }
+
+  /**
+   * Activate the Quest Log view, then open a unified-overlay state on it ("shop" | "skill-graph").
+   * @param {"shop"|"skill-graph"} stateId
+   */
+  async openOverlayState(stateId) {
+    await this.activateView();
+    const { workspace } = this.app;
+    // onOpen() may still be finishing right after a fresh setViewState; wait briefly for the shell.
+    for (let i = 0; i < 40; i++) {
+      const leaf = workspace.getLeavesOfType(QUESTLOG_VIEW_TYPE)[0];
+      const view = leaf && leaf.view;
+      if (view && view._overlayShell && typeof view.openOverlay === "function") {
+        return view.openOverlay(stateId);
+      }
+      await new Promise((r) => setTimeout(r, 50));
+    }
+    new (require("obsidian").Notice)("Quest Log view is not ready yet; try again.");
+    return false;
   }
 
   async onExternalSettingsChange() {

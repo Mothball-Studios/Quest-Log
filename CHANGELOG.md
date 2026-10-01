@@ -2,6 +2,15 @@
 
 Vault project notes (design / ship history). Durable code tree: `/workspace/Quest-Log-src`. Ship folder: `.obsidian/plugins/quest-log` (four files only).
 
+## 0.6.51 — 2026-10-01
+
+COO APPROVED — unified whole-view overlay SHELL (first pass, shell only; no panel fixes/refactors):
+
+1. New `src/overlay.js` → `createOverlayShell(hostEl, opts)`: one `.ql-shell` layer over the main UI (absolute, inset 0, z-index 100) hosting multiple states. API: `registerState(id,{label,el,show,hide})`, `open(id)`/`switchTo(id)`, `close()`, `isOpen()`, `current()`, `has()`, `states()`, `destroy()`. Esc closes (ignored while the purchase popup / any modal sits above); a hosted panel hiding itself (its own Back button) closes the shell too.
+2. States: `shop` (existing Rewards Shop panel + `renderShopList`, unchanged) and `skill-graph` (existing Skill Graph panel + `showSkillGraphModal`, unchanged). Panel elements are moved into the shell stage; their render/show code is reused verbatim. `shop` exists only when rewardsMode was on at view open (as before).
+3. Entry points: hamburger menu "Rewards Shop" (rewardsMode only) and "Skill Graph" now route through the shell (`QuestLogView.openOverlay(id)`); new command-palette commands "Quest Log: Open reward shop (overlay)" and "Quest Log: Open skill graph (overlay)" (`QuestLogPlugin.openOverlayState`). Menu navigation closes the shell first.
+4. E2E: `/workspace/ql-0.6.51-e2e/` (`node run.js`) — opens each state via menu + real plugin commands, asserts cover/topmost/switch/close/Esc, and compares each panel DOM + geometry + pixels vs git HEAD (identical).
+
 ## 0.6.50 — 2026-10-01
 
 COO APPROVED — attach-block title wrap threshold (Skill DETAILS + CREATION, uniform for attached Quests / Habits / Skills):

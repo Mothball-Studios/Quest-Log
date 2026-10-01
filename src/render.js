@@ -8,6 +8,7 @@
 "use strict";
 
 const { loadDomain } = require("./storage");
+const { createOverlayShell } = require("./overlay");
 
 const QUESTLOG_VIEW_TYPE = "quest-log-view";
 
@@ -1406,15 +1407,14 @@ var _QuestLogView = class _QuestLogView extends obsidianNS.ItemView {
       if (this.plugin.settings.rewardsMode && shopOverlay) {
         items.push(
           { icon: "shopping-cart", label: "Rewards Shop", action: /* @__PURE__ */ __name(() => {
-            shopOverlay.style.display = "flex";
-            this.renderShopList(this._shopListEl);
-            if (this._shopCoinText) this._shopCoinText.setText(`${this.plugin.settings.coins}`);
+            // 0.6.51: opens via the unified overlay shell (state "shop"); panel show logic unchanged (see shell state below)
+            this.openOverlay("shop");
             menuOverlay.removeClass("open");
           }, "action") }
         );
       }
       items.push(
-        { icon: "radar", label: "Skill Graph", action: /* @__PURE__ */ __name(() => this.showSkillGraphModal(), "action") },
+        { icon: "radar", label: "Skill Graph", action: /* @__PURE__ */ __name(() => this.openOverlay("skill-graph"), "action") },
         { icon: "user", label: "User Profile", action: /* @__PURE__ */ __name(() => {
           const folder = this.plugin.settings.userProfileFolder || "Quest Log";
           const fileName = this.plugin.settings.userProfileFileName || "User Profile";
@@ -1438,6 +1438,9 @@ var _QuestLogView = class _QuestLogView extends obsidianNS.ItemView {
         row.createEl("span", { text: item.label });
         row.addEventListener("click", () => {
           menuOverlay.removeClass("open");
+          // 0.6.51: any menu navigation first closes the unified overlay shell (it sits above the lists);
+          // overlay-opening items re-open their state right after.
+          if (this._overlayShell) this._overlayShell.close();
           item.action();
         });
       });
@@ -1799,6 +1802,37 @@ var _QuestLogView = class _QuestLogView extends obsidianNS.ItemView {
     });
     this._skillGraphOverlay = skillGraphOverlay;
     this._skillGraphContent = skillGraphContent;
+    // 0.6.51 — unified whole-view overlay shell. Hosts the existing Rewards Shop and Skill Graph panels as
+    // states (panel elements moved into the shell stage; their render/show functions are reused verbatim).
+    if (this._overlayShell) this._overlayShell.destroy();
+    const overlayShell = createOverlayShell(container, {
+      // Esc closes the shell only when nothing sits above it (purchase popup, menu, detail/creation/reward modals)
+      canEscClose: /* @__PURE__ */ __name(() => !container.querySelector(".shop-purchase-overlay, .ql-overlay.open"), "canEscClose")
+    });
+    this._overlayShell = overlayShell;
+    if (shopOverlay) {
+      overlayShell.registerState("shop", {
+        label: "Rewards Shop",
+        el: shopOverlay,
+        // same three steps the menu's "Rewards Shop" action ran before 0.6.51
+        show: /* @__PURE__ */ __name(() => {
+          shopOverlay.style.display = "flex";
+          this.renderShopList(this._shopListEl);
+          if (this._shopCoinText) this._shopCoinText.setText(`${this.plugin.settings.coins}`);
+        }, "showShopState"),
+        hide: /* @__PURE__ */ __name(() => {
+          shopOverlay.style.display = "none";
+        }, "hideShopState")
+      });
+    }
+    overlayShell.registerState("skill-graph", {
+      label: "Skill Graph",
+      el: skillGraphOverlay,
+      show: /* @__PURE__ */ __name(() => this.showSkillGraphModal(), "showSkillGraphState"),
+      hide: /* @__PURE__ */ __name(() => {
+        skillGraphOverlay.style.display = "none";
+      }, "hideSkillGraphState")
+    });
     const detailOverlay = container.createEl("div", {
       cls: "quest-detail-overlay ql-overlay"
     });
@@ -3415,7 +3449,28 @@ var _QuestLogView = class _QuestLogView extends obsidianNS.ItemView {
       new obsidianNS.Notice(`Habit completion undone: ${habit.title}. -${habit.xp.toLocaleString()} XP`);
     });
   }
+  /**
+   * 0.6.51 — open a state in the unified overlay shell: "shop" (Rewards Shop) | "skill-graph" (Skill Graph).
+   * Returns true when opened; false (with a Notice) when the state is unavailable (e.g. shop needs rewardsMode).
+   */
+  openOverlay(stateId) {
+    const shell = this._overlayShell;
+    if (!shell) return false;
+    if (!shell.has(stateId)) {
+      const why = stateId === "shop" ? "Rewards Shop is only available when Rewards mode is on (reopen Quest Log after enabling)." : "Unknown overlay state.";
+      new obsidianNS.Notice(why);
+      return false;
+    }
+    return shell.open(stateId);
+  }
+  closeOverlay() {
+    return this._overlayShell ? this._overlayShell.close() : false;
+  }
   async onClose() {
+    if (this._overlayShell) {
+      this._overlayShell.destroy();
+      this._overlayShell = null;
+    }
     this.drainSliders();
     this._sliders = null;
   }
