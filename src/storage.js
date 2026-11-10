@@ -79,14 +79,6 @@ const STORE_MARKER = "data.json";
 const blobCache = new WeakMap();
 
 /**
- * Live store directory (plugin folder). Used only to locate leftover migrate sources.
- * @param {import('obsidian').Plugin} plugin
- */
-function storeDir(plugin) {
-  return plugin.manifest.dir;
-}
-
-/**
  * Path to a leftover domain file under plugin.manifest.dir (migrate-read only).
  * @param {import('obsidian').Plugin} plugin
  * @param {DomainName} name
@@ -112,11 +104,6 @@ function vaultStoreDomainPath(plugin, name) {
   const file = DOMAIN_FILES[name];
   if (!file) throw new Error(`Unknown Quest Log domain: ${name}`);
   return `${VAULT_STORE_DIR}/${file}`;
-}
-
-/** @deprecated Alias for vaultStoreDomainPath. */
-function legacyPluginDomainPath(plugin, name) {
-  return vaultStoreDomainPath(plugin, name);
 }
 
 /**
@@ -572,55 +559,8 @@ async function migrateIfNeeded(plugin) {
   return { migrated: true, reason: "init-empty-god-blob" };
 }
 
-/** @deprecated No-op kept for API compat. */
-async function ensureStoreDir(_plugin) {
-  /* intentionally empty */
-}
-
-/**
- * @deprecated Adapter atomic write — not used for live state.
- * Kept exported so accidental callers fail loudly only if used for domains;
- * prefer saveDomain → saveData.
- */
-async function writeAtomic(plugin, fullPath, content) {
-  const adapter = plugin.app.vault.adapter;
-  const slash = fullPath.lastIndexOf("/");
-  const folderPath = slash >= 0 ? fullPath.slice(0, slash) : "";
-  if (folderPath) {
-    const parts = folderPath.split("/");
-    let acc = "";
-    for (const part of parts) {
-      acc = acc ? `${acc}/${part}` : part;
-      try {
-        await adapter.mkdir(acc);
-      } catch (_e) {
-        /* exists */
-      }
-    }
-  }
-  const tmpPath = `${fullPath}.tmp`;
-  await adapter.write(tmpPath, content);
-  try {
-    await adapter.rename(tmpPath, fullPath);
-  } catch (_renameErr) {
-    await adapter.write(fullPath, content);
-    try {
-      await adapter.remove(tmpPath);
-    } catch (_e) {
-      /* ignore */
-    }
-  }
-}
-
-/** @deprecated Not used for live domain state. */
-async function writeJsonAtomic(plugin, fullPath, data) {
-  await writeAtomic(plugin, fullPath, `${JSON.stringify(data, null, 2)}\n`);
-}
-
 module.exports = {
   VAULT_STORE_DIR,
-  /** @deprecated Use VAULT_STORE_DIR. */
-  STORE_DIR: VAULT_STORE_DIR,
   DOMAIN_FILES,
   DOMAIN_DEFAULTS,
   SETTINGS_BLOB_KEYS,
@@ -628,12 +568,9 @@ module.exports = {
   ARRAY_BLOB_TO_DOMAIN,
   DOMAIN_TO_ARRAY_KEY,
   STORE_MARKER,
-  storeDir,
   domainPath,
   dataJsonPath,
   vaultStoreDomainPath,
-  legacyPluginDomainPath,
-  ensureStoreDir,
   loadDomain,
   saveDomain,
   migrateIfNeeded,
@@ -646,8 +583,5 @@ module.exports = {
   peekBlob: (plugin) => blobCache.get(plugin) || null,
   normalizeLoadedBlob,
   runExclusive,
-  // Deprecated adapter helpers — do not use for live state.
-  writeAtomic,
-  writeJsonAtomic,
   readJson,
 };

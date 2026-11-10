@@ -39,15 +39,7 @@ function createRenderModule(obsidianNS) {
   function __publicField(obj, key, val) { obj[key] = val; return val; }
 
 
-/** Sidecar markdown helpers intentionally no-op in modular render (JSON writes forbidden here). */
-async function writeSidecarAtomic() { return; }
-async function writeQuestFile() { return; }
-async function writeCompletedQuestFile() { return; }
-async function writeHabitFile() { return; }
-async function writeSkillFile() { return; }
-async function writeUserProfile() { return; }
-async function trashIfExists() { return false; }
-async function retireNote() { return false; }
+/** Markdown sidecars are not written by this plugin version: data.json is the only store. */
 
 
 var _Xp = class _Xp {
@@ -280,17 +272,6 @@ function uniqueStem(list, title, id, key) {
   return clash ? `${base}-${id}` : base;
 }
 __name(uniqueStem, "uniqueStem");
-async function trashIfExists(plugin, fullPath) {
-  const file = plugin.app.vault.getAbstractFileByPath(fullPath);
-  if (!file) return false;
-  try {
-    await plugin.app.vault.trash(file, false);
-  } catch (e) {
-    await plugin.app.vault.delete(file);
-  }
-  return true;
-}
-__name(trashIfExists, "trashIfExists");
 function formatDate(dateStr) {
   return new Date(dateStr).toLocaleDateString("en-US", {
     month: "short",
@@ -315,38 +296,6 @@ function formatHabitTimestamp(dateStr) {
 __name(formatHabitTimestamp, "formatHabitTimestamp");
 
 
-function questNotePaths(plugin, quest, list, folderPath) {
-  const folder = folderPath;
-  const stems = new Set([
-    uniqueStem(list, quest.title, quest.id, "title"),
-    safeName(quest.title)
-  ]);
-  return [...stems].map((stem) => `${folder}/${stem}.md`);
-}
-__name(questNotePaths, "questNotePaths");
-function habitNotePaths(plugin, habit) {
-  const folder = plugin.settings.habitsFolderPath || "Quest Log/Habits";
-  const stems = new Set([
-    uniqueStem(plugin.settings.habits, habit.title, habit.id, "title"),
-    safeName(habit.title)
-  ]);
-  return [...stems].map((stem) => `${folder}/${stem}.md`);
-}
-__name(habitNotePaths, "habitNotePaths");
-function skillNotePaths(plugin, skill) {
-  const folder = plugin.settings.skillsFolderPath || "Quest Log/Skills";
-  const stems = new Set([
-    uniqueStem(plugin.settings.skills, skill.name, skill.id, "name"),
-    safeName(skill.name)
-  ]);
-  return [...stems].map((stem) => `${folder}/${stem}.md`);
-}
-__name(skillNotePaths, "skillNotePaths");
-function completedHabitNotePath(plugin, habit, completedAt) {
-  const folder = plugin.settings.completedFolderPath || "Quest Log/Completed";
-  return `${folder}/${safeName(habit.title)} - ${formatHabitTimestamp(completedAt)}.md`;
-}
-__name(completedHabitNotePath, "completedHabitNotePath");
 
 var _SkillRadarChart = class _SkillRadarChart {
   /**
@@ -2340,7 +2289,6 @@ var _QuestLogView = class _QuestLogView extends obsidianNS.ItemView {
     deleteBtn.addEventListener("click", () => {
       this.showDeleteConfirm(item.title, async () => {
         if (isHabit) {
-          await retireNote(this.plugin, habitNotePaths(this.plugin, item));
           this.plugin.settings.habits = this.plugin.settings.habits.filter(
             (h) => h.id !== item.id
           );
@@ -2349,10 +2297,6 @@ var _QuestLogView = class _QuestLogView extends obsidianNS.ItemView {
           this.renderHabitList(this._habitListContainer);
           new obsidianNS.Notice("Habit deleted.");
         } else {
-          await retireNote(
-            this.plugin,
-            questNotePaths(this.plugin, item, this.plugin.settings.quests, this.plugin.settings.questsFolderPath || "Quest Log/Quests")
-          );
           this.plugin.settings.quests = this.plugin.settings.quests.filter(
             (q) => q.id !== item.id
           );
@@ -2532,14 +2476,7 @@ var _QuestLogView = class _QuestLogView extends obsidianNS.ItemView {
   // ----------------------------------------
   // QUEST ACTIONS
   // ----------------------------------------
-  async moveSidecar(sourcePath, destPath) {
-    return moveSidecar(this.app, sourcePath, destPath);
-  }
   async completeQuest(quest) {
-    const hadNote = await retireNote(
-      this.plugin,
-      questNotePaths(this.plugin, quest, this.plugin.settings.quests, this.plugin.settings.questsFolderPath || "Quest Log/Quests")
-    );
     this.plugin.settings.questsCompleted += 1;
     const completedQuest = { ...quest, completedAt: (/* @__PURE__ */ new Date()).toISOString() };
     this.plugin.settings.completedQuests.push(completedQuest);
@@ -2547,7 +2484,6 @@ var _QuestLogView = class _QuestLogView extends obsidianNS.ItemView {
       (q) => q.id !== quest.id
     );
     await this.plugin.saveSettings();
-    if (hadNote) await writeCompletedQuestFile(this.plugin, completedQuest);
     this.renderQuestList(this._questListContainer);
     await this.awardXp(quest.xp, quest.skillIds, "Quest Complete!", true);
   }
@@ -3281,7 +3217,6 @@ var _QuestLogView = class _QuestLogView extends obsidianNS.ItemView {
     setIcon(deleteIcon, "trash-2");
     deleteBtn.addEventListener("click", () => {
       this.showDeleteConfirm(skill.name, async () => {
-        await retireNote(this.plugin, skillNotePaths(this.plugin, skill));
         this.plugin.settings.skills = this.plugin.settings.skills.filter(
           (s) => s.id !== skill.id
         );
@@ -3473,10 +3408,6 @@ var _QuestLogView = class _QuestLogView extends obsidianNS.ItemView {
         return;
       }
       const [restored] = this.plugin.settings.completedQuests.splice(idx, 1);
-      const hadNote = await retireNote(
-        this.plugin,
-        questNotePaths(this.plugin, restored, this.plugin.settings.completedQuests.concat([restored]), this.plugin.settings.completedFolderPath || "Quest Log/Completed")
-      );
       const { completedAt, ...activeQuest } = restored;
       this.plugin.settings.quests.push(activeQuest);
       this.plugin.settings.currentXp = Math.max(0, this.plugin.settings.currentXp - restored.xp);
@@ -3485,7 +3416,6 @@ var _QuestLogView = class _QuestLogView extends obsidianNS.ItemView {
       this.plugin.settings.coins = Math.max(0, (this.plugin.settings.coins || 0) - coins);
       this.revokeSkillXp(restored.xp, restored.skillIds);
       await this.plugin.saveSettings();
-      if (hadNote) await writeQuestFile(this.plugin, activeQuest);
       overlay.removeClass("open");
       this.updateHeader();
       this.renderCompletedList(this._completedListContainer);
@@ -3550,7 +3480,6 @@ var _QuestLogView = class _QuestLogView extends obsidianNS.ItemView {
         return;
       }
       this.plugin.settings.completedHabits.splice(idx, 1);
-      await retireNote(this.plugin, [completedHabitNotePath(this.plugin, habit, habit.completedAt)]);
       this.plugin.settings.currentXp = Math.max(0, this.plugin.settings.currentXp - habit.xp);
       this.revokeSkillXp(habit.xp, habit.skillIds);
       await this.plugin.saveSettings();
@@ -3620,7 +3549,6 @@ _QuestLogView.getLevelTitle = Xp.getLevelTitle.bind(Xp);
 _QuestLogView.safeName = safeName;
 _QuestLogView.formatDate = formatDate;
 _QuestLogView.formatHabitTimestamp = formatHabitTimestamp;
-_QuestLogView.writeSidecarAtomic = writeSidecarAtomic;
 var QuestLogView = _QuestLogView;
 
   return { QuestLogView, QUESTLOG_VIEW_TYPE, Xp, loadSnapshot };
