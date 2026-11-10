@@ -9,6 +9,9 @@
 
 const { loadDomain } = require("./storage");
 const { createOverlayShell } = require("./overlay");
+const profile = require("./profile");
+const skills = require("./skills");
+const quests = require("./quests");
 
 const QUESTLOG_VIEW_TYPE = "quest-log-view";
 
@@ -44,37 +47,13 @@ function createRenderModule(obsidianNS) {
 
 var _Xp = class _Xp {
   static getXpMultiplier(difficulty) {
-    const diff = difficulty || 10;
-    if (diff <= 10) {
-      return 0.5 + (diff - 1) * (1 / 18);
-    }
-    return 1 + (diff - 10) * 0.1;
+    return profile.getXpMultiplier(difficulty);
   }
   static getXpForLvl(lvl, difficulty = 10) {
-    if (lvl <= 0) return 0;
-    const mult = this.getXpMultiplier(difficulty);
-    if (lvl <= this.XP_PHASE_THRESHOLD) {
-      return Math.floor(lvl * (lvl + 1) / 2 * this.XP_BASE * mult);
-    }
-    const base = this.XP_TRI_MAX * mult;
-    const ratio = Math.pow(this.XP_EXPANSION_RATE, lvl - this.XP_PHASE_THRESHOLD);
-    return Math.floor(base + this.XP_GROWTH * mult * (ratio - 1) / (this.XP_EXPANSION_RATE - 1));
+    return profile.getXpForLvl(lvl, difficulty);
   }
   static getLevel(currentXp, difficulty = 10) {
-    const xp = currentXp || 0;
-    let lo = 0;
-    let hi = 1;
-    while (this.getXpForLvl(hi, difficulty) <= xp) {
-      lo = hi;
-      hi = hi * 2;
-      if (hi > 1e4) break;
-    }
-    while (lo < hi) {
-      const mid = lo + hi + 1 >> 1;
-      if (this.getXpForLvl(mid, difficulty) <= xp) lo = mid;
-      else hi = mid - 1;
-    }
-    return lo + 1;
+    return profile.getLevel(currentXp, difficulty);
   }
   static xpProgress(level, xp, difficulty = 10) {
     // Always derive level from xp + userDifficulty curve (same class of bug as
@@ -95,15 +74,7 @@ var _Xp = class _Xp {
     return { xpForNext, xpFromPrev, xpNeeded, into, pct, level: derivedLevel };
   }
   static generateXpCurveTable(difficulty = 10, maxLevel = 50) {
-    const table = [];
-    let prevXp = 0;
-    for (let lvl = 1; lvl <= maxLevel; lvl++) {
-      const totalXp = this.getXpForLvl(lvl, difficulty);
-      const deltaXp = totalXp - prevXp;
-      table.push({ level: lvl, totalXp, deltaXp });
-      prevXp = totalXp;
-    }
-    return table;
+    return profile.generateXpCurveTable(difficulty, maxLevel);
   }
   static getNextMilestones(currentXp, difficulty = 10, count = 8) {
     const currentLevel = this.getLevel(currentXp, difficulty);
@@ -119,30 +90,10 @@ var _Xp = class _Xp {
     return milestones;
   }
   static getSkillXpForLvl(lvl, difficulty = 10) {
-    if (lvl <= 0) return 0;
-    if (lvl > this.SKILL_MAX_LEVEL) return this.getSkillXpForLvl(this.SKILL_MAX_LEVEL, difficulty);
-    const mult = this.getXpMultiplier(difficulty);
-    if (lvl <= this.XP_PHASE_THRESHOLD) {
-      return Math.floor(lvl * (lvl + 1) / 2 * this.SKILL_BASE * mult);
-    }
-    const base = 12e3 * mult;
-    const ratio = Math.pow(this.SKILL_EXPANSION_RATE, lvl - this.XP_PHASE_THRESHOLD);
-    return Math.floor(base + this.SKILL_GROWTH * mult * (ratio - 1) / (this.SKILL_EXPANSION_RATE - 1));
+    return skills.getSkillXpForLvl(lvl, difficulty);
   }
   static getSkillLevel(currentXp, difficulty = 10) {
-    const xp = currentXp || 0;
-    let lo = 0;
-    let hi = 1;
-    while (hi < this.SKILL_MAX_LEVEL && this.getSkillXpForLvl(hi, difficulty) <= xp) {
-      lo = hi;
-      hi = Math.min(this.SKILL_MAX_LEVEL, hi * 2);
-    }
-    while (lo < hi) {
-      const mid = lo + hi + 1 >> 1;
-      if (this.getSkillXpForLvl(mid, difficulty) <= xp) lo = mid;
-      else hi = mid - 1;
-    }
-    return Math.min(this.SKILL_MAX_LEVEL, lo + 1);
+    return skills.getSkillLevel(currentXp, difficulty);
   }
   static getSkillXpProgress(skill, difficulty = 10) {
     const xp = skill.xp || 0;
@@ -166,44 +117,16 @@ var _Xp = class _Xp {
     };
   }
   static calcXp(d, u, i) {
-    return this._XP_TABLE[`${d},${u},${i}`] || 100;
+    return quests.calcQuestXp(d, u, i);
   }
   static getLevelTitle(lvl) {
     return this._LEVEL_TITLES[Math.min(lvl, 50)] || "Legendary";
   }
 };
 __name(_Xp, "Xp");
-_Xp.XP_BASE = 1e3;
-_Xp.XP_GROWTH = 16e3;
-_Xp.XP_EXPANSION_RATE = 1.2;
-_Xp.XP_PHASE_THRESHOLD = 15;
-_Xp.XP_TRI_MAX = 12e4;
-_Xp.SKILL_BASE = 100;
-_Xp.SKILL_GROWTH = 1600;
-_Xp.SKILL_EXPANSION_RATE = 1.15;
-_Xp.SKILL_MAX_LEVEL = 100;
 _Xp.DIFFICULTY_LABELS = ["Trivial", "Easy", "Medium", "Hard", "Legendary"];
 _Xp.URGENCY_LABELS = ["Relaxed", "Soon", "Urgent", "Critical", "Immediate"];
 _Xp.IMPACT_LABELS = ["Minor", "Notable", "Major", "Epic", "Legendary"];
-_Xp._XP_TABLE = (() => {
-  const table = {};
-  for (let d = 1; d <= 5; d++) {
-    for (let u = 1; u <= 5; u++) {
-      for (let i = 1; i <= 5; i++) {
-        const sum = d + u + i;
-        let xp;
-        if (sum <= 3) xp = 100;
-        else if (sum >= 15) xp = 5e5;
-        else {
-          const exp = (sum - 3) / 12;
-          xp = Math.round(100 * Math.pow(5e3, exp));
-        }
-        table[`${d},${u},${i}`] = xp;
-      }
-    }
-  }
-  return table;
-})();
 _Xp._LEVEL_TITLES = [
   "Novice Adventurer",
   "Novice Adventurer",
@@ -256,6 +179,7 @@ _Xp._LEVEL_TITLES = [
   "Mythic",
   "Legendary"
 ];
+
 var Xp = _Xp;
 
 function stars(n) {
