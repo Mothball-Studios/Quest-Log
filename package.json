@@ -6,6 +6,7 @@
   "scripts": {
     "build": "esbuild src/main.js --bundle --outfile=main.js --external:obsidian --format=cjs --platform=node",
     "build:next": "esbuild src/main.js --bundle --outfile=main.js.next --external:obsidian --format=cjs --platform=node",
+    "test": "node --test test/",
     "ship": "bash scripts/ship.sh"
   },
   "devDependencies": {
