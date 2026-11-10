@@ -2,6 +2,25 @@
 
 Vault project notes (design / ship history). Durable code tree: `/workspace/Quest-Log-src`. Ship folder: `.obsidian/plugins/quest-log` (four files only).
 
+## 0.6.53 — 2026-11-09
+
+Lean pass and guardrails. No feature change, no data migration, `data.json` untouched, same three ship files.
+
+**Fixed — the clobber guard was disarmed until the poll loop started.** `beforeSave` returned early while `stopped` was true, and `start()` runs after `onload` finishes hydrating, so any save landing in that window wrote memory over a newer `data.json` with no merge. The guard is now armed by `baseline()`. Found by a new test, not by reading the code.
+
+**Removed — the markdown-sidecar corpse (dead since the modular split).** Seven no-op writers, a `retireNote` that always returned `false`, four note-path helpers, and a `moveSidecar` method calling a function that no longer exists. Eight call sites removed, including two `if (hadNote)` branches that could never run. The "open note" buttons stay: they still reach notes written by older versions.
+
+**Removed — deprecated storage writers.** `writeAtomic`, `writeJsonAtomic`, `ensureStoreDir`, `legacyPluginDomainPath`, `storeDir`, `STORE_DIR`. No callers in `src/`, verified by grep across the tree.
+
+**One source of truth for XP.** The math lived in three places: `render._Xp` with a precomputed 125-entry table, `profile.getXpForLvl/getLevel`, `skills.getSkillXpForLvl/getSkillLevel`, plus `quests.calcQuestXp` regenerating the same table formula. `_Xp` now delegates to the modules; the duplicated constants, the table, and the second curve implementation are gone. Checked all 125 stat combinations and both level curves were identical *before* switching.
+
+**Guardrails.**
+1. `npm test` — 20 tests on `node:test`, zero dependencies. Covers the quest XP table, the hero and skill curves, all five merge rules (disk addition, local edit, both-edited, local delete, completed-elsewhere), additive counters, and the save path against a fake adapter: stale-memory save with a phone edit, missing file, half-written JSON, and no sidecar files.
+2. `scripts/ship.sh` refuses to ship when `manifest.json`, `package.json`, and `package-lock.json` disagree, and runs the suite before building. `QUEST_LOG_SKIP_TESTS=1` bypasses for an emergency.
+3. `scripts/ship.sh` target is argument 1, else `$QUEST_LOG_PLUGIN`, else this box's vault, and it refuses a target whose plugins folder does not exist instead of creating the old `/home/box/vaults/...` tree.
+
+Bundle 5,609 → 5,400 lines. Source 6,259 → 6,120.
+
 ## 0.6.52 — 2026-10-01
 
 COO APPROVED — (1) LIVE-UPDATE when data.json changes on disk (phone / other computer / external write), no plugin reload; (2) main FAB z-order/pinning fix.

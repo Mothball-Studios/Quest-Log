@@ -6,9 +6,35 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-PLUGIN="/home/box/vaults/Mothball Studios/.obsidian/plugins/quest-log"
+DEFAULT_PLUGIN="/home/m1n1m0th/Documents/m0th Records/.obsidian/plugins/quest-log"
+PLUGIN="${1:-${QUEST_LOG_PLUGIN:-$DEFAULT_PLUGIN}}"
+
+PARENT="$(dirname "$PLUGIN")"
+if [[ ! -d "$PARENT" ]]; then
+  echo "No plugins folder at: $PARENT" >&2
+  echo "Pass the plugin dir as \$1 or set QUEST_LOG_PLUGIN." >&2
+  exit 1
+fi
 
 cd "$ROOT"
+
+# Guardrail 1: the three version files must agree. Forgetting package-lock.json is how the
+# repo ended up claiming 0.5.5 while shipping 0.6.52.
+V_MANIFEST="$(node -p "require('./manifest.json').version")"
+V_PKG="$(node -p "require('./package.json').version")"
+V_LOCK="$(node -p "require('./package-lock.json').version")"
+if [[ "$V_MANIFEST" != "$V_PKG" || "$V_MANIFEST" != "$V_LOCK" ]]; then
+  echo "Version mismatch: manifest=$V_MANIFEST package=$V_PKG lock=$V_LOCK" >&2
+  echo "Bump all three before shipping." >&2
+  exit 1
+fi
+echo "Version $V_MANIFEST"
+
+# Guardrail 2: tests before build. QUEST_LOG_SKIP_TESTS=1 bypasses for an emergency ship.
+if [[ "${QUEST_LOG_SKIP_TESTS:-0}" != "1" ]]; then
+  npm test
+fi
+
 npm run build
 
 # Copy ONLY ship artifacts — never src/, node_modules/, .git/, or data.json.

@@ -58,9 +58,6 @@ var require_storage = __commonJS({
     );
     var STORE_MARKER = "data.json";
     var blobCache = /* @__PURE__ */ new WeakMap();
-    function storeDir(plugin) {
-      return plugin.manifest.dir;
-    }
     function domainPath(plugin, name) {
       const file = DOMAIN_FILES[name];
       if (!file) throw new Error(`Unknown Quest Log domain: ${name}`);
@@ -74,9 +71,6 @@ var require_storage = __commonJS({
       const file = DOMAIN_FILES[name];
       if (!file) throw new Error(`Unknown Quest Log domain: ${name}`);
       return `${VAULT_STORE_DIR}/${file}`;
-    }
-    function legacyPluginDomainPath(plugin, name) {
-      return vaultStoreDomainPath(plugin, name);
     }
     async function pathExists(plugin, fullPath) {
       try {
@@ -384,43 +378,8 @@ var require_storage = __commonJS({
       }
       return { migrated: true, reason: "init-empty-god-blob" };
     }
-    async function ensureStoreDir(_plugin) {
-    }
-    async function writeAtomic(plugin, fullPath, content) {
-      const adapter = plugin.app.vault.adapter;
-      const slash = fullPath.lastIndexOf("/");
-      const folderPath = slash >= 0 ? fullPath.slice(0, slash) : "";
-      if (folderPath) {
-        const parts = folderPath.split("/");
-        let acc = "";
-        for (const part of parts) {
-          acc = acc ? `${acc}/${part}` : part;
-          try {
-            await adapter.mkdir(acc);
-          } catch (_e) {
-          }
-        }
-      }
-      const tmpPath = `${fullPath}.tmp`;
-      await adapter.write(tmpPath, content);
-      try {
-        await adapter.rename(tmpPath, fullPath);
-      } catch (_renameErr) {
-        await adapter.write(fullPath, content);
-        try {
-          await adapter.remove(tmpPath);
-        } catch (_e) {
-        }
-      }
-    }
-    async function writeJsonAtomic(plugin, fullPath, data) {
-      await writeAtomic(plugin, fullPath, `${JSON.stringify(data, null, 2)}
-`);
-    }
     module2.exports = {
       VAULT_STORE_DIR,
-      /** @deprecated Use VAULT_STORE_DIR. */
-      STORE_DIR: VAULT_STORE_DIR,
       DOMAIN_FILES,
       DOMAIN_DEFAULTS,
       SETTINGS_BLOB_KEYS,
@@ -428,12 +387,9 @@ var require_storage = __commonJS({
       ARRAY_BLOB_TO_DOMAIN,
       DOMAIN_TO_ARRAY_KEY,
       STORE_MARKER,
-      storeDir,
       domainPath,
       dataJsonPath,
       vaultStoreDomainPath,
-      legacyPluginDomainPath,
-      ensureStoreDir,
       loadDomain,
       saveDomain,
       migrateIfNeeded: migrateIfNeeded2,
@@ -446,9 +402,6 @@ var require_storage = __commonJS({
       peekBlob: (plugin) => blobCache.get(plugin) || null,
       normalizeLoadedBlob,
       runExclusive,
-      // Deprecated adapter helpers — do not use for live state.
-      writeAtomic,
-      writeJsonAtomic,
       readJson
     };
   }
@@ -559,6 +512,7 @@ var require_sync = __commonJS({
       let running = null;
       let rerun = false;
       let stopped = true;
+      let baselined = false;
       let timer = null;
       let interval = null;
       let mergeInfo = null;
@@ -605,6 +559,7 @@ var require_sync = __commonJS({
         adoptBlob(plugin, clone(d.parsed));
         setSynced(d.text, d.parsed);
         lastSig = await statSig();
+        baselined = true;
         return true;
       }
       function schedule(ms, reason) {
@@ -711,7 +666,7 @@ var require_sync = __commonJS({
       }
       async function beforeSave(mem) {
         mergeInfo = null;
-        if (!synced || stopped) return {};
+        if (!synced || !baselined) return {};
         let d = await readDisk();
         for (let i = 0; i < 3 && d.state === "invalid"; i++) {
           await new Promise((r) => g.setTimeout(r, 200));
@@ -810,6 +765,7 @@ var require_sync = __commonJS({
         start,
         stop,
         baseline,
+        isBaselined: () => baselined,
         /** Force an immediate content check (view open / activateView). Resolves after the check (and adoption). */
         checkNow: (reason) => check(reason || "manual"),
         beforeSave,
@@ -1845,6 +1801,9 @@ var require_render = __commonJS({
     "use strict";
     var { loadDomain } = require_storage();
     var { createOverlayShell } = require_overlay();
+    var profile2 = require_profile();
+    var skills2 = require_skills();
+    var quests2 = require_quests();
     var QUESTLOG_VIEW_TYPE2 = "quest-log-view";
     async function loadSnapshot(plugin) {
       return {
@@ -1871,63 +1830,15 @@ var require_render = __commonJS({
         obj[key] = val;
         return val;
       }
-      async function writeSidecarAtomic() {
-        return;
-      }
-      async function writeQuestFile() {
-        return;
-      }
-      async function writeCompletedQuestFile() {
-        return;
-      }
-      async function writeHabitFile() {
-        return;
-      }
-      async function writeSkillFile() {
-        return;
-      }
-      async function writeUserProfile() {
-        return;
-      }
-      async function trashIfExists() {
-        return false;
-      }
-      async function retireNote() {
-        return false;
-      }
       var _Xp = class _Xp {
         static getXpMultiplier(difficulty) {
-          const diff = difficulty || 10;
-          if (diff <= 10) {
-            return 0.5 + (diff - 1) * (1 / 18);
-          }
-          return 1 + (diff - 10) * 0.1;
+          return profile2.getXpMultiplier(difficulty);
         }
         static getXpForLvl(lvl, difficulty = 10) {
-          if (lvl <= 0) return 0;
-          const mult = this.getXpMultiplier(difficulty);
-          if (lvl <= this.XP_PHASE_THRESHOLD) {
-            return Math.floor(lvl * (lvl + 1) / 2 * this.XP_BASE * mult);
-          }
-          const base = this.XP_TRI_MAX * mult;
-          const ratio = Math.pow(this.XP_EXPANSION_RATE, lvl - this.XP_PHASE_THRESHOLD);
-          return Math.floor(base + this.XP_GROWTH * mult * (ratio - 1) / (this.XP_EXPANSION_RATE - 1));
+          return profile2.getXpForLvl(lvl, difficulty);
         }
         static getLevel(currentXp, difficulty = 10) {
-          const xp = currentXp || 0;
-          let lo = 0;
-          let hi = 1;
-          while (this.getXpForLvl(hi, difficulty) <= xp) {
-            lo = hi;
-            hi = hi * 2;
-            if (hi > 1e4) break;
-          }
-          while (lo < hi) {
-            const mid = lo + hi + 1 >> 1;
-            if (this.getXpForLvl(mid, difficulty) <= xp) lo = mid;
-            else hi = mid - 1;
-          }
-          return lo + 1;
+          return profile2.getLevel(currentXp, difficulty);
         }
         static xpProgress(level, xp, difficulty = 10) {
           const derivedLevel = this.getLevel(xp, difficulty);
@@ -1940,15 +1851,7 @@ var require_render = __commonJS({
           return { xpForNext, xpFromPrev, xpNeeded, into, pct, level: derivedLevel };
         }
         static generateXpCurveTable(difficulty = 10, maxLevel = 50) {
-          const table = [];
-          let prevXp = 0;
-          for (let lvl = 1; lvl <= maxLevel; lvl++) {
-            const totalXp = this.getXpForLvl(lvl, difficulty);
-            const deltaXp = totalXp - prevXp;
-            table.push({ level: lvl, totalXp, deltaXp });
-            prevXp = totalXp;
-          }
-          return table;
+          return profile2.generateXpCurveTable(difficulty, maxLevel);
         }
         static getNextMilestones(currentXp, difficulty = 10, count = 8) {
           const currentLevel = this.getLevel(currentXp, difficulty);
@@ -1964,30 +1867,10 @@ var require_render = __commonJS({
           return milestones;
         }
         static getSkillXpForLvl(lvl, difficulty = 10) {
-          if (lvl <= 0) return 0;
-          if (lvl > this.SKILL_MAX_LEVEL) return this.getSkillXpForLvl(this.SKILL_MAX_LEVEL, difficulty);
-          const mult = this.getXpMultiplier(difficulty);
-          if (lvl <= this.XP_PHASE_THRESHOLD) {
-            return Math.floor(lvl * (lvl + 1) / 2 * this.SKILL_BASE * mult);
-          }
-          const base = 12e3 * mult;
-          const ratio = Math.pow(this.SKILL_EXPANSION_RATE, lvl - this.XP_PHASE_THRESHOLD);
-          return Math.floor(base + this.SKILL_GROWTH * mult * (ratio - 1) / (this.SKILL_EXPANSION_RATE - 1));
+          return skills2.getSkillXpForLvl(lvl, difficulty);
         }
         static getSkillLevel(currentXp, difficulty = 10) {
-          const xp = currentXp || 0;
-          let lo = 0;
-          let hi = 1;
-          while (hi < this.SKILL_MAX_LEVEL && this.getSkillXpForLvl(hi, difficulty) <= xp) {
-            lo = hi;
-            hi = Math.min(this.SKILL_MAX_LEVEL, hi * 2);
-          }
-          while (lo < hi) {
-            const mid = lo + hi + 1 >> 1;
-            if (this.getSkillXpForLvl(mid, difficulty) <= xp) lo = mid;
-            else hi = mid - 1;
-          }
-          return Math.min(this.SKILL_MAX_LEVEL, lo + 1);
+          return skills2.getSkillLevel(currentXp, difficulty);
         }
         static getSkillXpProgress(skill, difficulty = 10) {
           const xp = skill.xp || 0;
@@ -2010,44 +1893,16 @@ var require_render = __commonJS({
           };
         }
         static calcXp(d, u, i) {
-          return this._XP_TABLE[`${d},${u},${i}`] || 100;
+          return quests2.calcQuestXp(d, u, i);
         }
         static getLevelTitle(lvl) {
           return this._LEVEL_TITLES[Math.min(lvl, 50)] || "Legendary";
         }
       };
       __name(_Xp, "Xp");
-      _Xp.XP_BASE = 1e3;
-      _Xp.XP_GROWTH = 16e3;
-      _Xp.XP_EXPANSION_RATE = 1.2;
-      _Xp.XP_PHASE_THRESHOLD = 15;
-      _Xp.XP_TRI_MAX = 12e4;
-      _Xp.SKILL_BASE = 100;
-      _Xp.SKILL_GROWTH = 1600;
-      _Xp.SKILL_EXPANSION_RATE = 1.15;
-      _Xp.SKILL_MAX_LEVEL = 100;
       _Xp.DIFFICULTY_LABELS = ["Trivial", "Easy", "Medium", "Hard", "Legendary"];
       _Xp.URGENCY_LABELS = ["Relaxed", "Soon", "Urgent", "Critical", "Immediate"];
       _Xp.IMPACT_LABELS = ["Minor", "Notable", "Major", "Epic", "Legendary"];
-      _Xp._XP_TABLE = (() => {
-        const table = {};
-        for (let d = 1; d <= 5; d++) {
-          for (let u = 1; u <= 5; u++) {
-            for (let i = 1; i <= 5; i++) {
-              const sum = d + u + i;
-              let xp;
-              if (sum <= 3) xp = 100;
-              else if (sum >= 15) xp = 5e5;
-              else {
-                const exp = (sum - 3) / 12;
-                xp = Math.round(100 * Math.pow(5e3, exp));
-              }
-              table[`${d},${u},${i}`] = xp;
-            }
-          }
-        }
-        return table;
-      })();
       _Xp._LEVEL_TITLES = [
         "Novice Adventurer",
         "Novice Adventurer",
@@ -2115,17 +1970,6 @@ var require_render = __commonJS({
         return clash ? `${base}-${id}` : base;
       }
       __name(uniqueStem, "uniqueStem");
-      async function trashIfExists(plugin, fullPath) {
-        const file = plugin.app.vault.getAbstractFileByPath(fullPath);
-        if (!file) return false;
-        try {
-          await plugin.app.vault.trash(file, false);
-        } catch (e) {
-          await plugin.app.vault.delete(file);
-        }
-        return true;
-      }
-      __name(trashIfExists, "trashIfExists");
       function formatDate(dateStr) {
         return new Date(dateStr).toLocaleDateString("en-US", {
           month: "short",
@@ -2148,47 +1992,15 @@ var require_render = __commonJS({
         return `${yyyy}-${mm}-${dd} ${String(h).padStart(2, "0")}_${m}_${s}_${ms} ${ampm}`;
       }
       __name(formatHabitTimestamp, "formatHabitTimestamp");
-      function questNotePaths(plugin, quest, list, folderPath) {
-        const folder = folderPath;
-        const stems = /* @__PURE__ */ new Set([
-          uniqueStem(list, quest.title, quest.id, "title"),
-          safeName(quest.title)
-        ]);
-        return [...stems].map((stem) => `${folder}/${stem}.md`);
-      }
-      __name(questNotePaths, "questNotePaths");
-      function habitNotePaths(plugin, habit) {
-        const folder = plugin.settings.habitsFolderPath || "Quest Log/Habits";
-        const stems = /* @__PURE__ */ new Set([
-          uniqueStem(plugin.settings.habits, habit.title, habit.id, "title"),
-          safeName(habit.title)
-        ]);
-        return [...stems].map((stem) => `${folder}/${stem}.md`);
-      }
-      __name(habitNotePaths, "habitNotePaths");
-      function skillNotePaths(plugin, skill) {
-        const folder = plugin.settings.skillsFolderPath || "Quest Log/Skills";
-        const stems = /* @__PURE__ */ new Set([
-          uniqueStem(plugin.settings.skills, skill.name, skill.id, "name"),
-          safeName(skill.name)
-        ]);
-        return [...stems].map((stem) => `${folder}/${stem}.md`);
-      }
-      __name(skillNotePaths, "skillNotePaths");
-      function completedHabitNotePath(plugin, habit, completedAt) {
-        const folder = plugin.settings.completedFolderPath || "Quest Log/Completed";
-        return `${folder}/${safeName(habit.title)} - ${formatHabitTimestamp(completedAt)}.md`;
-      }
-      __name(completedHabitNotePath, "completedHabitNotePath");
       var _SkillRadarChart = class _SkillRadarChart {
         /**
          * @param {HTMLElement} container - The container element to render into
          * @param {Array} skills - Array of skill objects { name, level, xp, legendary? }
          * @param {Function} onSkillClick - Callback when a skill is clicked
          */
-        constructor(container, skills2, onSkillClick) {
+        constructor(container, skills3, onSkillClick) {
           this.container = container;
-          this.skills = skills2;
+          this.skills = skills3;
           this.onSkillClick = onSkillClick;
           const containerRect = container.getBoundingClientRect();
           const maxSize = Math.min(containerRect.width || 340, containerRect.height || 340, 340);
@@ -2203,7 +2015,7 @@ var require_render = __commonJS({
           this.textColor = "#aaa";
           this.textHoverColor = "#fff";
           this.bgColor = "transparent";
-          this.displaySkills = [...skills2].sort((a, b) => (b.level || 1) - (a.level || 1)).slice(0, 10);
+          this.displaySkills = [...skills3].sort((a, b) => (b.level || 1) - (a.level || 1)).slice(0, 10);
           this.maxLevel = Math.max(...this.displaySkills.map((s) => s.level || 1), 1);
         }
         /**
@@ -2824,10 +2636,10 @@ var require_render = __commonJS({
           const selectedSkillsDisplay = skillsSection.createEl("div", { cls: "detail-selected-skills" });
           const refresh = /* @__PURE__ */ __name(() => {
             selectedSkillsDisplay.empty();
-            const skills2 = this.plugin.settings.skills || [];
+            const skills3 = this.plugin.settings.skills || [];
             const difficulty = this.plugin.settings.skillDifficulty || 10;
             selectedSkillIds.forEach((skillId) => {
-              const skill = skills2.find((s) => s.id === skillId);
+              const skill = skills3.find((s) => s.id === skillId);
               if (!skill) return;
               const xpInfo = _QuestLogView2.getSkillXpProgress(skill, difficulty);
               const row = selectedSkillsDisplay.createEl("div", {
@@ -2908,14 +2720,14 @@ var require_render = __commonJS({
           const difficulty = this.plugin.settings.skillDifficulty || 10;
           const renderList = /* @__PURE__ */ __name((query = "") => {
             listEl.empty();
-            const skills2 = [...this.plugin.settings.skills || []].sort(
+            const skills3 = [...this.plugin.settings.skills || []].sort(
               (a, b) => (a.name || "").localeCompare(b.name || "")
             );
             const q = query.trim().toLowerCase();
-            const filtered = q ? skills2.filter((s) => (s.name || "").toLowerCase().includes(q)) : skills2;
+            const filtered = q ? skills3.filter((s) => (s.name || "").toLowerCase().includes(q)) : skills3;
             if (filtered.length === 0) {
               listEl.createEl("div", {
-                text: skills2.length === 0 ? "No skills yet" : "No matching skills",
+                text: skills3.length === 0 ? "No skills yet" : "No matching skills",
                 cls: "skills-selector-empty"
               });
               return;
@@ -3898,8 +3710,8 @@ var require_render = __commonJS({
         // ----------------------------------------
         renderQuestList(container) {
           container.empty();
-          const quests2 = this.plugin.settings.quests;
-          if (quests2.length === 0) {
+          const quests3 = this.plugin.settings.quests;
+          if (quests3.length === 0) {
             container.createEl("div", {
               text: "No active quests. Tap + to create one.",
               cls: "quest-list-empty"
@@ -3907,7 +3719,7 @@ var require_render = __commonJS({
             return;
           }
           const rewardsOn = Boolean(this.plugin.settings.rewardsMode);
-          quests2.forEach((quest) => {
+          quests3.forEach((quest) => {
             const block = container.createEl("div", { cls: "quest-block" });
             const band = block.createEl("div", { cls: "quest-block-band" });
             band.createEl("div", {
@@ -4135,7 +3947,6 @@ var require_render = __commonJS({
           deleteBtn.addEventListener("click", () => {
             this.showDeleteConfirm(item.title, async () => {
               if (isHabit) {
-                await retireNote(this.plugin, habitNotePaths(this.plugin, item));
                 this.plugin.settings.habits = this.plugin.settings.habits.filter(
                   (h) => h.id !== item.id
                 );
@@ -4144,10 +3955,6 @@ var require_render = __commonJS({
                 this.renderHabitList(this._habitListContainer);
                 new obsidianNS.Notice("Habit deleted.");
               } else {
-                await retireNote(
-                  this.plugin,
-                  questNotePaths(this.plugin, item, this.plugin.settings.quests, this.plugin.settings.questsFolderPath || "Quest Log/Quests")
-                );
                 this.plugin.settings.quests = this.plugin.settings.quests.filter(
                   (q) => q.id !== item.id
                 );
@@ -4319,14 +4126,7 @@ var require_render = __commonJS({
         // ----------------------------------------
         // QUEST ACTIONS
         // ----------------------------------------
-        async moveSidecar(sourcePath, destPath) {
-          return moveSidecar(this.app, sourcePath, destPath);
-        }
         async completeQuest(quest) {
-          const hadNote = await retireNote(
-            this.plugin,
-            questNotePaths(this.plugin, quest, this.plugin.settings.quests, this.plugin.settings.questsFolderPath || "Quest Log/Quests")
-          );
           this.plugin.settings.questsCompleted += 1;
           const completedQuest = { ...quest, completedAt: (/* @__PURE__ */ new Date()).toISOString() };
           this.plugin.settings.completedQuests.push(completedQuest);
@@ -4334,7 +4134,6 @@ var require_render = __commonJS({
             (q) => q.id !== quest.id
           );
           await this.plugin.saveSettings();
-          if (hadNote) await writeCompletedQuestFile(this.plugin, completedQuest);
           this.renderQuestList(this._questListContainer);
           await this.awardXp(quest.xp, quest.skillIds, "Quest Complete!", true);
         }
@@ -4764,8 +4563,8 @@ var require_render = __commonJS({
         // ----------------------------------------
         renderSkillList(container) {
           container.empty();
-          const skills2 = this.plugin.settings.skills || [];
-          if (skills2.length === 0) {
+          const skills3 = this.plugin.settings.skills || [];
+          if (skills3.length === 0) {
             container.createEl("div", {
               text: "No skills yet. Tap + to create one.",
               cls: "quest-list-empty"
@@ -4773,7 +4572,7 @@ var require_render = __commonJS({
             return;
           }
           const grid = container.createEl("div", { cls: "skill-grid" });
-          skills2.forEach((skill) => {
+          skills3.forEach((skill) => {
             const block = grid.createEl("div", { cls: "quest-block skill-block" });
             const difficulty = this.plugin.settings.skillDifficulty || 10;
             const xpInfo = _QuestLogView2.getSkillXpProgress(skill, difficulty);
@@ -4822,7 +4621,7 @@ var require_render = __commonJS({
               overlay.style.opacity = "1";
             });
           }
-          const skills2 = this.plugin.settings.skills || [];
+          const skills3 = this.plugin.settings.skills || [];
           {
             const gs = this.plugin.settings;
             this._graphSig = JSON.stringify([gs.heroName, gs.currentXp, (gs.skills || []).map((s) => [s.id, s.name, s.xp, s.level])]);
@@ -4850,7 +4649,7 @@ var require_render = __commonJS({
           });
           setIcon(pickerBtn, "square");
           const pickerDropdown = content.createEl("div", { cls: "skill-graph-picker-dropdown hidden" });
-          const allSkillsSorted = [...skills2].sort((a, b) => (b.level || 1) - (a.level || 1));
+          const allSkillsSorted = [...skills3].sort((a, b) => (b.level || 1) - (a.level || 1));
           const defaultSelected = new Set(allSkillsSorted.slice(0, 12).map((s) => s.id || s.name));
           let selectedSkillIds = new Set(defaultSelected);
           const sameSet = (a, b) => a && b && a.size === b.size && Array.from(a).every((x) => b.has(x));
@@ -5054,7 +4853,6 @@ var require_render = __commonJS({
           setIcon(deleteIcon, "trash-2");
           deleteBtn.addEventListener("click", () => {
             this.showDeleteConfirm(skill.name, async () => {
-              await retireNote(this.plugin, skillNotePaths(this.plugin, skill));
               this.plugin.settings.skills = this.plugin.settings.skills.filter(
                 (s) => s.id !== skill.id
               );
@@ -5244,10 +5042,6 @@ var require_render = __commonJS({
               return;
             }
             const [restored] = this.plugin.settings.completedQuests.splice(idx, 1);
-            const hadNote = await retireNote(
-              this.plugin,
-              questNotePaths(this.plugin, restored, this.plugin.settings.completedQuests.concat([restored]), this.plugin.settings.completedFolderPath || "Quest Log/Completed")
-            );
             const { completedAt, ...activeQuest } = restored;
             this.plugin.settings.quests.push(activeQuest);
             this.plugin.settings.currentXp = Math.max(0, this.plugin.settings.currentXp - restored.xp);
@@ -5256,7 +5050,6 @@ var require_render = __commonJS({
             this.plugin.settings.coins = Math.max(0, (this.plugin.settings.coins || 0) - coins);
             this.revokeSkillXp(restored.xp, restored.skillIds);
             await this.plugin.saveSettings();
-            if (hadNote) await writeQuestFile(this.plugin, activeQuest);
             overlay.removeClass("open");
             this.updateHeader();
             this.renderCompletedList(this._completedListContainer);
@@ -5321,7 +5114,6 @@ var require_render = __commonJS({
               return;
             }
             this.plugin.settings.completedHabits.splice(idx, 1);
-            await retireNote(this.plugin, [completedHabitNotePath(this.plugin, habit, habit.completedAt)]);
             this.plugin.settings.currentXp = Math.max(0, this.plugin.settings.currentXp - habit.xp);
             this.revokeSkillXp(habit.xp, habit.skillIds);
             await this.plugin.saveSettings();
@@ -5388,7 +5180,6 @@ var require_render = __commonJS({
       _QuestLogView.safeName = safeName;
       _QuestLogView.formatDate = formatDate;
       _QuestLogView.formatHabitTimestamp = formatHabitTimestamp;
-      _QuestLogView.writeSidecarAtomic = writeSidecarAtomic;
       var QuestLogView = _QuestLogView;
       return { QuestLogView, QUESTLOG_VIEW_TYPE: QUESTLOG_VIEW_TYPE2, Xp, loadSnapshot };
     }
