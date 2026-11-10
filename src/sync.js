@@ -160,6 +160,13 @@ function createLiveSync(plugin, hooks, opts) {
   let running = null;
   let rerun = false;
   let stopped = true;
+  /**
+   * Armed by baseline(), NOT by start().
+   * The clobber guard protects every save, and saves can happen before the poll loop starts
+   * (onload finishes hydrating, then start() runs). Keying the guard off `stopped` silently
+   * disabled merging in that window, which is exactly when a stale memory write is dangerous.
+   */
+  let baselined = false;
   let timer = null;
   let interval = null;
   let mergeInfo = null;
@@ -214,6 +221,7 @@ function createLiveSync(plugin, hooks, opts) {
     adoptBlob(plugin, clone(d.parsed));
     setSynced(d.text, d.parsed);
     lastSig = await statSig();
+    baselined = true;
     return true;
   }
 
@@ -330,7 +338,7 @@ function createLiveSync(plugin, hooks, opts) {
   /** @param {object} mem current in-memory blob @returns {Promise<{blob?:object, skipWrite?:boolean}>} */
   async function beforeSave(mem) {
     mergeInfo = null;
-    if (!synced || stopped) return {};
+    if (!synced || !baselined) return {};
     let d = await readDisk();
     for (let i = 0; i < 3 && d.state === "invalid"; i++) {
       await new Promise((r) => g.setTimeout(r, 200)); // partial file mid-sync? give it a moment
@@ -441,6 +449,7 @@ function createLiveSync(plugin, hooks, opts) {
     start,
     stop,
     baseline,
+    isBaselined: () => baselined,
     /** Force an immediate content check (view open / activateView). Resolves after the check (and adoption). */
     checkNow: (reason) => check(reason || "manual"),
     beforeSave,
